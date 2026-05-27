@@ -1,0 +1,115 @@
+.comment-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  .tool-btn {
+    width: 30px;
+    height: 28px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+
+    &:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+
+    strong { font-size: 0.95rem; }
+    em { font-style: italic; font-size: 0.95rem; }
+  }
+
+  .toolbar-hint {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+}
+
+.editor-textarea {
+  min-height: 80px;
+  resize: vertical;
+  font-size: 0.88rem;
+  line-height: 1.5;
+
+  .compact & { min-height: 60px; }
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// ── Emoji Picker ─────────────────────────────────────────────────────────────
+.emoji-picker-wrapper {
+  position: relative;
+}
+
+.emoji-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 280px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 300;
+  overflow: hidden;
+}
+
+.emoji-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  padding: 4px 4px 0;
+  gap: 2px;
+
+  .emoji-tab {
+    flex: 1;
+    padding: 6px 4px;
+    background: none;
+    border: none;
+    border-radius: 6px 6px 0 0;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-muted);
+
+    &:hover { background: rgba(255,255,255,0.05); }
+    &.active { background: rgba(233,69,96,0.15); border-bottom: 2px solid var(--accent-primary); }
+  }
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  padding: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.emoji-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: transform 0.1s ease;
+
+  &:hover { transform: scale(1.3); background: rgba(255,255,255,0.06); }
+}

@@ -1,0 +1,34 @@
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="row g-4">
+      <div class="col-12 col-md-4">
+        <div class="footer-brand">
+          <span class="brand-name">Yahallo</span>
+          <p>{{ 'FOOTER.TAGLINE' | translate }}</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <h6>{{ 'FOOTER.EXPLORE' | translate }}</h6>
+        <ul>
+          <li><a routerLink="/">{{ 'NAV.HOME' | translate }}</a></li>
+          <li><a routerLink="/top-manga">{{ 'NAV.TOP_MANGA' | translate }}</a></li>
+          <li><a routerLink="/search/advanced">{{ 'NAV.ADVANCED_SEARCH' | translate }}</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-md-2">
+        <h6>{{ 'FOOTER.ACCOUNT' | translate }}</h6>
+        <ul>
+          <li><a routerLink="/auth/login">{{ 'NAV.LOGIN' | translate }}</a></li>
+          <li><a routerLink="/auth/register">{{ 'NAV.REGISTER' | translate }}</a></li>
+        </ul>
+      </div>
+      <div class="col-12 col-md-4">
+        <h6>{{ 'FOOTER.CONTACT' | translate }}</h6>
+        <p class="contact-text">{{ 'FOOTER.CONTACT_TEXT' | translate }}</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; {{ currentYear }} Yahallo. {{ 'FOOTER.ALL_RIGHTS' | translate }}</p>
+    </div>
+  </div>
+</footer>

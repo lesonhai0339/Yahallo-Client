@@ -1,0 +1,52 @@
+<div class="comment-editor" [class.compact]="compact">
+  <!-- Toolbar -->
+  <div class="editor-toolbar">
+    <button type="button" class="tool-btn" (click)="bold()" title="{{ 'COMMENT.BOLD' | translate }}">
+      <strong>B</strong>
+    </button>
+    <button type="button" class="tool-btn" (click)="italic()" title="{{ 'COMMENT.ITALIC' | translate }}">
+      <em>I</em>
+    </button>
+    <button type="button" class="tool-btn" (click)="quote()" title="{{ 'COMMENT.QUOTE_BTN' | translate }}">
+      <i class="fa-solid fa-quote-left"></i>
+    </button>
+    <div class="emoji-picker-wrapper">
+      <button type="button" class="tool-btn" (click)="showEmojiPicker = !showEmojiPicker"
+        title="{{ 'COMMENT.EMOJI' | translate }}">
+        <i class="fa-regular fa-face-smile"></i>
+      </button>
+      <!-- Emoji Panel -->
+      <div class="emoji-panel" *ngIf="showEmojiPicker" (click)="$event.stopPropagation()">
+        <div class="emoji-tabs">
+          <button *ngFor="let g of emojiGroups; let i = index"
+            class="emoji-tab" [class.active]="activeEmojiGroup === i"
+            (click)="activeEmojiGroup = i">{{ g.label }}</button>
+        </div>
+        <div class="emoji-grid">
+          <button *ngFor="let e of emojiGroups[activeEmojiGroup].emojis"
+            class="emoji-btn" (click)="addEmoji(e)">{{ e }}</button>
+        </div>
+      </div>
+    </div>
+    <span class="toolbar-hint">Ctrl+Enter {{ 'COMMENT.TO_SEND' | translate }}</span>
+  </div>
+
+  <!-- Textarea -->
+  <textarea #textarea
+    class="editor-textarea form-control"
+    [(ngModel)]="content"
+    [placeholder]="placeholder"
+    (keydown)="onKeydown($event)"
+    rows="3">
+  </textarea>
+
+  <!-- Actions -->
+  <div class="editor-actions">
+    <button type="button" class="btn btn-secondary btn-sm" (click)="cancel()">
+      {{ 'COMMENT.CANCEL' | translate }}
+    </button>
+    <button type="button" class="btn btn-primary btn-sm" (click)="submit()" [disabled]="!content.trim()">
+      <i class="fa-regular fa-paper-plane me-1"></i>{{ 'COMMENT.SUBMIT' | translate }}
+    </button>
+  </div>
+</div>

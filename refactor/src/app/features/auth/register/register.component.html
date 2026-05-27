@@ -1,0 +1,55 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <a class="brand" routerLink="/">Yahallo</a>
+      <h2>{{ 'AUTH.REGISTER_TITLE' | translate }}</h2>
+      <p>{{ 'AUTH.REGISTER_SUBTITLE' | translate }}</p>
+    </div>
+    <form (ngSubmit)="submit()" class="auth-form">
+      <div class="form-group">
+        <label>{{ 'AUTH.USERNAME' | translate }}</label>
+        <div class="input-wrapper">
+          <i class="fa-regular fa-user"></i>
+          <input type="text" class="form-control" [(ngModel)]="username" name="username"
+            [placeholder]="'AUTH.USERNAME_PLACEHOLDER' | translate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ 'AUTH.EMAIL' | translate }}</label>
+        <div class="input-wrapper">
+          <i class="fa-regular fa-envelope"></i>
+          <input type="email" class="form-control" [(ngModel)]="email" name="email"
+            [placeholder]="'AUTH.EMAIL_PLACEHOLDER' | translate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ 'AUTH.PASSWORD' | translate }}</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-lock"></i>
+          <input [type]="showPassword ? 'text' : 'password'" class="form-control"
+            [(ngModel)]="password" name="password"
+            [placeholder]="'AUTH.PASSWORD_PLACEHOLDER' | translate">
+          <button type="button" class="toggle-pw" (click)="showPassword = !showPassword">
+            <i [class]="showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"></i>
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ 'AUTH.CONFIRM_PASSWORD' | translate }}</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-lock"></i>
+          <input [type]="showPassword ? 'text' : 'password'" class="form-control"
+            [(ngModel)]="confirmPassword" name="confirmPassword"
+            [placeholder]="'AUTH.CONFIRM_PASSWORD_PLACEHOLDER' | translate">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-submit" [disabled]="isLoading">
+        <span class="spinner-border spinner-border-sm me-2" *ngIf="isLoading"></span>
+        {{ (isLoading ? 'AUTH.REGISTERING' : 'AUTH.REGISTER_BTN') | translate }}
+      </button>
+    </form>
+    <div class="auth-alt">
+      {{ 'AUTH.HAVE_ACCOUNT' | translate }} <a routerLink="/auth/login">{{ 'AUTH.LOGIN_LINK' | translate }}</a>
+    </div>
+  </div>
+</div>

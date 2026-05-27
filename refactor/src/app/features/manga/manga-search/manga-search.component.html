@@ -1,0 +1,49 @@
+<div class="search-page container py-4">
+  <h1 class="page-title"><i class="fa-solid fa-search me-2"></i>{{ 'SEARCH.TITLE' | translate }}</h1>
+
+  <!-- Search Input -->
+  <div class="search-box mb-4">
+    <div class="search-input-group">
+      <i class="fa-solid fa-search"></i>
+      <input type="text" class="form-control" [(ngModel)]="searchQuery"
+        (input)="onSearchInput()" [placeholder]="'SEARCH.PLACEHOLDER' | translate">
+      <button class="btn btn-primary" (click)="doSearch(searchQuery)">
+        {{ 'SEARCH.SEARCH_BTN' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Category Filter -->
+  <div class="filter-section mb-4">
+    <h3 class="filter-title">{{ 'SEARCH.FILTER_BY_GENRE' | translate }}</h3>
+    <div class="tag-filter-grid">
+      <button class="tag-chip" *ngFor="let cat of categories"
+        [class.active]="isCategorySelected(cat.genreId)"
+        (click)="toggleCategory(cat.genreId)">{{ cat.genresIdName }}</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-section">
+    <div class="results-header" *ngIf="hasSearched">
+      <span>{{ results.length }} {{ 'SEARCH.RESULTS_COUNT' | translate }}</span>
+    </div>
+
+    <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
+
+    <div class="manga-grid" *ngIf="!isLoading && results.length > 0">
+      <app-manga-card *ngFor="let m of results" [manga]="m" [showTags]="true"></app-manga-card>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">
+      <i class="fa-regular fa-face-sad-tear"></i>
+      <h3>{{ 'SEARCH.NO_RESULTS' | translate }}</h3>
+      <p>{{ 'SEARCH.NO_RESULTS_HINT' | translate }}</p>
+    </div>
+
+    <div class="initial-state" *ngIf="!isLoading && !hasSearched">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <p>{{ 'SEARCH.INITIAL_HINT' | translate }}</p>
+    </div>
+  </div>
+</div>

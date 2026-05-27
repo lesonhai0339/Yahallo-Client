@@ -1,0 +1,186 @@
+<div class="detail-page" *ngIf="!isLoading && manga">
+
+  <!-- Hero Banner -->
+  <div class="detail-hero" [style.backgroundImage]="'url('+manga.mangaImage+')'">
+    <div class="hero-overlay">
+      <div class="container">
+        <div class="hero-content">
+          <div class="manga-cover">
+            <img [src]="manga.mangaImage" [alt]="manga.mangaName" appImageFallback>
+          </div>
+          <div class="manga-hero-info">
+            <div class="breadcrumb-nav">
+              <a routerLink="/">{{ 'MANGA.BREADCRUMB_HOME' | translate }}</a>
+              <i class="fa-solid fa-chevron-right"></i>
+              <span>{{ manga.mangaName }}</span>
+            </div>
+            <h1 class="manga-title">{{ manga.mangaName }}</h1>
+            <div class="category-list">
+              <a class="tag-chip" *ngFor="let cat of manga.listcategory | slice:0:5"
+                 [routerLink]="['/the-loai', cat.genreId]">{{ cat.genresIdName }}</a>
+              <span class="tag-chip tag-chip--accent" *ngFor="let tag of manga.tags | slice:0:3">
+                # {{ tag.name }}
+              </span>
+            </div>
+            <div class="manga-stats-row">
+              <div class="stat-box">
+                <i class="fa-solid fa-eye"></i>
+                <span>{{ formatNumber(manga.totalViews ?? manga.view) }}</span>
+                <small>{{ 'MANGA.VIEWS' | translate }}</small>
+              </div>
+              <div class="stat-box">
+                <i class="fa-solid fa-star" style="color:#ffd700"></i>
+                <span>{{ (manga.averageRating ?? manga.rating)?.toFixed?.(1) ?? '—' }}</span>
+                <small>{{ 'MANGA.RATING' | translate }}</small>
+              </div>
+              <div class="stat-box">
+                <i class="fa-regular fa-heart" style="color:var(--accent-primary)"></i>
+                <span>{{ formatNumber(manga.totalFollows ?? 0) }}</span>
+                <small>{{ 'MANGA.FOLLOWS' | translate }}</small>
+              </div>
+              <div class="stat-box">
+                <i class="fa-solid fa-book-open"></i>
+                <span>{{ manga.totalChapters ?? chapters.length }}</span>
+                <small>{{ 'MANGA.CHAPTERS' | translate }}</small>
+              </div>
+            </div>
+            <div class="manga-actions">
+              <a class="btn btn-primary btn-lg" *ngIf="chapters.length > 0"
+                 [href]="readChapter(chapters[0])">
+                <i class="fa-solid fa-book-open me-2"></i>{{ 'MANGA.READ_FROM_START' | translate }}
+              </a>
+              <a class="btn btn-secondary btn-lg" *ngIf="chapters.length > 0"
+                 [href]="readChapter(chapters[chapters.length-1])">
+                <i class="fa-solid fa-forward me-2"></i>{{ 'MANGA.READ_LATEST' | translate }}
+              </a>
+              <button class="btn btn-lg"
+                [class.btn-danger]="!isFollowing" [class.btn-secondary]="isFollowing"
+                (click)="toggleFollow()">
+                <i [class]="isFollowing ? 'fa-solid fa-heart-crack me-2' : 'fa-regular fa-heart me-2'"></i>
+                {{ (isFollowing ? 'MANGA.UNFOLLOW' : 'MANGA.FOLLOW') | translate }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Body -->
+  <div class="container mt-4">
+    <div class="detail-layout">
+      <main class="detail-main">
+
+        <!-- Info Card -->
+        <div class="info-card card mb-4">
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-row">
+                <span class="info-label"><i class="fa-solid fa-user-pen me-2"></i>{{ 'MANGA.AUTHOR' | translate }}</span>
+                <span class="info-value">{{ authorNames || ('MANGA.UNKNOWN' | translate) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-solid fa-pen-nib me-2"></i>{{ 'MANGA.ARTIST' | translate }}</span>
+                <span class="info-value">{{ artistNames || ('MANGA.UNKNOWN' | translate) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-solid fa-circle-dot me-2"></i>{{ 'MANGA.STATUS' | translate }}</span>
+                <span class="info-value">
+                  <span class="status-badge" [class.completed]="manga.status">
+                    {{ (manga.status ? 'MANGA.STATUS_COMPLETED' : 'MANGA.STATUS_ONGOING') | translate }}
+                  </span>
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label"><i class="fa-regular fa-calendar me-2"></i>{{ 'MANGA.UPDATED' | translate }}</span>
+                <span class="info-value">{{ formatDate(manga.dateupdate) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Synopsis -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h3 class="card-section-title"><i class="fa-solid fa-book me-2"></i>{{ 'MANGA.SYNOPSIS' | translate }}</h3>
+            <p class="synopsis-text">{{ manga.mangaDetails }}</p>
+          </div>
+        </div>
+
+        <!-- Rating -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h3 class="card-section-title"><i class="fa-solid fa-star me-2"></i>{{ 'MANGA.RATE_MANGA' | translate }}</h3>
+            <div class="rating-stars">
+              <button *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="star-btn"
+                [class.filled]="i <= (hoverRating || selectedRating)"
+                (mouseenter)="hoverRating=i" (mouseleave)="hoverRating=0"
+                (click)="selectedRating=i">
+                <i class="fa-solid fa-star"></i>
+              </button>
+            </div>
+            <div class="d-flex align-items-center gap-3 mt-3">
+              <span class="rating-display">{{ selectedRating }}{{ 'MANGA.RATING_OUT_OF' | translate }}</span>
+              <button class="btn btn-primary btn-sm" (click)="submitRating()" [disabled]="selectedRating === 0">
+                {{ 'MANGA.CONFIRM_RATING' | translate }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chapter List -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h3 class="card-section-title">
+              <i class="fa-solid fa-list me-2"></i>{{ 'MANGA.CHAPTER_LIST' | translate }} ({{ chapters.length }})
+            </h3>
+            <div class="chapter-header-row">
+              <span>{{ 'MANGA.CHAPTER_COL' | translate }}</span>
+              <span>{{ 'MANGA.TITLE_COL' | translate }}</span>
+              <span>{{ 'MANGA.DATE_COL' | translate }}</span>
+            </div>
+            <div class="chapter-list">
+              <a class="chapter-item" *ngFor="let ch of visibleChapters" [href]="readChapter(ch)">
+                <span class="chapter-name">{{ ch.chapterName }}</span>
+                <span class="chapter-title">{{ ch.chapterTitle }}</span>
+                <span class="chapter-date">{{ formatDate(ch.chapterDate) }}</span>
+              </a>
+            </div>
+            <div class="chapter-toggle" *ngIf="chapters.length > 10">
+              <button class="btn btn-secondary btn-sm" (click)="showAllChapters = !showAllChapters">
+                <i [class]="showAllChapters ? 'fa-solid fa-chevron-up me-1' : 'fa-solid fa-chevron-down me-1'"></i>
+                <ng-container *ngIf="!showAllChapters">
+                  {{ 'MANGA.SEE_MORE' | translate }} {{ chapters.length - 10 }} {{ 'MANGA.SHOW_MORE_CHAPTERS' | translate }}
+                </ng-container>
+                <ng-container *ngIf="showAllChapters">{{ 'MANGA.HIDE' | translate }}</ng-container>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <app-comment-section [mangaId]="mangaId"></app-comment-section>
+          </div>
+        </div>
+      </main>
+
+      <aside class="detail-side">
+        <div class="card">
+          <div class="card-body text-center p-4">
+            <i class="fa-solid fa-compass fa-3x mb-3" style="color:var(--accent-secondary)"></i>
+            <p class="text-muted">{{ 'COMMON.EXPLORE' | translate }}</p>
+            <a routerLink="/" class="btn btn-primary btn-sm mt-2">{{ 'COMMON.BACK_HOME' | translate }}</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<div class="loading-state container py-5" *ngIf="isLoading">
+  <div class="d-flex justify-content-center">
+    <div class="spinner-border" style="color:var(--accent-primary)" role="status"></div>
+  </div>
+</div>

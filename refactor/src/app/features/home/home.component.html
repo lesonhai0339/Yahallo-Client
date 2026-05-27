@@ -1,0 +1,93 @@
+<div class="home-page">
+
+  <!-- Trending Section -->
+  <section class="trending-section" *ngIf="trendingManga.length > 0">
+    <div class="container-fluid px-3 px-md-4">
+      <div class="section-header">
+        <h2 class="section-header__title"><i class="fa-solid fa-fire"></i>{{ 'HOME.TRENDING' | translate }}</h2>
+        <a routerLink="/top-manga">{{ 'HOME.SEE_MORE' | translate }}</a>
+      </div>
+      <div class="trending-grid">
+        <div class="trending-card" *ngFor="let m of trendingManga | slice:0:6; let i = index"
+          [routerLink]="['/manga', m.mangaId, m.mangaName]">
+          <div class="rank-badge">#{{ i + 1 }}</div>
+          <img [src]="m.mangaImage" [alt]="m.mangaName" appImageFallback loading="lazy">
+          <div class="trending-overlay">
+            <h4>{{ m.mangaName }}</h4>
+            <p *ngIf="m.listChaper?.[0]">{{ m.listChaper[0].chapterName }}</p>
+            <div class="trending-stats">
+              <span><i class="fa-solid fa-eye me-1"></i>{{ m.totalViews ?? m.view }}</span>
+              <span><i class="fa-solid fa-star me-1" style="color:#ffd700"></i>{{ m.averageRating?.toFixed?.(1) ?? m.rating }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <div class="container-fluid px-3 px-md-4 mt-4">
+    <div class="main-layout">
+
+      <!-- Manga Grid -->
+      <main class="main-content">
+        <div class="section-header">
+          <h2 class="section-header__title">
+            <i class="fa-solid fa-clock-rotate-left"></i>{{ 'HOME.LATEST_UPDATE' | translate }}
+          </h2>
+        </div>
+
+        <app-loading-skeleton *ngIf="isLoading" [count]="18" [cols]="6"></app-loading-skeleton>
+
+        <div class="manga-grid" *ngIf="!isLoading">
+          <app-manga-card *ngFor="let manga of latestManga" [manga]="manga" [showTags]="false"></app-manga-card>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-wrapper" *ngIf="!isLoading && totalPages > 1">
+          <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
+            <i class="fa-solid fa-backward-step"></i>
+          </button>
+          <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button class="page-btn" *ngFor="let page of paginationPages"
+            [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
+          <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
+            <i class="fa-solid fa-forward-step"></i>
+          </button>
+        </div>
+      </main>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title"><i class="fa-solid fa-tags me-2"></i>{{ 'HOME.CATEGORIES' | translate }}</h3>
+          <div class="category-grid">
+            <a class="category-chip" *ngFor="let cat of categories | slice:0:20"
+               [routerLink]="['/the-loai', cat.genreId]">{{ cat.genresIdName }}</a>
+          </div>
+        </div>
+
+        <div class="sidebar-section mt-4">
+          <h3 class="sidebar-title"><i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_MONTH' | translate }}</h3>
+          <div class="top-list">
+            <a class="top-item" *ngFor="let m of trendingManga | slice:0:5; let i = index"
+               [routerLink]="['/manga', m.mangaId, m.mangaName]">
+              <span class="top-rank" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{ i+1 }}</span>
+              <img [src]="m.mangaImage" [alt]="m.mangaName" appImageFallback>
+              <div class="top-info">
+                <span class="top-name">{{ m.mangaName }}</span>
+                <span class="top-views"><i class="fa-solid fa-eye me-1"></i>{{ m.totalViews ?? m.view }}</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,196 @@
+<div class="comment-item" [class.is-reply]="isReply" [class.deleted]="isDeleted">
+
+  <!-- Avatar -->
+  <div class="comment-avatar">
+    <img [src]="comment.avatar || 'assets/images/default-avatar.png'"
+         [alt]="comment.name"
+         appImageFallback="assets/images/default-avatar.png">
+  </div>
+
+  <div class="comment-body">
+
+    <!-- Header -->
+    <div class="comment-header">
+      <span class="comment-author">{{ comment.name }}</span>
+      <span *ngIf="showChapterLabel && comment.chapterName" class="chapter-badge">
+        <i class="fa-solid fa-book-open me-1"></i>{{ comment.chapterName }}
+      </span>
+      <span class="comment-time" [title]="comment.dateComment">
+        {{ formatRelativeTime(comment.dateComment) }}
+      </span>
+      <span *ngIf="comment.isEdited && !isDeleted" class="edited-badge">
+        ({{ 'COMMENT.EDITED' | translate }})
+      </span>
+    </div>
+
+    <!-- Content -->
+    <div class="comment-content">
+      <ng-container *ngIf="!isDeleted; else deletedBlock">
+        <ng-container *ngIf="!isEditing; else editBlock">
+          <div class="comment-text" [innerHTML]="comment.commentData | formatText"></div>
+        </ng-container>
+
+        <!-- Inline edit editor -->
+        <ng-template #editBlock>
+          <app-comment-editor
+            [initialValue]="comment.commentData"
+            [autoFocus]="true"
+            [compact]="true"
+            (submitted)="submitEdit($event)"
+            (cancelled)="isEditing = false">
+          </app-comment-editor>
+        </ng-template>
+      </ng-container>
+
+      <!-- Deleted state -->
+      <ng-template #deletedBlock>
+        <p class="deleted-text">
+          <i class="fa-solid fa-ban me-1"></i>{{ 'COMMENT.DELETED_MSG' | translate }}
+        </p>
+      </ng-template>
+    </div>
+
+    <!-- Action bar -->
+    <div class="comment-actions" *ngIf="!isEditing">
+
+      <!-- Like -->
+      <button class="action-btn" [class.active]="comment.userReaction === 'like'"
+              (click)="react('like')" [title]="'COMMENT.LIKE' | translate">
+        <i class="fa-solid fa-thumbs-up"></i>
+        <span *ngIf="comment.likeCount">{{ comment.likeCount }}</span>
+      </button>
+
+      <!-- Dislike -->
+      <button class="action-btn" [class.active]="comment.userReaction === 'dislike'"
+              (click)="react('dislike')" [title]="'COMMENT.DISLIKE' | translate">
+        <i class="fa-solid fa-thumbs-down"></i>
+        <span *ngIf="comment.dislikeCount">{{ comment.dislikeCount }}</span>
+      </button>
+
+      <ng-container *ngIf="!isDeleted">
+        <!-- Reply -->
+        <button *ngIf="!isReply" class="action-btn" (click)="startReply()">
+          <i class="fa-solid fa-reply"></i>
+          {{ 'COMMENT.REPLY' | translate }}
+        </button>
+
+        <!-- Quote -->
+        <button class="action-btn" (click)="quoteComment()">
+          <i class="fa-solid fa-quote-left"></i>
+          {{ 'COMMENT.QUOTE' | translate }}
+        </button>
+
+        <!-- Owner actions -->
+        <ng-container *ngIf="isOwner">
+          <button class="action-btn" (click)="startEdit()">
+            <i class="fa-solid fa-pen"></i>
+            {{ 'COMMENT.EDIT' | translate }}
+          </button>
+          <button class="action-btn danger" (click)="confirmDelete()">
+            <i class="fa-solid fa-trash"></i>
+            {{ 'COMMENT.DELETE' | translate }}
+          </button>
+        </ng-container>
+      </ng-container>
+    </div>
+
+    <!-- Confirm delete bar -->
+    <div class="confirm-delete" *ngIf="showConfirmDelete">
+      <span>{{ 'COMMENT.CONFIRM_DELETE' | translate }}</span>
+      <button class="btn btn-danger btn-xs" (click)="executeDelete()">
+        {{ 'COMMENT.YES' | translate }}
+      </button>
+      <button class="btn btn-secondary btn-xs" (click)="cancelDelete()">
+        {{ 'COMMENT.NO' | translate }}
+      </button>
+    </div>
+
+    <!-- Inline reply editor -->
+    <div class="reply-editor-wrap" *ngIf="isReplying">
+      <app-comment-editor
+        #replyEditor
+        [placeholder]="('COMMENT.REPLY_PLACEHOLDER' | translate) + ' @' + comment.name + '...'"
+        [autoFocus]="true"
+        [compact]="true"
+        (submitted)="submitReply($event)"
+        (cancelled)="isReplying = false">
+      </app-comment-editor>
+    </div>
+
+    <!-- Replies section (root comments only) -->
+    <div class="replies-section" *ngIf="!isReply">
+
+      <!-- Toggle replies -->
+      <button *ngIf="(comment.replyCount ?? 0) > 0" class="toggle-replies-btn"
+              (click)="toggleReplies()">
+        <ng-container *ngIf="repliesLoading">
+          <i class="fa-solid fa-spinner fa-spin me-1"></i>{{ 'COMMENT.LOADING' | translate }}
+        </ng-container>
+        <ng-container *ngIf="!repliesLoading">
+          <i class="fa-solid fa-chevron-down me-1" [class.rotated]="comment.showReplies"></i>
+          <span *ngIf="!comment.showReplies">
+            {{ 'COMMENT.VIEW_REPLIES' | translate: { count: (comment.replyCount ?? 0).toString() } }}
+          </span>
+          <span *ngIf="comment.showReplies">{{ 'COMMENT.HIDE_REPLIES' | translate }}</span>
+        </ng-container>
+      </button>
+
+      <!-- Reply list -->
+      <div class="replies-list" *ngIf="comment.showReplies && comment.replies?.length">
+        <div class="reply-item" *ngFor="let reply of comment.replies">
+
+          <!-- Deleted reply -->
+          <ng-container *ngIf="reply.isDeleted; else liveReply">
+            <div class="comment-avatar reply-avatar">
+              <img src="assets/images/default-avatar.png" alt="">
+            </div>
+            <div class="comment-body">
+              <p class="deleted-text">
+                <i class="fa-solid fa-ban me-1"></i>{{ 'COMMENT.DELETED_MSG' | translate }}
+              </p>
+            </div>
+          </ng-container>
+
+          <ng-template #liveReply>
+            <div class="comment-avatar reply-avatar">
+              <img [src]="reply.avatar || 'assets/images/default-avatar.png'"
+                   [alt]="reply.name"
+                   appImageFallback="assets/images/default-avatar.png">
+            </div>
+            <div class="comment-body">
+              <div class="comment-header">
+                <span class="comment-author">{{ reply.name }}</span>
+                <span class="comment-time">{{ formatRelativeTime(reply.date) }}</span>
+                <span *ngIf="reply.isEdited" class="edited-badge">({{ 'COMMENT.EDITED' | translate }})</span>
+              </div>
+              <div class="comment-text" [innerHTML]="reply.data | formatText"></div>
+              <div class="comment-actions">
+                <button class="action-btn" [class.active]="reply.userReaction === 'like'"
+                        (click)="reactToReply(reply, 'like')">
+                  <i class="fa-solid fa-thumbs-up"></i>
+                  <span *ngIf="reply.likeCount">{{ reply.likeCount }}</span>
+                </button>
+                <button class="action-btn" [class.active]="reply.userReaction === 'dislike'"
+                        (click)="reactToReply(reply, 'dislike')">
+                  <i class="fa-solid fa-thumbs-down"></i>
+                  <span *ngIf="reply.dislikeCount">{{ reply.dislikeCount }}</span>
+                </button>
+                <button class="action-btn" (click)="quoteComment()">
+                  <i class="fa-solid fa-quote-left"></i>
+                  {{ 'COMMENT.QUOTE' | translate }}
+                </button>
+                <button *ngIf="currentUser && currentUser.id === reply.idUser"
+                        class="action-btn danger" (click)="deleteReply(reply)">
+                  <i class="fa-solid fa-trash"></i>
+                  {{ 'COMMENT.DELETE' | translate }}
+                </button>
+              </div>
+            </div>
+          </ng-template>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

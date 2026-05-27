@@ -1,0 +1,85 @@
+<section class="comment-section">
+
+  <!-- Header -->
+  <div class="section-header comment-section-header">
+    <h3 class="section-title">
+      <i class="fa-regular fa-comments me-2"></i>
+      {{ 'COMMENT.TITLE' | translate }}
+      <span class="count-badge" *ngIf="totalCount">{{ totalCount }}</span>
+    </h3>
+  </div>
+
+  <!-- Top editor -->
+  <div class="top-editor-wrap" *ngIf="currentUser; else loginPrompt">
+    <div class="editor-user-row">
+      <img [src]="currentUser.avatar || 'assets/images/default-avatar.png'"
+           [alt]="currentUser.name"
+           class="editor-avatar"
+           appImageFallback="assets/images/default-avatar.png">
+    </div>
+    <app-comment-editor
+      #topEditor
+      [placeholder]="'COMMENT.PLACEHOLDER' | translate"
+      (submitted)="submitComment($event)">
+    </app-comment-editor>
+  </div>
+
+  <ng-template #loginPrompt>
+    <div class="login-prompt">
+      <i class="fa-regular fa-comment-dots me-2"></i>
+      <a routerLink="/auth/login">{{ 'AUTH.LOGIN_BTN' | translate }}</a>
+      {{ 'COMMENT.LOGIN_TO_COMMENT' | translate }}
+    </div>
+  </ng-template>
+
+  <!-- Loading -->
+  <div class="comments-loading" *ngIf="loading">
+    <div class="skeleton-comment" *ngFor="let i of [1,2,3]">
+      <div class="skeleton skeleton-avatar"></div>
+      <div class="skeleton-lines">
+        <div class="skeleton skeleton-line short"></div>
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line medium"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-comments" *ngIf="!loading && comments.length === 0">
+    <i class="fa-regular fa-comment fa-2x mb-2"></i>
+    <p>{{ 'COMMENT.EMPTY' | translate }}</p>
+  </div>
+
+  <!-- Comment list -->
+  <div class="comments-list" *ngIf="!loading && comments.length > 0">
+    <app-comment-item
+      *ngFor="let c of displayedComments"
+      [comment]="c"
+      [showChapterLabel]="!!chapterId === false"
+      (quoteRequest)="onQuoteRequest($event)">
+    </app-comment-item>
+  </div>
+
+  <!-- Show more (first 50 without pagination) -->
+  <div class="show-more-wrap" *ngIf="canShowMore">
+    <button class="btn btn-outline-secondary btn-sm" (click)="showMore()">
+      <i class="fa-solid fa-chevron-down me-1"></i>
+      {{ 'COMMENT.SHOW_MORE' | translate }}
+    </button>
+  </div>
+
+  <!-- Pagination (> 50 total) -->
+  <div class="pagination-wrapper" *ngIf="usePagination && totalPages > 1">
+    <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <ng-container *ngFor="let p of [].constructor(totalPages); let i = index">
+      <button class="page-btn" [class.active]="currentPage === i + 1"
+              (click)="goToPage(i + 1)">{{ i + 1 }}</button>
+    </ng-container>
+    <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+
+</section>

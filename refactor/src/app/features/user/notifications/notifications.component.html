@@ -1,0 +1,32 @@
+<div class="notif-page container py-4">
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fa-regular fa-bell me-2"></i>{{ 'NOTIF.TITLE' | translate }}</h1>
+    <button class="btn btn-secondary btn-sm" (click)="markAllRead()" *ngIf="notifications.length > 0">
+      <i class="fa-solid fa-check-double me-1"></i>{{ 'NOTIF.MARK_ALL_READ' | translate }}
+    </button>
+  </div>
+
+  <div class="notif-list card" *ngIf="!isLoading">
+    <div class="notif-item" *ngFor="let n of notifications"
+      (click)="markRead(n)" [class.unread]="!n.isRead">
+      <div class="notif-img">
+        <img [src]="n.targetImage ?? n.imagerarget" [alt]="n.target" appImageFallback>
+      </div>
+      <div class="notif-body">
+        <p>{{ n.message }}</p>
+        <span class="notif-date">{{ n.date | date:'dd/MM/yyyy - HH:mm' }}</span>
+      </div>
+      <div class="notif-status" *ngIf="!n.isRead">
+        <span class="unread-dot"></span>
+      </div>
+    </div>
+    <div class="empty-state" *ngIf="notifications.length === 0">
+      <i class="fa-regular fa-bell-slash"></i>
+      <p>{{ 'NOTIF.NO_NOTIF' | translate }}</p>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-center py-4" *ngIf="isLoading">
+    <div class="spinner-border" style="color:var(--accent-primary)"></div>
+  </div>
+</div>
