@@ -1,0 +1,216 @@
+<header class="site-header" [class.scrolled]="isScrolled">
+  <div class="header-inner">
+
+    <!-- Logo -->
+    <a class="logo" routerLink="/">
+      <span class="logo-text">Yahallo</span>
+      <span class="logo-dot"></span>
+    </a>
+
+    <!-- Desktop Nav -->
+    <nav class="main-nav d-none d-lg-flex">
+      <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+        <i class="fa-solid fa-house me-1"></i>{{ 'NAV.HOME' | translate }}
+      </a>
+      <div class="nav-dropdown" >
+        <span class="nav-link">{{ 'NAV.CATEGORIES' | translate }} <i class="fa-solid fa-chevron-down ms-1"></i></span>
+        <div class="dropdown-menu-custom">
+          <div class="dropdown-grid">
+            <a *ngFor="let cat of categories | slice:0:24"
+               [routerLink]="['/the-loai', cat.genreId]"
+               class="dropdown-item-custom">{{ cat.genresIdName }}</a>
+          </div>
+        </div>
+      </div>
+      <a class="nav-link" routerLink="/top-manga">{{ 'NAV.TOP_MANGA' | translate }}</a>
+      <a class="nav-link" routerLink="/search/advanced">{{ 'NAV.ADVANCED_SEARCH' | translate }}</a>
+    </nav>
+
+    <!-- Actions -->
+    <div class="header-actions">
+
+      <!-- Search -->
+      <div class="search-wrapper" [class.open]="isSearchOpen">
+        <button class="icon-btn" (click)="isSearchOpen = !isSearchOpen" [title]="'NAV.ADVANCED_SEARCH' | translate">
+          <i class="fa-solid fa-search"></i>
+        </button>
+        <div class="search-dropdown" *ngIf="isSearchOpen">
+          <div class="search-input-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input #searchInput type="text" [(ngModel)]="searchQuery"
+              (input)="onSearchInput()" (keydown.enter)="submitSearch()"
+              [placeholder]="'NAV.SEARCH_PLACEHOLDER' | translate" autofocus>
+            <button *ngIf="searchQuery" class="clear-btn" (click)="searchQuery=''; searchResults=[]"
+              [title]="'NAV.CLEAR' | translate">
+              <i class="fa-solid fa-times"></i>
+            </button>
+          </div>
+          <ul class="search-results" *ngIf="searchResults.length > 0">
+            <li *ngFor="let item of searchResults" (click)="goToManga(item)">
+              <img [src]="item.mangaImage" [alt]="item.mangaName" appImageFallback>
+              <div class="search-result-info">
+                <span class="name">{{ item.mangaName }}</span>
+                <span class="chapter">{{ item.listChaper?.[0]?.chapterName ?? '' }}</span>
+              </div>
+            </li>
+            <li class="view-all" (click)="submitSearch()">
+              {{ 'NAV.SEARCH_VIEW_ALL' | translate }} "{{ searchQuery }}"
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Notifications (logged in only) -->
+      <div class="notif-wrapper" *ngIf="isLoggedIn">
+        <button class="icon-btn notif-btn" (click)="isNotifOpen = !isNotifOpen"
+          [title]="'NAV.NOTIFICATIONS' | translate">
+          <i class="fa-regular fa-bell"></i>
+          <span class="badge-count" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+        </button>
+        <div class="notif-panel" *ngIf="isNotifOpen">
+          <div class="notif-header">
+            <span>{{ 'NAV.NOTIFICATIONS' | translate }}</span>
+            <a *ngIf="notifications.length"
+               [routerLink]="['/user', user?.id, user?.name, 'notifications']">
+              {{ 'NAV.VIEW_ALL' | translate }}
+            </a>
+          </div>
+          <ul class="notif-list">
+            <li *ngFor="let n of notifications" (click)="openNotif(n)" [class.unread]="!n.isRead">
+              <img [src]="n.targetImage || n.imagerarget" [alt]="n.target" appImageFallback>
+              <div class="notif-content">
+                <p>{{ n.message }}</p>
+                <span>{{ n.date | date:'dd/MM HH:mm' }}</span>
+              </div>
+            </li>
+            <li *ngIf="notifications.length === 0" class="notif-empty">
+              <i class="fa-regular fa-bell-slash"></i>
+              <p>{{ 'NAV.NO_NOTIFICATIONS' | translate }}</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Theme Toggle -->
+      <button class="icon-btn theme-btn"
+              (click)="themeService.toggle()"
+              [title]="themeService.isDark ? ('NAV.SWITCH_LIGHT' | translate) : ('NAV.SWITCH_DARK' | translate)">
+        <i [class]="themeService.isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
+      </button>
+
+      <!-- Language Switcher -->
+      <div class="lang-wrapper">
+        <button class="lang-btn" (click)="isLangOpen = !isLangOpen" [title]="'LANG.LABEL' | translate">
+          <span class="lang-flag">{{ langLabels[currentLang].flag }}</span>
+          <span class="lang-code">{{ langLabels[currentLang].label }}</span>
+          <i class="fa-solid fa-chevron-down lang-arrow" [class.rotated]="isLangOpen"></i>
+        </button>
+        <div class="lang-dropdown" *ngIf="isLangOpen">
+          <button *ngFor="let lang of availableLangs"
+            class="lang-option"
+            [class.active]="lang === currentLang"
+            (click)="switchLang(lang)">
+            <span class="lang-flag">{{ langLabels[lang].flag }}</span>
+            <span>{{ 'LANG.' + lang.toUpperCase() | translate }}</span>
+            <i class="fa-solid fa-check ms-auto" *ngIf="lang === currentLang"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- User Menu -->
+      <div class="user-menu-wrapper" *ngIf="isLoggedIn; else loginBtn">
+        <button class="user-avatar-btn" (click)="isUserMenuOpen = !isUserMenuOpen">
+          <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/default-avatar.png">
+        </button>
+        <div class="user-dropdown" *ngIf="isUserMenuOpen">
+          <div class="user-info">
+            <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/default-avatar.png">
+            <div>
+              <strong>{{ user?.name }}</strong>
+              <small>{{ user?.email }}</small>
+            </div>
+          </div>
+          <div class="user-menu-links">
+            <a [routerLink]="['/user', user?.id, user?.name]" (click)="isUserMenuOpen=false">
+              <i class="fa-regular fa-user me-2"></i>{{ 'NAV.PROFILE' | translate }}
+            </a>
+            <a [routerLink]="['/user', user?.id, user?.name, 'following']" (click)="isUserMenuOpen=false">
+              <i class="fa-regular fa-heart me-2"></i>{{ 'NAV.FOLLOWING' | translate }}
+            </a>
+            <a [routerLink]="['/user', user?.id, user?.name, 'history']" (click)="isUserMenuOpen=false">
+              <i class="fa-solid fa-history me-2"></i>{{ 'NAV.HISTORY' | translate }}
+            </a>
+            <hr>
+            <button class="logout-btn" (click)="logout()">
+              <i class="fa-solid fa-right-from-bracket me-2"></i>{{ 'NAV.LOGOUT' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #loginBtn>
+        <div class="auth-buttons d-none d-md-flex gap-2">
+          <a class="btn btn-outline-light btn-sm" routerLink="/auth/login">{{ 'NAV.LOGIN' | translate }}</a>
+          <a class="btn btn-primary btn-sm" routerLink="/auth/register">{{ 'NAV.REGISTER' | translate }}</a>
+        </div>
+      </ng-template>
+
+      <!-- Mobile Toggle -->
+      <button class="mobile-toggle d-lg-none icon-btn" (click)="isMenuOpen = !isMenuOpen">
+        <i [class]="isMenuOpen ? 'fa-solid fa-times' : 'fa-solid fa-bars'"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" [class.open]="isMenuOpen">
+    <a routerLink="/" (click)="isMenuOpen=false">
+      <i class="fa-solid fa-house me-2"></i>{{ 'NAV.HOME' | translate }}
+    </a>
+    <a routerLink="/top-manga" (click)="isMenuOpen=false">
+      <i class="fa-solid fa-fire me-2"></i>{{ 'NAV.TOP_MANGA' | translate }}
+    </a>
+    <a routerLink="/search/advanced" (click)="isMenuOpen=false">
+      <i class="fa-solid fa-search me-2"></i>{{ 'NAV.ADVANCED_SEARCH' | translate }}
+    </a>
+    <hr>
+    <div class="mobile-categories">
+      <strong class="text-muted">{{ 'NAV.CATEGORIES' | translate }}</strong>
+      <div class="mobile-cat-grid">
+        <a *ngFor="let cat of categories | slice:0:16"
+           [routerLink]="['/the-loai', cat.genreId]"
+           (click)="isMenuOpen=false">{{ cat.genresIdName }}</a>
+      </div>
+    </div>
+    <!-- Mobile theme toggle -->
+    <hr>
+    <button class="mobile-theme-btn" (click)="themeService.toggle()">
+      <i [class]="themeService.isDark ? 'fa-solid fa-sun me-2' : 'fa-solid fa-moon me-2'"></i>
+      {{ themeService.isDark ? ('NAV.SWITCH_LIGHT' | translate) : ('NAV.SWITCH_DARK' | translate) }}
+    </button>
+
+    <!-- Mobile lang switcher -->
+    <hr>
+    <div class="mobile-lang">
+      <strong class="text-muted">{{ 'LANG.LABEL' | translate }}</strong>
+      <div class="d-flex gap-2 mt-2">
+        <button *ngFor="let lang of availableLangs"
+          class="lang-option-mobile"
+          [class.active]="lang === currentLang"
+          (click)="switchLang(lang)">
+          {{ langLabels[lang].flag }} {{ 'LANG.' + lang.toUpperCase() | translate }}
+        </button>
+      </div>
+    </div>
+    <ng-container *ngIf="!isLoggedIn">
+      <hr>
+      <a routerLink="/auth/login" (click)="isMenuOpen=false" class="btn btn-outline-light w-100 mb-2">
+        {{ 'NAV.LOGIN' | translate }}
+      </a>
+      <a routerLink="/auth/register" (click)="isMenuOpen=false" class="btn btn-primary w-100">
+        {{ 'NAV.REGISTER' | translate }}
+      </a>
+    </ng-container>
+  </div>
+</header>
+<div class="header-spacer"></div>
