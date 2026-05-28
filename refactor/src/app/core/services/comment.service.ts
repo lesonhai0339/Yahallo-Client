@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -6,104 +6,127 @@ import { CommentData, ReplyData } from '../models/comment.interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class CommentService {
-  private readonly svc = environment.serviceApi;
-  private readonly api = environment.apiUrl;
+  private readonly base = environment.commentApi;
 
   constructor(private http: HttpClient) {}
 
-  // ── Root comments ──────────────────────────────────────────────────────────
+  // ── Queries ────────────────────────────────────────────────────────────────
 
-  /** All manga comments (includes chapter-tagged comments) */
   getAllMangaComments(mangaId: string, pageSize: number, page: number): Observable<any> {
-    return this.http.get(`${this.svc}/manga_comment_manga/${mangaId}/${pageSize}/${page}`);
+    const params = new HttpParams()
+      .set('MangaId', mangaId)
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.base}/filter-comment`, { params });
   }
 
-  /** Chapter-only comments */
-  getChapterComments(mangaId: string, chapterId: string): Observable<CommentData[]> {
-    return this.http.get<CommentData[]>(`${this.svc}/GetListComment/${mangaId}/${chapterId}`);
+  getChapterComments(mangaId: string, chapterId: string, page = 1, pageSize = 20): Observable<any> {
+    const params = new HttpParams()
+      .set('MangaId', mangaId)
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.base}/filter-comment`, { params });
   }
 
-  createComment(userId: string, mangaId: string, text: string, chapterId = ''): Observable<any> {
+  getReplies(parentId: string, page = 1, pageSize = 50): Observable<any> {
+    const params = new HttpParams()
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.base}/filter-comment`, { params });
+  }
+
+  getCount(mangaId: string): Observable<any> {
+    const params = new HttpParams()
+      .set('MangaId', mangaId)
+      .set('PageSize', 1)
+      .set('PageNumber', 1);
+    return this.http.get(`${this.base}/filter-comment`, { params });
+  }
+
+  // ── Commands ───────────────────────────────────────────────────────────────
+
+  createComment(userId: string, mangaId: string, text: string, chapterId = '', parentId = ''): Observable<any> {
     const form = new FormData();
-    form.append('IdUser', userId);
-    form.append('IdManga', mangaId);
-    if (chapterId) form.append('IdChapter', chapterId);
-    form.append('CommentData', text);
-    return this.http.post(`${this.svc}/Comment`, form);
+    form.append('UserId', userId);
+    form.append('MangaId', mangaId);
+    form.append('Message', text);
+    form.append('Type', '0');
+    if (chapterId) form.append('ChapterId', chapterId);
+    if (parentId) form.append('ParentId', parentId);
+    return this.http.post(`${this.base}/create`, form);
   }
 
   createChapterComment(userId: string, mangaId: string, chapterId: string, text: string): Observable<any> {
     return this.createComment(userId, mangaId, text, chapterId);
   }
 
-  /** Edit comment text — expects PUT /Services/comment/{id} */
   editComment(commentId: string, text: string): Observable<any> {
     const form = new FormData();
-    form.append('commentData', text);
-    return this.http.put(`${this.svc}/comment/${commentId}`, form);
+    form.append('Id', commentId);
+    form.append('Message', text);
+    return this.http.put(`${this.base}/update`, form);
   }
 
-  /** Soft-delete — backend should mark isDeleted=true and store "deleted" text */
   deleteComment(commentId: string): Observable<any> {
-    return this.http.delete(`${this.svc}/comment/${commentId}`);
+    return this.http.delete(`${this.base}/delete`, { body: { id: commentId } });
   }
 
-  // ── Replies ────────────────────────────────────────────────────────────────
-
-  getReplies(commentId: string): Observable<ReplyData[]> {
-    return this.http.get<ReplyData[]>(`${this.svc}/ListReply/${commentId}`);
+  restoreComment(commentId: string): Observable<any> {
+    return this.http.post(`${this.base}/restore`, { id: commentId });
   }
 
-  createReply(commentId: string, userReplyId: string, text: string): Observable<any> {
-    const form = new FormData();
-    form.append('IdComment', commentId);
-    form.append('IdUserReply', userReplyId);
-    form.append('ReplyData', text);
-    return this.http.post(`${this.svc}/ReplyComment`, form);
+  // ── Replies (use create with parentId) ────────────────────────────────────
+
+  createReply(parentId: string, userId: string, mangaIdOrText: string, text?: string): Observable<any> {
+    const mangaId = text ? mangaIdOrText : '';
+    const message = text ?? mangaIdOrText;
+    return this.createComment(userId, mangaId, message, '', parentId);
   }
 
   editReply(replyId: string, text: string): Observable<any> {
-    const form = new FormData();
-    form.append('replyData', text);
-    return this.http.put(`${this.svc}/reply/${replyId}`, form);
+    return this.editComment(replyId, text);
   }
 
   deleteReply(replyId: string): Observable<any> {
-    return this.http.delete(`${this.svc}/reply/${replyId}`);
+    return this.deleteComment(replyId);
   }
 
-  // ── Reactions ──────────────────────────────────────────────────────────────
-
-  getReactions(commentId: string): Observable<{ likes: number; dislikes: number }> {
-    return this.http.get<any>(`${this.svc}/get_like_and_unlike_comment/${commentId}`);
-  }
+  // ── Reactions (update comment permissions) ─────────────────────────────────
 
   likeComment(commentId: string): Observable<any> {
-    const form = new FormData(); form.append('idcomment', commentId);
-    return this.http.post(`${this.svc}/like_comment`, form);
+    const form = new FormData();
+    form.append('Id', commentId);
+    form.append('CanLike', 'true');
+    return this.http.put(`${this.base}/update`, form);
   }
 
   dislikeComment(commentId: string): Observable<any> {
-    const form = new FormData(); form.append('idcomment', commentId);
-    return this.http.post(`${this.svc}/dislike_comment`, form);
+    const form = new FormData();
+    form.append('Id', commentId);
+    form.append('CanLike', 'false');
+    return this.http.put(`${this.base}/update`, form);
   }
 
   unlikeComment(commentId: string): Observable<any> {
-    const form = new FormData(); form.append('idcomment', commentId);
-    return this.http.post(`${this.svc}/un_like_comment`, form);
+    return this.likeComment(commentId);
   }
 
   undislikeComment(commentId: string): Observable<any> {
-    const form = new FormData(); form.append('idcomment', commentId);
-    return this.http.post(`${this.svc}/un_dislike_comment`, form);
+    return this.dislikeComment(commentId);
+  }
+
+  getReactions(commentId: string): Observable<any> {
+    const params = new HttpParams().set('Id', commentId);
+    return this.http.get(`${this.base}/filter-comment`, { params });
   }
 
   reportComment(commentId: string): Observable<any> {
-    const form = new FormData(); form.append('idcomment', commentId);
-    return this.http.post(`${this.svc}/comment/report`, form);
-  }
-
-  getCount(mangaId: string): Observable<number> {
-    return this.http.get<number>(`${this.svc}/comment_count/${mangaId}`);
+    const form = new FormData();
+    form.append('Title', 'Comment Report');
+    form.append('Description', 'Reported comment');
+    form.append('Content', commentId);
+    form.append('Target', commentId);
+    form.append('Type', '0');
+    return this.http.post(`${environment.apiUrl}/Create`, form);
   }
 }

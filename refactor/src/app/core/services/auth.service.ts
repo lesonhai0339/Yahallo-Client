@@ -47,7 +47,7 @@ export class AuthService {
   }
 
   login(username: string, password: string): Observable<any> {
-    const payload: LoginRequest = { username, password };
+    const payload: LoginRequest = { userName: username, password };
     return this.http.post<any>(`${this.base}/login`, payload).pipe(
       tap(res => {
         const data = res?.data ?? res;
@@ -77,22 +77,43 @@ export class AuthService {
     return this.http.post(`${this.base}/forgot-password`, { email });
   }
 
-  changePassword(email: string, oldPassword: string, newPassword: string): Observable<any> {
-    return this.http.post(`${this.base}/change-password`, { email, oldpassword: oldPassword, newpassword: newPassword });
+  changePassword(email: string, oldPassword: string, newPassword: string, id?: string): Observable<any> {
+    return this.http.post(`${this.base}/change-password`, { id, email, oldPassword, newPassword });
   }
 
   getUserInfo(id: string): Observable<any> {
     return this.http.get(`${environment.apiUrl}/Authentication/Infouser/${id}`);
   }
 
-  updateUser(user: any, avatar?: File): Observable<any> {
-    const form = new FormData();
-    form.append('User', JSON.stringify(user));
-    if (avatar) form.append('Avatar', avatar);
-    return this.http.put(`${environment.apiUrl}/Authentication/EditUser`, form);
+  getUserById(id: string): Observable<any> {
+    return this.http.get(`${this.base}/get-by-id`, { params: { Id: id } });
   }
 
-  checkToken(token: string): Observable<any> {
-    return this.http.post(`${this.base}/check-token-expired`, { token });
+  getUserByName(name: string): Observable<any> {
+    return this.http.get(`${this.base}/get-by-name`, { params: { Name: name } });
+  }
+
+  filterUsers(filters: { PageNumber?: number; PageSize?: number; Id?: string; Name?: string; Email?: string; Phone?: string }): Observable<any> {
+    const params: any = {};
+    if (filters.PageNumber) params['PageNumber'] = filters.PageNumber;
+    if (filters.PageSize) params['PageSize'] = filters.PageSize;
+    if (filters.Id) params['Id'] = filters.Id;
+    if (filters.Name) params['Name'] = filters.Name;
+    if (filters.Email) params['Email'] = filters.Email;
+    if (filters.Phone) params['Phone'] = filters.Phone;
+    return this.http.get(`${this.base}/filter-user`, { params });
+  }
+
+  updateUser(data: { id: string; displayName?: string; phoneNumber?: string }, avatar?: File): Observable<any> {
+    const form = new FormData();
+    form.append('Id', data.id);
+    if (data.displayName) form.append('DisplayName', data.displayName);
+    if (data.phoneNumber) form.append('PhoneNumber', data.phoneNumber);
+    if (avatar) form.append('Avatar', avatar);
+    return this.http.put(`${this.base}/update`, form);
+  }
+
+  checkToken(refreshToken: string): Observable<any> {
+    return this.http.post(`${this.base}/check-token-expired`, { refeshtoken: refreshToken });
   }
 }

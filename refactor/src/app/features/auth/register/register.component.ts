@@ -28,7 +28,7 @@ export class RegisterComponent {
       return;
     }
     this.isLoading = true;
-    this.auth.register({ UserName: this.username, Password: this.password, Email: this.email }).subscribe({
+    this.auth.register({ userName: this.username, firstName: this.username, lastName: '', password: this.password, email: this.email }).subscribe({
       next: () => {
         this.toastr.success('Đăng ký thành công! Vui lòng đăng nhập.');
         this.router.navigate(['/auth/login']);

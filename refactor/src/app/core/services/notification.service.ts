@@ -45,12 +45,12 @@ export class NotificationService {
     return this.http.get(`${this.base}/get?page=${page}&pageSize=${pageSize}`);
   }
 
-  markRead(id: string): Observable<any> {
-    return this.http.put(`${this.base}/mark-read/${id}`, {});
+  markRead(notificationId: string): Observable<any> {
+    return this.http.put(`${this.base}/mark-read`, { notificationId });
   }
 
   markAllRead(): Observable<any> {
-    return this.http.put(`${this.base}/mark-all-read`, {});
+    return this.http.put(`${this.base}/mark-read`, { notificationId: null });
   }
 
   setNotifications(items: Notification[]): void {

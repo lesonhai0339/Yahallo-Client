@@ -35,6 +35,8 @@ import { RegisterComponent } from './features/auth/register/register.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
 import { ProfileComponent } from './features/user/profile/profile.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
+import { ArtistListComponent } from './features/artist/artist-list/artist-list.component';
+import { AuthorListComponent } from './features/author/author-list/author-list.component';
 
 // Core
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
@@ -71,6 +73,8 @@ export function initTranslations(translation: TranslationService) {
     ForgotPasswordComponent,
     ProfileComponent,
     NotificationsComponent,
+    ArtistListComponent,
+    AuthorListComponent,
   ],
   imports: [
     BrowserModule,

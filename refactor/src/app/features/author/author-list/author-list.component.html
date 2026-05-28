@@ -1,0 +1,64 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">Authors</h1>
+    <p class="page-subtitle">Browse all authors ({{ totalCount }} total)</p>
+  </div>
+
+  <div class="search-bar">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search authors by name..."
+        [formControl]="searchControl"
+      />
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="grid-skeleton">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6,7,8]"></div>
+  </div>
+
+  <div *ngIf="!isLoading && authors.length === 0" class="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    <p>No authors found</p>
+  </div>
+
+  <div *ngIf="!isLoading && authors.length > 0" class="person-grid">
+    <div class="person-card" *ngFor="let author of authors">
+      <div class="person-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="person-info">
+        <h3 class="person-name">{{ author.name }}</h3>
+        <span class="person-meta" *ngIf="author.countries">{{ author.countries }}</span>
+        <span class="person-meta" *ngIf="author.birth">Born: {{ author.birth | date:'yyyy' }}</span>
+        <span class="person-badge" *ngIf="author.lifeStatus">{{ author.lifeStatus }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!isLoading && totalPages > 1" class="pagination">
+    <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+      &lsaquo;
+    </button>
+    <button
+      class="page-btn"
+      *ngFor="let p of pages"
+      [class.active]="p === currentPage"
+      (click)="goToPage(p)"
+    >{{ p }}</button>
+    <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+      &rsaquo;
+    </button>
+  </div>
+</div>

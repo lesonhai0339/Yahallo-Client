@@ -9,6 +9,8 @@ import { RegisterComponent } from './features/auth/register/register.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
 import { ProfileComponent } from './features/user/profile/profile.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
+import { ArtistListComponent } from './features/artist/artist-list/artist-list.component';
+import { AuthorListComponent } from './features/author/author-list/author-list.component';
 import { AuthGuard } from './core/guards/auth.guard';
 
 const routes: Routes = [
@@ -18,6 +20,8 @@ const routes: Routes = [
   { path: 'search', component: MangaSearchComponent },
   { path: 'search/advanced', component: MangaSearchComponent },
   { path: 'the-loai/:id', component: MangaSearchComponent },
+  { path: 'artists', component: ArtistListComponent },
+  { path: 'authors', component: AuthorListComponent },
   { path: 'auth/login', component: LoginComponent },
   { path: 'auth/register', component: RegisterComponent },
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },

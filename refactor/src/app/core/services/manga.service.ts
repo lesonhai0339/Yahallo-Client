@@ -2,82 +2,154 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Manga, MangaDetail, PagedResult } from '../models/interfaces';
+import { MangaFilterParams } from '../models/interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
   private readonly base = environment.mangaApi;
-  private readonly svc = environment.serviceApi;
+  private readonly chapterBase = environment.chapterApi;
+  private readonly commentBase = environment.commentApi;
+  private readonly tagBase = environment.tagApi;
 
   constructor(private http: HttpClient) {}
 
-  getAll(page: number): Observable<Manga[]> {
-    return this.http.get<Manga[]>(`${this.base}/GetAllManga/${page}`);
+  // ── Browse ──────────────────────────────────────────────────────────────────
+
+  getAll(page: number, pageSize = 20): Observable<any> {
+    const params = new HttpParams()
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
 
-  getPageCount(): Observable<number> {
-    return this.http.get<number>(`${this.base}/GetPageNumber`);
+  getTrending(take = 10, daysWindow = 7): Observable<any> {
+    const params = new HttpParams()
+      .set('DaysWindow', daysWindow)
+      .set('Take', take);
+    return this.http.get(`${this.base}/trending`, { params });
   }
+
+  getLatestUpdated(page = 1, pageSize = 20): Observable<any> {
+    const params = new HttpParams()
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.base}/latest-updated`, { params });
+  }
+
+  getDetail(mangaId: string): Observable<any> {
+    return this.http.get(`${this.base}/detail/${mangaId}`);
+  }
+
+  getDetailAggregated(mangaId: string): Observable<any> {
+    return this.http.get(`${this.base}/detail/${mangaId}`);
+  }
+
+  filter(filters: MangaFilterParams): Observable<any> {
+    let params = new HttpParams();
+    if (filters.PageNumber) params = params.set('PageNumber', filters.PageNumber);
+    if (filters.PageSize) params = params.set('PageSize', filters.PageSize);
+    if (filters.Id) params = params.set('Id', filters.Id);
+    if (filters.Name) params = params.set('Name', filters.Name);
+    if (filters.Level) params = params.set('Level', filters.Level);
+    if (filters.Status) params = params.set('Status', filters.Status);
+    if (filters.Type) params = params.set('Type', filters.Type);
+    if (filters.Countries) params = params.set('Countries', filters.Countries);
+    if (filters.Season !== undefined) params = params.set('Season', filters.Season);
+    if (filters.UserId) params = params.set('UserId', filters.UserId);
+    if (filters.DateUpdate) params = params.set('DateUpdate', filters.DateUpdate);
+    return this.http.get(`${this.base}/filter-manga`, { params });
+  }
+
+  search(query: string, page = 1, pageSize = 20): Observable<any> {
+    return this.filter({ Name: query, PageNumber: page, PageSize: pageSize });
+  }
+
+  getByType(type: string, page = 1, pageSize = 20): Observable<any> {
+    return this.filter({ Type: type, PageNumber: page, PageSize: pageSize });
+  }
+
+  getCategories(): Observable<any> {
+    return this.http.get(`${this.tagBase}/get-all`);
+  }
+
+  // ── Chapters ────────────────────────────────────────────────────────────────
+
+  getChapters(mangaId: string): Observable<any> {
+    const params = new HttpParams()
+      .set('MangaId', mangaId)
+      .set('PageSize', 1000);
+    return this.http.get(`${this.chapterBase}/filter-chapter`, { params });
+  }
+
+  getChapterImages(mangaIdOrChapterId: string, chapterId?: string): Observable<any> {
+    const id = chapterId ?? mangaIdOrChapterId;
+    const params = new HttpParams().set('Id', id);
+    return this.http.get(`${this.chapterBase}/filter-chapter`, { params });
+  }
+
+  getByCategories(categoryIds: string[], page = 1, pageSize = 20): Observable<any> {
+    return this.filter({ PageNumber: page, PageSize: pageSize });
+  }
+
+  // ── Comments ────────────────────────────────────────────────────────────────
+
+  getComments(mangaId: string, pageSize: number, page: number): Observable<any> {
+    const params = new HttpParams()
+      .set('MangaId', mangaId)
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.commentBase}/filter-comment`, { params });
+  }
+
+  // ── CRUD ────────────────────────────────────────────────────────────────────
+
+  createManga(data: { name: string; description?: string; level?: string; status?: string; type?: string; countries?: string; season?: number; thumbnail?: File; mangaSeasonId?: string }): Observable<any> {
+    const form = new FormData();
+    form.append('Name', data.name);
+    if (data.description) form.append('Description', data.description);
+    if (data.level) form.append('Level', data.level);
+    if (data.status) form.append('Status', data.status);
+    if (data.type) form.append('Type', data.type);
+    if (data.countries) form.append('Countries', data.countries);
+    if (data.season !== undefined) form.append('Season', String(data.season));
+    if (data.thumbnail) form.append('Thumbnail', data.thumbnail);
+    if (data.mangaSeasonId) form.append('MangaSeasonId', data.mangaSeasonId);
+    return this.http.post(`${this.base}/create`, form);
+  }
+
+  updateManga(data: { id: string; name?: string; description?: string; level?: string; status?: string; type?: string; countries?: string; season?: number; thumbnail?: File }): Observable<any> {
+    const form = new FormData();
+    form.append('Id', data.id);
+    if (data.name) form.append('Name', data.name);
+    if (data.description) form.append('Description', data.description);
+    if (data.level) form.append('Level', data.level);
+    if (data.status) form.append('Status', data.status);
+    if (data.type) form.append('Type', data.type);
+    if (data.countries) form.append('Countries', data.countries);
+    if (data.season !== undefined) form.append('Season', String(data.season));
+    if (data.thumbnail) form.append('Thumbnail', data.thumbnail);
+    return this.http.put(`${this.base}/update`, form);
+  }
+
+  deleteManga(id: string): Observable<any> {
+    return this.http.delete(`${this.base}/delete`, { body: { id } });
+  }
+
+  restoreManga(id: string): Observable<any> {
+    return this.http.post(`${this.base}/restore`, { id });
+  }
+
+  getAllPagination(page: number, pageSize: number): Observable<any> {
+    return this.getAll(page, pageSize);
+  }
+
+  // ── Legacy aliases (kept for backward compat with existing components) ──────
 
   getTopManga(): Observable<any> {
-    return this.http.get(`${this.base}/Topmanga`);
+    return this.getTrending(10);
   }
 
-  getCategories(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/Category/Getall`);
-  }
-
-  getDetail(mangaId: string): Observable<Manga> {
-    return this.http.get<Manga>(`${this.base}/Details/${mangaId}`);
-  }
-
-  getDetailAggregated(mangaId: string): Observable<MangaDetail> {
-    return this.http.get<MangaDetail>(`${environment.mangaApi}/manga/detail/${mangaId}`);
-  }
-
-  getChapters(mangaId: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/${mangaId}/GetChapter`);
-  }
-
-  getChapterImages(mangaId: string, chapterId: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/${mangaId}/${chapterId}/getDsImage`);
-  }
-
-  search(query: string): Observable<Manga[]> {
-    return this.http.get<Manga[]>(`${this.base}/SearchMangaV2/${query}`);
-  }
-
-  getByCategory(id: string, page: number, pageSize: number): Observable<Manga[]> {
-    return this.http.get<Manga[]>(`${this.base}/GetmangabyCategory/${id}/${page}/${pageSize}`);
-  }
-
-  getByType(type: string, page: number, pageSize: number): Observable<Manga[]> {
-    return this.http.get<Manga[]>(`${this.base}/topmanga_by_type/${type}/${page}/${pageSize}`);
-  }
-
-  getAllByType(type: string, page: number, pageSize: number): Observable<Manga[]> {
-    return this.http.get<Manga[]>(`${this.base}/all_manga_by_type/${type}/${page}/${pageSize}`);
-  }
-
-  getByCategories(categoryIds: string[]): Observable<Manga[]> {
-    let params = new HttpParams();
-    categoryIds.forEach(id => { params = params.append('List', id); });
-    return this.http.get<Manga[]>(`${this.base}/GetMangaByListCategories`, { params });
-  }
-
-  getTrending(take = 10): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/manga/trending?take=${take}`);
-  }
-
-  getLatestUpdated(page = 1, pageSize = 20): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/manga/latest-updated?page=${page}&pageSize=${pageSize}`);
-  }
-
-  getTotalCount(): Observable<number> {
-    return this.http.get<number>(`${this.base}/number_all_manga`);
-  }
-
-  getComments(mangaId: string, pageSize: number, page: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.svc}/manga_comment_manga/${mangaId}/${pageSize}/${page}`);
+  getPageCount(): Observable<any> {
+    return this.getAll(1, 1);
   }
 }

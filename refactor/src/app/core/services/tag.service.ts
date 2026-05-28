@@ -18,8 +18,23 @@ export class TagService {
     return this.http.get<Tag[]>(`${this.base}/get-by-manga/${mangaId}`);
   }
 
-  filter(name: string): Observable<any> {
-    const params = new HttpParams().set('name', name);
+  filter(name: string, page = 1, pageSize = 20): Observable<any> {
+    const params = new HttpParams()
+      .set('Name', name)
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
     return this.http.get(`${this.base}/filter`, { params });
+  }
+
+  create(data: { name: string; description?: string }): Observable<any> {
+    return this.http.post(`${this.base}/create`, data);
+  }
+
+  update(data: { id: string; name?: string; description?: string }): Observable<any> {
+    return this.http.put(`${this.base}/update`, data);
+  }
+
+  delete(id: string): Observable<any> {
+    return this.http.delete(`${this.base}/delete`, { body: { id } });
   }
 }
