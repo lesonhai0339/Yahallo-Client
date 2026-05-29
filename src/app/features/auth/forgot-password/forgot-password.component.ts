@@ -28,9 +28,9 @@ export class ForgotPasswordComponent {
           this.sent = true; 
         },
       error: (err) => { 
-          console.log(typeof(err))
+          const sp = err?.error ?? err;
           this.isLoading = false; 
-          this.toastr.error(this.t.get('COMMON.ERROR') + err); 
+          this.toastr.error(`${sp.status} - ${sp.detail ?? this.t.get('COMMON.ERROR')}`); 
         }
     });
   }

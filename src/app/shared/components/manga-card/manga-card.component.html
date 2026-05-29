@@ -1,6 +1,6 @@
 <a class="manga-card" [routerLink]="getRouterLink()">
   <div class="manga-card__image">
-    <img [src]="manga.mangaImage" [alt]="manga.mangaName" appImageFallback loading="lazy">
+    <img [src]="manga.thumbnail" [alt]="manga.name" appImageFallback loading="lazy">
     <div class="manga-card__overlay"></div>
     <span class="manga-card__status"
       [class.manga-card__status--completed]="manga.status"
@@ -12,13 +12,13 @@
     </div>
   </div>
   <div class="manga-card__info">
-    <div class="manga-card__title" [title]="manga.mangaName">{{ manga.mangaName }}</div>
+    <div class="manga-card__title" [title]="manga.name">{{ manga.name }}</div>
     <div class="manga-card__meta">
-      <span><i class="fa-solid fa-eye me-1"></i>{{ formatViews(manga.view) }}</span>
-      <span><i class="fa-solid fa-star me-1" style="color:#ffd700"></i>{{ manga.rating?.toFixed?.(1) ?? '—' }}</span>
+      <span><i class="fa-solid fa-eye me-1"></i>{{ formatViews(manga.totalViews) }}</span>
+      <span><i class="fa-solid fa-star me-1" style="color:#ffd700"></i>{{ manga.averageRating?.toFixed?.(1) ?? '—' }}</span>
     </div>
-    <div class="manga-card__tags" *ngIf="showTags && manga.listcategory?.length">
-      <span class="tag-chip" *ngFor="let cat of manga.listcategory | slice:0:3">{{ cat.genresIdName }}</span>
+    <div class="manga-card__tags" *ngIf="showTags && manga.tags?.length">
+      <span class="tag-chip" *ngFor="let cat of manga.tags | slice:0:3">{{ cat.name }}</span>
     </div>
   </div>
 </a>

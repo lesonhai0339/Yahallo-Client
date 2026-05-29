@@ -19,9 +19,13 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  FirstName: string;
+  LastName: string;
+  Email: string;
+  PhoneNumber: string;
   UserName: string;
   Password: string;
-  Email: string;
+  Avatar: File | null ;  
 }
 
 export interface MangaPagination{
@@ -33,18 +37,50 @@ export interface MangaPagination{
 }
 
 export interface Manga {
+  id: string;
+  name: string;
+  description: string;
+  level: string;
+  status: string;
+  type: string;
+  countries: string;
+  season: number;
+  thumbnail: string;
+  userId: string;
+  averageRating: number;
+  totalFollows: number;
+  totalViews: number;
+  totalChapters: number;
+  tags: Tag[];
+  authors: Author[];
+  artists: Artist[];
+  chapters: Chapter[];
+  comments: any[];
+  updateDate: string; 
+}
+export interface Author {
+  id: string;
+  name: string;
+  countries: number;
+  depscription: string | null;
+  birth: string;
+  lifeStatus: number;
+}
+export interface Artist {
+  id: string;
+  name: string;
+  countries: number;
+  depscription: string | null;
+  birth: string;
+  lifeStatus: number;
+}
+
+export interface Chapter {
+  id: string;
+  title: string;
+  index: number;
   mangaId: string;
-  mangaName: string;
-  mangaImage: string;
-  mangaDetails: string;
-  dateupdate: string;
-  status: boolean;
-  view: number;
-  rating: number;
-  listcategory: Category[];
-  listauthor: Author[];
-  listartist: Artist[];
-  listChaper: Chapter[];
+  chapterDate: string;
 }
 
 export interface MangaDetail extends Manga {
@@ -53,26 +89,6 @@ export interface MangaDetail extends Manga {
   totalViews: number;
   totalChapters: number;
   tags: Tag[];
-}
-
-export interface Category {
-  genreId: string;
-  genresIdName: string;
-}
-
-export interface Author {
-  name: string;
-}
-
-export interface Artist {
-  name: string;
-}
-
-export interface Chapter {
-  chapterId: string;
-  chapterName: string;
-  chapterTitle: string;
-  chapterDate: string;
 }
 
 export interface Tag {

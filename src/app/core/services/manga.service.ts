@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { MangaPagination, PagedResult } from '../models/interfaces';
+import { Manga, MangaPagination, PagedResult } from '../models/interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
@@ -70,8 +70,33 @@ export class MangaService {
   }
 
   /** Same as getDetail — both now hit the aggregated detail endpoint */
-  getDetailAggregated(mangaId: string): Observable<any> {
-    return this.http.get(`${this.base}/detail/${mangaId}`);
+  getDetailAggregated(mangaId: string): Observable<Manga> {
+    return this.http.get(`${this.base}/detail/${mangaId}`)
+    .pipe(map((res: any) => {
+      const t = res?.value ?? res;
+      return {
+          id: t.id,
+          name: t.name,
+          description: t.description,
+          level: t.level,
+          status: t.status,
+          type: t.type,
+          countries: t.countries,
+          season: t.season,
+          thumbnail: `${this.imgBase}/image?filepath=${t.thumbnail}`,
+          userId: t.userId,
+          averageRating: t.averageRating,
+          totalFollows: t.totalFollows,
+          totalViews: t.totalViews,
+          totalChapters: t.totalChapters,
+          tags: t.tags ?? [],
+          authors: t.authors ?? [],
+          artists: t.artists ?? [],
+          chapters: t.chapters ?? [],
+          comments: t.comments ?? [],
+          updateDate: t.updateDate ?? "", 
+        } as Manga;
+      }));
   }
 
   getChapters(mangaId: string): Observable<any> {

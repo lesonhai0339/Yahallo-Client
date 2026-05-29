@@ -5,7 +5,7 @@ import { ToastrService } from 'ngx-toastr';
 import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserInteractionService } from '../../../core/services/user-interaction.service';
-import { MangaDetail, Chapter } from '../../../core/models/interfaces';
+import { MangaDetail, Chapter, Manga } from '../../../core/models/interfaces';
 
 @Component({
   selector: 'app-manga-detail',
@@ -13,7 +13,7 @@ import { MangaDetail, Chapter } from '../../../core/models/interfaces';
   styleUrls: ['./manga-detail.component.scss']
 })
 export class MangaDetailComponent implements OnInit, OnDestroy {
-  manga: MangaDetail | null = null;
+  manga: Manga | null = null;
   chapters: Chapter[] = [];
   isLoading = true;
   isFollowing = false;
@@ -26,11 +26,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   }
 
   get authorNames(): string {
-    return this.manga?.listauthor?.map(a => a.name).join(', ') || '';
+    return this.manga?.authors?.map(a => a.name).join(', ') || '';
   }
 
   get artistNames(): string {
-    return this.manga?.listartist?.map(a => a.name).join(', ') || '';
+    return this.manga?.artists?.map(a => a.name).join(', ') || '';
   }
 
   mangaId!: string;
@@ -61,7 +61,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   loadManga(): void {
     this.isLoading = true;
     this.mangaService.getDetailAggregated(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: m => { this.manga = m; this.isLoading = false; this.addView(); },
+      next: m => { 
+        this.manga = m; 
+        this.isLoading = false; 
+        this.addView(); 
+      },
       error: () => {
         this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(m => {
           this.manga = m as any;
@@ -110,7 +114,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   }
 
   readChapter(chapter: Chapter): string {
-    return `/manga/${this.mangaId}/${this.manga?.mangaName}/${chapter.chapterId}/0`;
+    return `/manga/${this.mangaId}/${this.manga?.name}/${chapter.id}/0`;
   }
 
   formatDate(date: string): string {

@@ -1,23 +1,23 @@
 <div class="detail-page" *ngIf="!isLoading && manga">
 
   <!-- Hero Banner -->
-  <div class="detail-hero" [style.backgroundImage]="'url('+manga.mangaImage+')'">
+  <div class="detail-hero" [style.backgroundImage]="'url('+manga.thumbnail+')'">
     <div class="hero-overlay">
       <div class="container">
         <div class="hero-content">
           <div class="manga-cover">
-            <img [src]="manga.mangaImage" [alt]="manga.mangaName" appImageFallback>
+            <img [src]="manga.thumbnail" [alt]="manga.name" appImageFallback>
           </div>
           <div class="manga-hero-info">
             <div class="breadcrumb-nav">
               <a routerLink="/">{{ 'MANGA.BREADCRUMB_HOME' | translate }}</a>
               <i class="fa-solid fa-chevron-right"></i>
-              <span>{{ manga.mangaName }}</span>
+              <span>{{ manga.name }}</span>
             </div>
-            <h1 class="manga-title">{{ manga.mangaName }}</h1>
+            <h1 class="manga-title">{{ manga.name }}</h1>
             <div class="category-list">
-              <a class="tag-chip" *ngFor="let cat of manga.listcategory | slice:0:5"
-                 [routerLink]="['/the-loai', cat.genreId]">{{ cat.genresIdName }}</a>
+              <a class="tag-chip" *ngFor="let cat of manga.tags | slice:0:5"
+                 [routerLink]="['/the-loai', cat.id]">{{ cat.name }}</a>
               <span class="tag-chip tag-chip--accent" *ngFor="let tag of manga.tags | slice:0:3">
                 # {{ tag.name }}
               </span>
@@ -25,12 +25,12 @@
             <div class="manga-stats-row">
               <div class="stat-box">
                 <i class="fa-solid fa-eye"></i>
-                <span>{{ formatNumber(manga.totalViews ?? manga.view) }}</span>
+                <span>{{ formatNumber(manga.totalViews ?? manga.totalViews) }}</span>
                 <small>{{ 'MANGA.VIEWS' | translate }}</small>
               </div>
               <div class="stat-box">
                 <i class="fa-solid fa-star" style="color:#ffd700"></i>
-                <span>{{ (manga.averageRating ?? manga.rating)?.toFixed?.(1) ?? '—' }}</span>
+                <span>{{ (manga.averageRating ?? manga.averageRating)?.toFixed?.(1) ?? '—' }}</span>
                 <small>{{ 'MANGA.RATING' | translate }}</small>
               </div>
               <div class="stat-box">
@@ -40,7 +40,7 @@
               </div>
               <div class="stat-box">
                 <i class="fa-solid fa-book-open"></i>
-                <span>{{ manga.totalChapters ?? chapters.length }}</span>
+                <span>{{ manga.chapters?.length ?? 0 }}</span>
                 <small>{{ 'MANGA.CHAPTERS' | translate }}</small>
               </div>
             </div>
@@ -93,7 +93,7 @@
               </div>
               <div class="info-row">
                 <span class="info-label"><i class="fa-regular fa-calendar me-2"></i>{{ 'MANGA.UPDATED' | translate }}</span>
-                <span class="info-value">{{ formatDate(manga.dateupdate) }}</span>
+                <span class="info-value">{{ formatDate(manga.updateDate) | date:'shortDate' }}</span>
               </div>
             </div>
           </div>
@@ -103,7 +103,7 @@
         <div class="card mb-4">
           <div class="card-body">
             <h3 class="card-section-title"><i class="fa-solid fa-book me-2"></i>{{ 'MANGA.SYNOPSIS' | translate }}</h3>
-            <p class="synopsis-text">{{ manga.mangaDetails }}</p>
+            <p class="synopsis-text">{{ manga.description }}</p>
           </div>
         </div>
 
@@ -141,8 +141,8 @@
             </div>
             <div class="chapter-list">
               <a class="chapter-item" *ngFor="let ch of visibleChapters" [href]="readChapter(ch)">
-                <span class="chapter-name">{{ ch.chapterName }}</span>
-                <span class="chapter-title">{{ ch.chapterTitle }}</span>
+                <span class="chapter-name">{{ ch.index }}</span>
+                <span class="chapter-title">{{ ch.title }}</span>
                 <span class="chapter-date">{{ formatDate(ch.chapterDate) }}</span>
               </a>
             </div>

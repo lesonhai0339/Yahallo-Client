@@ -9,17 +9,42 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrls: ['../login/login.component.scss']
 })
 export class RegisterComponent {
+  firstName = '';
+  lastName = '';
+  email = '';
+  phoneNumber = '';
   username = '';
   password = '';
   confirmPassword = '';
-  email = '';
   isLoading = false;
   showPassword = false;
+  showConfirmPassword = false;
+  selectedAvatar: File | null = null;
+  avatarPreviewUrl: string | null = null;
 
   constructor(private auth: AuthService, private router: Router, private toastr: ToastrService) {}
 
+  onFileSelected(event: any): void {
+    const file: File = event.target.files[0];
+    if (file) {
+      // You can add validation for file type and size here if needed
+      // For example, to check if it's an image and less than 2MB:
+      if (!file.type.startsWith('image/')) {
+        this.toastr.error('Sai định dạng ảnh');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        this.toastr.error('Kích thước file phải nhỏ hơn 2MB');
+        return;
+      }
+      // Store the selected file for later use during registration
+      this.selectedAvatar = file;
+      this.avatarPreviewUrl = URL.createObjectURL(file);
+    }
+  }
+
   submit(): void {
-    if (!this.username || !this.password || !this.email) {
+    if (!this.username || !this.password || !this.email || !this.firstName || !this.lastName || !this.phoneNumber) {
       this.toastr.warning('Vui lòng điền đầy đủ thông tin');
       return;
     }
@@ -28,12 +53,18 @@ export class RegisterComponent {
       return;
     }
     this.isLoading = true;
-    this.auth.register({ UserName: this.username, Password: this.password, Email: this.email }).subscribe({
-      next: () => {
-        this.toastr.success('Đăng ký thành công! Vui lòng đăng nhập.');
+    this.auth.register({FirstName: this.firstName, LastName: this.lastName, Email: this.email, PhoneNumber: this.phoneNumber, UserName: this.username, Password: this.password, Avatar: this.selectedAvatar  }).subscribe({
+      next: (repsonse) => {
+        const res = repsonse?.value ?? repsonse;  
+        this.toastr.success(res);
         this.router.navigate(['/auth/login']);
       },
-      error: () => { this.isLoading = false; this.toastr.error('Đăng ký thất bại. Tên đăng nhập hoặc email đã tồn tại.'); }
+      error: (err) => { 
+        const error = err?.error ?? err;
+        const errMsg = `${error.status ?? ''} ${error.detail ?? 'Đăng ký thất bại'}`;
+        this.isLoading = false; 
+        this.toastr.error(errMsg); 
+      }
     });
   }
 }

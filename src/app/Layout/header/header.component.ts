@@ -143,7 +143,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.notifService.stopHub();
     this.router.navigate(['/']);
   }
-
   t(key: string): string {
     return this.translation.get(key);
   }

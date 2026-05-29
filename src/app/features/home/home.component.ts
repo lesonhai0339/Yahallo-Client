@@ -39,10 +39,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     }).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: ({ latest, trending, categories, pageCount }) => {
-          console.log(latest);
-          console.log(trending);
-          console.log(categories);
-          console.log(pageCount);
           this.latestManga = latest || [];
           this.trendingManga = trending || [];
           this.categories = categories || [];

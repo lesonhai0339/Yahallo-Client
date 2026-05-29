@@ -120,6 +120,10 @@
 .sidebar {
   position: sticky;
   top: 76px;
+   @media (max-width: 768px) {
+    position: relative;
+    top: 0;
+  }
 }
 
 .sidebar-section {

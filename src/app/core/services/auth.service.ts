@@ -22,11 +22,9 @@ export class AuthService {
   init(): void {
     const accessToken = this.cookie.get(JWT_KEY);
     const refreshToken = this.cookie.get(RF_KEY);
-    const userRaw = this.cookie.get(USER);
-    if (accessToken && refreshToken) {
+    const user = localStorage.getItem(USER);
+    if (accessToken && refreshToken && user) {
       try {
-        const bytes = CryptoJS.AES.decrypt(userRaw, ENCRYPT_KEY);
-        const user = bytes.toString(CryptoJS.enc.Utf8);
         this.loginState.next({ status: true, isLogout: false, accessToken: accessToken, refreshToken: refreshToken, user :  user });
       } catch {
         this.logout();
@@ -37,7 +35,14 @@ export class AuthService {
   get currentUser(): User | null {
     const state = this.loginState.value;
     if (!state.status || !state.user) return null;
-    try { return JSON.parse(state.user); } catch { return null; }
+    const bytes = CryptoJS.AES.decrypt(state.user, ENCRYPT_KEY);
+    const user = bytes.toString(CryptoJS.enc.Utf8);
+    try { 
+      return JSON.parse(user); 
+    } 
+    catch { 
+      return null; 
+    }
   }
 
   get isLoggedIn(): boolean {
@@ -58,14 +63,14 @@ export class AuthService {
         const user = {
           id: data.id,
           name: data.name,
-          avatar: data.avatarUri
+          avatar: data.avatarUri ? `data:image/png;base64,${data.avatarUri}` : null
         }
         if (accessToken) {
           const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(user), ENCRYPT_KEY).toString();
           this.cookie.set(JWT_KEY, accessToken, { path: '/', secure: true, sameSite: 'Strict' });
           this.cookie.set(RF_KEY, refreshToken, { path: '/', secure: true, sameSite: 'Strict' });
-          this.cookie.set(USER, encryptedUser, { path: '/', secure: true, sameSite: 'Strict' });
-          this.loginState.next({ status: true, isLogout: false, accessToken, refreshToken, user: JSON.stringify(encryptedUser) });
+          localStorage.setItem(USER, encryptedUser);
+          this.loginState.next({ status: true, isLogout: false, accessToken, refreshToken, user: encryptedUser });
         }
       })
     );
@@ -74,12 +79,20 @@ export class AuthService {
   logout(): void {
     this.cookie.delete(JWT_KEY, '/');
     this.cookie.delete(RF_KEY, '/');
-    this.cookie.delete(USER, '/');
+    localStorage.removeItem(USER);
     this.loginState.next({ status: false, isLogout: true, accessToken: '', refreshToken: '', user: '' });
   }
 
   register(data: RegisterRequest): Observable<any> {
-    return this.http.post(`${this.base}/create`, data);
+    const formData = new FormData();
+    formData.append('FirstName', data.FirstName);
+    formData.append('LastName', data.LastName);
+    formData.append('Email', data.Email);
+    formData.append('PhoneNumber', data.PhoneNumber); 
+    formData.append('UserName', data.UserName);
+    formData.append('Password', data.Password);
+    if (data.Avatar) formData.append('Avatar', data.Avatar, data.Avatar.name);
+    return this.http.post(`${this.base}/create`, formData);
   }
 
   forgotPassword(email: string): Observable<any> {

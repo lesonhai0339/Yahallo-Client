@@ -12,7 +12,7 @@ export class MangaCardComponent {
   @Output() clicked = new EventEmitter<Manga>();
 
   getRouterLink(): string[] {
-    return ['/manga', this.manga.mangaId, encodeURIComponent(this.manga.mangaName)];
+    return ['/manga', this.manga.id, encodeURIComponent(this.manga.name)];
   }
 
   formatViews(views: number): string {
@@ -23,6 +23,6 @@ export class MangaCardComponent {
   }
 
   getLatestChapter(): string {
-    return this.manga.listChaper?.[0]?.chapterName ?? 'N/A';
+    return this.manga.chapters?.[0]?.title ?? 'N/A';
   }
 }
