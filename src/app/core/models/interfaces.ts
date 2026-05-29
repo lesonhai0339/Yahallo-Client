@@ -8,7 +8,8 @@ export interface User {
 export interface AuthCookie {
   status: boolean;
   isLogout: boolean;
-  token: string;
+  accessToken: string;
+  refreshToken:string;
   user: string;
 }
 

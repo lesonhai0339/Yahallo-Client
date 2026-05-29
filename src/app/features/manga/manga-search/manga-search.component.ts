@@ -79,14 +79,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     const idx = this.selectedCategories.indexOf(id);
     if (idx > -1) this.selectedCategories.splice(idx, 1);
     else this.selectedCategories.push(id);
-  }
-
-  @HostListener('document:keydown.enter', ['$event'])
-    onEnter(event: KeyboardEvent): void {
-      console.log('enter pressed, sear by tags');
-      if (this.selectedCategories.length > 0) this.searchByCategories();
-
-      this.selectedCategories = [];
+     if (this.selectedCategories.length > 0) this.searchByCategories();
   }
 
   searchByCategories(): void {

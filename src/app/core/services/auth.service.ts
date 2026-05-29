@@ -6,26 +6,28 @@ import * as CryptoJS from 'crypto-js';
 import { environment } from '../../../environments/environment';
 import { AuthCookie, LoginRequest, RegisterRequest, User } from '../models/interfaces';
 
-const JWT_KEY = 'yhl_jwt';
-const USER_KEY = 'yhl_user';
-const ENCRYPT_KEY = 'yahallo_secret_2024';
+const JWT_KEY = 'jwt_access';
+const RF_KEY = 'jwt_refresh';
+const USER = 'user'
+const ENCRYPT_KEY = 'yahallo_secret_2024123123@!asda@@####';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly base = environment.userApi;
-  private loginState = new BehaviorSubject<AuthCookie>({ status: false, isLogout: false, token: '', user: '' });
+  private loginState = new BehaviorSubject<AuthCookie>({ status: false, isLogout: false, accessToken: '', refreshToken: '', user : ''});
   auth$ = this.loginState.asObservable();
 
   constructor(private http: HttpClient, private cookie: CookieService) {}
 
   init(): void {
-    const token = this.cookie.get(JWT_KEY);
-    const userRaw = this.cookie.get(USER_KEY);
-    if (token && userRaw) {
+    const accessToken = this.cookie.get(JWT_KEY);
+    const refreshToken = this.cookie.get(RF_KEY);
+    const userRaw = this.cookie.get(USER);
+    if (accessToken && refreshToken) {
       try {
         const bytes = CryptoJS.AES.decrypt(userRaw, ENCRYPT_KEY);
         const user = bytes.toString(CryptoJS.enc.Utf8);
-        this.loginState.next({ status: true, isLogout: false, token, user });
+        this.loginState.next({ status: true, isLogout: false, accessToken: accessToken, refreshToken: refreshToken, user :  user });
       } catch {
         this.logout();
       }
@@ -43,21 +45,27 @@ export class AuthService {
   }
 
   get token(): string {
-    return this.loginState.value.token;
+    return this.loginState.value.accessToken;
   }
 
   login(username: string, password: string): Observable<any> {
     const payload: LoginRequest = { username, password };
     return this.http.post<any>(`${this.base}/login`, payload).pipe(
       tap(res => {
-        const data = res?.data ?? res;
-        const token = data?.token ?? data?.accessToken;
-        const user = data?.user ?? data;
-        if (token) {
+        const data = res?.value  ?? res;
+        const accessToken = data.accessToken;
+        const refreshToken = data.refreshToken;
+        const user = {
+          id: data.id,
+          name: data.name,
+          avatar: data.avatarUri
+        }
+        if (accessToken) {
           const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(user), ENCRYPT_KEY).toString();
-          this.cookie.set(JWT_KEY, token, { path: '/', secure: true, sameSite: 'Strict' });
-          this.cookie.set(USER_KEY, encryptedUser, { path: '/', secure: true, sameSite: 'Strict' });
-          this.loginState.next({ status: true, isLogout: false, token, user: JSON.stringify(user) });
+          this.cookie.set(JWT_KEY, accessToken, { path: '/', secure: true, sameSite: 'Strict' });
+          this.cookie.set(RF_KEY, refreshToken, { path: '/', secure: true, sameSite: 'Strict' });
+          this.cookie.set(USER, encryptedUser, { path: '/', secure: true, sameSite: 'Strict' });
+          this.loginState.next({ status: true, isLogout: false, accessToken, refreshToken, user: JSON.stringify(encryptedUser) });
         }
       })
     );
@@ -65,8 +73,9 @@ export class AuthService {
 
   logout(): void {
     this.cookie.delete(JWT_KEY, '/');
-    this.cookie.delete(USER_KEY, '/');
-    this.loginState.next({ status: false, isLogout: true, token: '', user: '' });
+    this.cookie.delete(RF_KEY, '/');
+    this.cookie.delete(USER, '/');
+    this.loginState.next({ status: false, isLogout: true, accessToken: '', refreshToken: '', user: '' });
   }
 
   register(data: RegisterRequest): Observable<any> {

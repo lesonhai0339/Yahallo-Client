@@ -23,8 +23,15 @@ export class ForgotPasswordComponent {
     if (!this.email) { this.toastr.warning(this.t.get('AUTH.EMAIL_PLACEHOLDER')); return; }
     this.isLoading = true;
     this.auth.forgotPassword(this.email).subscribe({
-      next: () => { this.isLoading = false; this.sent = true; },
-      error: () => { this.isLoading = false; this.toastr.error(this.t.get('COMMON.ERROR')); }
+      next: () => { 
+          this.isLoading = false; 
+          this.sent = true; 
+        },
+      error: (err) => { 
+          console.log(typeof(err))
+          this.isLoading = false; 
+          this.toastr.error(this.t.get('COMMON.ERROR') + err); 
+        }
     });
   }
 }

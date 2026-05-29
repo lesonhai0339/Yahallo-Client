@@ -120,11 +120,11 @@
       <!-- User Menu -->
       <div class="user-menu-wrapper" *ngIf="isLoggedIn; else loginBtn">
         <button class="user-avatar-btn" (click)="isUserMenuOpen = !isUserMenuOpen">
-          <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/default-avatar.png">
+          <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/user.jpg">
         </button>
         <div class="user-dropdown" *ngIf="isUserMenuOpen">
           <div class="user-info">
-            <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/default-avatar.png">
+            <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/user.jpg">
             <div>
               <strong>{{ user?.name }}</strong>
               <small>{{ user?.email }}</small>
