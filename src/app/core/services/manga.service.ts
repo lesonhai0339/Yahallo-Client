@@ -25,9 +25,17 @@ export class MangaService {
   getAll(page: number): Observable<any[]> {
     return this.getPaginated(page, 20).pipe(
       map((res: any) => {
-        //res?.data?.items ?? res?.items ?? []
         const tags: MangaPagination = res?.value ?? null;
-        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.name, mangaImage: `${this.imgBase}/image?filepath=${t.thumbnail}`, status: t.status,  })) ?? [];
+        return tags?.data?.map((t: any) => (
+          { 
+            id: t.id, 
+            name: t.name, 
+            thumbnail: `${this.imgBase}/image?filepath=${t.thumbnail}`, 
+            status: t.status, 
+            countries: t.countries,
+            description: t.description,
+            type: t.type
+          })) ?? [];
       })
     );
   }
