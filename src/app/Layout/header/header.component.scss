@@ -416,6 +416,11 @@ $header-height: 60px;
     &:hover { background: rgba(233,69,96,0.1); color: var(--accent-primary); }
   }
 
+  .admin-link {
+    color: #f59e0b !important;
+    &:hover { background: rgba(245, 158, 11, 0.1) !important; color: #f59e0b !important; }
+  }
+
   hr { border-color: var(--border-color); margin: 4px 0; }
 }
 

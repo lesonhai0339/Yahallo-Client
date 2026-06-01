@@ -46,7 +46,11 @@ export class UserInteractionService {
   getUnreadNotifications(userId: string): Observable<any[]> {
     const params = new HttpParams().set('userId', userId).set('unreadOnly', true);
     return this.http.get<any>(`${this.notifBase}/get`, { params }).pipe(
-      map((res: any) => res?.data ?? res ?? [])
+      map((res: any) => {
+        const d = res?.value ?? res;
+        const items = d?.data ?? d?.items ?? (Array.isArray(d) ? d : []);
+        return Array.isArray(items) ? items : [];
+      })
     );
   }
 }

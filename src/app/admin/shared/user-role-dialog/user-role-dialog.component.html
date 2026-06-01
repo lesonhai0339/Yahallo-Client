@@ -1,0 +1,40 @@
+<div class="role-dialog">
+  <h2>Quản lý quyền người dùng</h2>
+  <div class="subtitle">{{ data.userName }}</div>
+
+  <div *ngIf="loading" style="text-align:center;padding:20px;color:var(--text-muted)">Đang tải...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="section-label">Roles hiện tại</div>
+    <div class="roles-current">
+      <span class="role-chip" *ngFor="let role of userRoles">
+        {{ getRoleName(role) }}
+        <button type="button" (click)="removeRole(role)" title="Xóa role">✕</button>
+      </span>
+      <span class="no-roles" *ngIf="userRoles.length === 0">Chưa có role nào</span>
+    </div>
+
+    <div class="section-label">Thêm role</div>
+    <div class="add-role-row">
+      <select class="form-select form-select-sm" [formControl]="selectedRoleId">
+        <option value="">-- Chọn role --</option>
+        <option *ngFor="let role of availableRoles" [value]="role.id ?? role.roleId">{{ getRoleName(role) }}</option>
+      </select>
+      <button class="btn btn-primary btn-sm" (click)="addRole()" [disabled]="!selectedRoleId.value">Thêm</button>
+    </div>
+
+    <div class="lock-section">
+      <div class="section-label">Khóa / Mở khóa tài khoản</div>
+      <div class="lock-row">
+        <input class="form-control form-control-sm" type="number" [formControl]="lockDays" min="1" max="365" />
+        <span style="font-size:0.82rem;color:var(--text-muted)">ngày</span>
+        <button class="btn btn-sm" style="background:#dc3545;color:white" (click)="lockUser()">Khóa</button>
+        <button class="btn btn-secondary btn-sm" (click)="unlockUser()">Mở khóa</button>
+      </div>
+    </div>
+  </ng-container>
+
+  <div class="dialog-actions">
+    <button class="btn btn-secondary" (click)="dialogRef.close()">Đóng</button>
+  </div>
+</div>

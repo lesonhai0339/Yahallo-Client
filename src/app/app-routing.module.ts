@@ -23,6 +23,10 @@ const routes: Routes = [
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },
   { path: 'user/:id/:name', component: ProfileComponent, canActivate: [AuthGuard] },
   { path: 'user/:id/:name/notifications', component: NotificationsComponent, canActivate: [AuthGuard] },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)
+  },
   { path: '**', redirectTo: '' }
 ];
 

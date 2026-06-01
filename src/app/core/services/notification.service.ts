@@ -54,8 +54,9 @@ export class NotificationService {
   }
 
   setNotifications(items: Notification[]): void {
-    this.notifications$.next(items);
-    this.unreadCount$.next(items.filter(n => !n.isRead).length);
+    const arr = Array.isArray(items) ? items : [];
+    this.notifications$.next(arr);
+    this.unreadCount$.next(arr.filter(n => !n.isRead).length);
   }
 
   decrementUnread(): void {

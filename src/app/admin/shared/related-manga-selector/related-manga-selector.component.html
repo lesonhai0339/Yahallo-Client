@@ -1,0 +1,121 @@
+<div class="rms-wrap">
+
+  <!-- ── Prefix pills ────────────────────────────────────────────────────────── -->
+  <div class="rms-prefixes">
+    <button
+      class="rms-prefix-pill"
+      *ngFor="let opt of prefixOptions"
+      [class.rms-prefix-pill--active]="activePrefix.prefix === opt.prefix"
+      (click)="setPrefix(opt)"
+      [title]="opt.hint"
+      type="button">
+      <span class="material-icons">{{ opt.icon }}</span>
+      {{ opt.label }}
+    </button>
+  </div>
+
+  <!-- ── Search box ─────────────────────────────────────────────────────────── -->
+  <div class="rms-search-box" [class.rms-search-box--open]="showDropdown">
+
+    <!-- Prefix badge inside input row -->
+    <span class="rms-prefix-badge">{{ activePrefix.prefix }}</span>
+
+    <input
+      #searchInput
+      class="rms-input"
+      autocomplete="off"
+      [(ngModel)]="searchQuery"
+      [ngModelOptions]="{ standalone: true }"
+      [placeholder]="searchPlaceholder"
+      (input)="onInput()"
+      (focus)="onFocus()"
+      (keydown)="onKeyDown($event)" />
+
+    <!-- Spinner / icon -->
+    <span class="rms-spinner material-icons spin" *ngIf="isSearching">sync</span>
+    <span class="rms-spinner material-icons" *ngIf="!isSearching">search</span>
+  </div>
+
+  <!-- Query preview -->
+  <div class="rms-query-preview" *ngIf="fullQueryPreview">
+    <code>{{ fullQueryPreview }}</code>
+  </div>
+
+  <!-- ── Dropdown results ───────────────────────────────────────────────────── -->
+  <div class="rms-dropdown" *ngIf="showDropdown" #dropdownEl>
+
+    <!-- Loading skeleton -->
+    <div class="rms-loading" *ngIf="isSearching">
+      <span class="material-icons spin">sync</span> Đang tìm kiếm...
+    </div>
+
+    <!-- Results -->
+    <div
+      class="rms-result-row"
+      *ngFor="let m of searchResults; let i = index"
+      [class.rms-result-row--hl]="i === highlightedIndex"
+      (mouseenter)="highlightedIndex = i"
+      (mousedown)="select(m); $event.preventDefault()">
+
+      <div class="rms-result-thumb">
+        <img *ngIf="m.thumbnailUrl" [src]="m.thumbnailUrl" [alt]="m.name" />
+        <span *ngIf="!m.thumbnailUrl" class="material-icons rms-no-thumb">image</span>
+      </div>
+
+      <div class="rms-result-info">
+        <div class="rms-result-name">{{ m.name }}</div>
+        <div class="rms-result-meta">
+          <span class="rms-result-tags" *ngIf="getTagNames(m)">{{ getTagNames(m) }}</span>
+        </div>
+        <div class="rms-result-people">
+          <span *ngIf="getAuthorNames(m) !== '—'">
+            <span class="material-icons">person</span> {{ getAuthorNames(m) }}
+          </span>
+          <span *ngIf="getArtistNames(m) !== '—'">
+            <span class="material-icons">brush</span> {{ getArtistNames(m) }}
+          </span>
+        </div>
+      </div>
+
+      <span class="rms-result-add material-icons">add_circle</span>
+    </div>
+
+    <!-- Empty state -->
+    <div class="rms-empty" *ngIf="!isSearching && searchResults.length === 0 && searchQuery">
+      <span class="material-icons">search_off</span>
+      Không tìm thấy kết quả cho "{{ fullQueryPreview }}"
+    </div>
+  </div>
+
+  <!-- ── Selected mangas ────────────────────────────────────────────────────── -->
+  <div class="rms-selected" *ngIf="selectedMangas.length > 0">
+    <div class="rms-selected-header">
+      <span>{{ selectedMangas.length }} bộ truyện đã liên kết</span>
+      <button class="rms-clear-all" (click)="clearAll()" type="button">
+        <span class="material-icons">close</span> Bỏ tất cả
+      </button>
+    </div>
+
+    <div class="rms-selected-row" *ngFor="let m of selectedMangas">
+
+      <div class="rms-result-thumb">
+        <img *ngIf="m.thumbnailUrl" [src]="m.thumbnailUrl" [alt]="m.name" />
+        <span *ngIf="!m.thumbnailUrl" class="material-icons rms-no-thumb">image</span>
+      </div>
+
+      <div class="rms-result-info">
+        <div class="rms-result-name">{{ m.name }}</div>
+        <div class="rms-result-meta">{{ getTagNames(m) }}</div>
+        <div class="rms-result-people">
+          <span><span class="material-icons">person</span> {{ getAuthorNames(m) }}</span>
+          <span><span class="material-icons">brush</span> {{ getArtistNames(m) }}</span>
+        </div>
+      </div>
+
+      <button class="rms-remove-btn" (click)="remove(m.id)" type="button" title="Bỏ liên kết">
+        <span class="material-icons">link_off</span>
+      </button>
+    </div>
+  </div>
+
+</div>

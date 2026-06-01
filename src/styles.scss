@@ -388,6 +388,42 @@ a {
   color: var(--text-primary) !important;
 }
 
+// Table
+.mat-mdc-table { background: transparent !important; }
+.mdc-data-table__header-cell {
+  background: var(--bg-secondary) !important;
+  color: var(--text-muted) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+.mdc-data-table__cell {
+  color: var(--text-primary) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+.mat-mdc-row:hover .mdc-data-table__cell { background: var(--overlay-light) !important; }
+
+// Paginator
+.mat-mdc-paginator {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+.mat-mdc-paginator-icon { fill: var(--text-muted) !important; }
+.mat-mdc-icon-button:not(:disabled) .mat-mdc-paginator-icon { fill: var(--text-secondary) !important; }
+
+// Sort header
+.mat-sort-header-arrow { color: var(--text-muted) !important; }
+
+// Form field (used in Material inputs)
+.mat-mdc-form-field {
+  .mdc-floating-label { color: var(--text-muted) !important; }
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing { border-color: var(--border-color) !important; }
+  &:hover .mdc-notched-outline__leading,
+  &:hover .mdc-notched-outline__notch,
+  &:hover .mdc-notched-outline__trailing { border-color: var(--accent-primary) !important; }
+  input.mat-mdc-input-element { color: var(--text-primary) !important; }
+}
+
 // === Responsive ===
 @media (max-width: 576px) {
   .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }

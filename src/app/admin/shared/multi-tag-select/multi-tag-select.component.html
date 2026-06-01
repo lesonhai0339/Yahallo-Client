@@ -1,0 +1,67 @@
+<div class="mts-wrap">
+  <div class="mts-label" *ngIf="label">{{ label }}</div>
+
+  <!-- Outer box: handles border, focus ring, cursor -->
+  <div class="mts-box" [class.mts-box--open]="showDropdown" (click)="focusInput()">
+
+    <!-- Expand indicator — fixed top-right, outside scroll area -->
+    <span class="mts-indicator material-icons">{{ showDropdown ? 'expand_less' : 'expand_more' }}</span>
+
+    <!-- Scrollable chips + input -->
+    <div class="mts-field">
+      <span
+        class="mts-chip"
+        *ngFor="let item of selectedItems"
+        (click)="$event.stopPropagation()">
+        {{ item.name }}
+        <button
+          class="mts-chip__x"
+          (mousedown)="remove(item.id); $event.preventDefault()"
+          tabindex="-1"
+          title="Bỏ chọn">
+          <span class="material-icons">close</span>
+        </button>
+      </span>
+
+      <input
+        #searchInput
+        class="mts-input"
+        autocomplete="off"
+        [(ngModel)]="searchText"
+        [ngModelOptions]="{ standalone: true }"
+        (input)="onInput()"
+        (focus)="onFocus()"
+        (keydown)="onKeyDown($event)"
+        [placeholder]="selectedItems.length === 0 ? placeholder : ''" />
+    </div>
+
+    <!-- Footer: clear-all button — fixed bottom-right, outside scroll area -->
+    <div class="mts-footer" *ngIf="selectedIds.length > 0" (click)="$event.stopPropagation()">
+      <button
+        class="mts-clear-btn"
+        (mousedown)="clearAll(); $event.preventDefault()"
+        tabindex="-1"
+        title="Bỏ chọn tất cả">
+        <span class="material-icons">close</span>
+        Bỏ tất cả
+      </button>
+    </div>
+  </div>
+
+  <!-- Dropdown -->
+  <div class="mts-dropdown" *ngIf="showDropdown" #dropdownEl>
+    <div
+      class="mts-item"
+      *ngFor="let item of filteredItems; let i = index"
+      [class.mts-item--hl]="i === highlightedIndex"
+      (mouseenter)="highlightedIndex = i"
+      (mousedown)="select(item); $event.preventDefault()">
+      {{ item.name }}
+    </div>
+
+    <div class="mts-empty" *ngIf="filteredItems.length === 0">
+      <span class="material-icons">search_off</span>
+      {{ searchText ? 'Không tìm thấy "' + searchText + '"' : 'Tất cả đã được chọn' }}
+    </div>
+  </div>
+</div>

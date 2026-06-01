@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Manga, MangaPagination, PagedResult } from '../models/interfaces';
+import { Chapter, Manga, MangaPagination, PagedResult } from '../models/interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
@@ -107,9 +107,27 @@ export class MangaService {
       }));
   }
 
-  getChapters(mangaId: string): Observable<any> {
-    const params = new HttpParams().set('MangaId', mangaId).set('PageSize', 200);
-    return this.http.get(`${this.chapterBase}/filter-chapter`, { params });
+  getChapters(mangaId: string): Observable<any[]> {
+    const params = new HttpParams()
+    .set('PageNumber', 1)
+    .set('PageSize', 1000)
+    .set('MangaId', mangaId);
+    return this.http.get(`${this.chapterBase}/filter-chapter`, { params }).pipe(
+      map((res: any) => {
+        const t = res?.value ?? res;
+        return t?.data?.map((chapter : any) => 
+          (
+            {
+               id: chapter.id,
+               index : chapter.index,
+               title: chapter.title,
+               mangaId: chapter.mangaId,
+               chapterDate: chapter.chapterDate ?? new Date().toString()
+            }
+          )
+        ) ?? []
+      })
+    );
   }
 
   getChapterImages(mangaId: string, chapterId: string): Observable<any> {

@@ -1,0 +1,157 @@
+<div class="manga-form-page">
+  <div class="page-header">
+    <button class="btn-back" (click)="cancel()">
+      <span class="material-icons">arrow_back</span>
+    </button>
+    <div>
+      <h1>{{ isEdit ? 'Chỉnh sửa truyện' : 'Thêm truyện mới' }}</h1>
+      <p *ngIf="isEdit">ID: {{ mangaId }}</p>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="form-loading">Đang tải dữ liệu...</div>
+
+  <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading">
+    <div class="form-layout">
+
+      <!-- Left column: Image -->
+      <div class="form-sidebar">
+        <div class="form-section">
+          <div class="section-title">Ảnh bìa</div>
+          <div class="image-upload-area" (click)="fileInput.click()">
+            <img *ngIf="previewImage" [src]="previewImage" alt="Preview" class="image-preview" />
+            <div *ngIf="!previewImage" class="image-placeholder">
+              <span class="material-icons">add_photo_alternate</span>
+              <span>Chọn ảnh bìa</span>
+            </div>
+          </div>
+          <input #fileInput type="file" accept="image/*" class="d-none" (change)="onImageChange($event)" />
+          <button type="button" class="btn btn-secondary btn-sm mt-2 w-100" (click)="fileInput.click()">
+            {{ previewImage ? 'Đổi ảnh' : 'Chọn ảnh' }}
+          </button>
+        </div>
+
+        <!-- Quick stats (edit mode) -->
+        <div class="form-section" *ngIf="isEdit">
+          <div class="section-title">Tùy chọn nhanh</div>
+          <div class="field-group">
+            <label>Trạng thái</label>
+            <select class="form-select" formControlName="status">
+              <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: Details -->
+      <div class="form-main">
+        <div class="form-section">
+          <div class="section-title">Thông tin cơ bản</div>
+
+          <div class="field-group">
+            <label>Tên truyện *</label>
+            <input class="form-control" formControlName="name" placeholder="Tên truyện..." />
+            <div class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+              Tên truyện không được để trống
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Mô tả</label>
+            <textarea class="form-control" formControlName="description" rows="5" placeholder="Mô tả nội dung truyện..."></textarea>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label>Loại</label>
+              <select class="form-select" formControlName="type">
+                <option *ngFor="let t of typeOptions" [value]="t.value">{{ t.label }}</option>
+              </select>
+            </div>
+
+            <div class="field-group" *ngIf="!isEdit">
+              <label>Trạng thái</label>
+              <select class="form-select" formControlName="status">
+                <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label>Độ tuổi</label>
+              <select class="form-select" formControlName="level">
+                <option *ngFor="let l of levelOptions" [value]="l.value">{{ l.label }}</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label>Quốc gia</label>
+              <select class="form-select" formControlName="countries">
+                <option *ngFor="let c of countriesOptions" [value]="c.value">{{ c.label }}</option>
+              </select>
+            </div>
+
+            <div class="field-group field-group--sm">
+              <label>Mùa</label>
+              <input class="form-control" type="number" formControlName="season" min="1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Thể loại / Tags</div>
+          <app-multi-tag-select
+            label="Tags"
+            placeholder="Tìm tag..."
+            [allItems]="tagItems"
+            [selectedIds]="selectedTagIds"
+            (selectedIdsChange)="onTagsChange($event)">
+          </app-multi-tag-select>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Tác giả & Họa sĩ</div>
+          <div class="field-row">
+            <app-multi-tag-select
+              label="Tác giả (Author)"
+              placeholder="Tìm tác giả..."
+              [allItems]="authorItems"
+              [selectedIds]="selectedAuthorIds"
+              (selectedIdsChange)="onAuthorsChange($event)"
+              style="flex:1">
+            </app-multi-tag-select>
+            <app-multi-tag-select
+              label="Họa sĩ (Artist)"
+              placeholder="Tìm họa sĩ..."
+              [allItems]="artistItems"
+              [selectedIds]="selectedArtistIds"
+              (selectedIdsChange)="onArtistsChange($event)"
+              style="flex:1">
+            </app-multi-tag-select>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Liên kết Series / Mùa</div>
+          <p class="section-desc">
+            Liên kết các bộ truyện cùng series để hiện gợi ý hoặc danh sách mùa.
+          </p>
+          <app-related-manga-selector
+            [currentMangaId]="mangaId ?? undefined"
+            [selectedMangas]="linkedMangas"
+            (selectedMangasChange)="linkedMangas = $event">
+          </app-related-manga-selector>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="saving">Hủy</button>
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving">
+            {{ saving ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Tạo truyện') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

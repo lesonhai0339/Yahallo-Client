@@ -1,0 +1,58 @@
+<div class="dashboard">
+  <div class="page-title">
+    <h1>Dashboard</h1>
+    <p>Tổng quan hệ thống</p>
+  </div>
+
+  <div class="stats-grid" *ngIf="!loading; else loadingTpl">
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--red">
+        <span class="material-icons">menu_book</span>
+      </div>
+      <div class="stat-card__info">
+        <div class="stat-card__value">{{ stats.manga | number }}</div>
+        <div class="stat-card__label">Tổng truyện</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--blue">
+        <span class="material-icons">people</span>
+      </div>
+      <div class="stat-card__info">
+        <div class="stat-card__value">{{ stats.users | number }}</div>
+        <div class="stat-card__label">Người dùng</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--green">
+        <span class="material-icons">label</span>
+      </div>
+      <div class="stat-card__info">
+        <div class="stat-card__value">{{ stats.tags | number }}</div>
+        <div class="stat-card__label">Thể loại / Tag</div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #loadingTpl>
+    <div class="stats-grid">
+      <div class="stat-card skeleton-card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+  </ng-template>
+
+  <div class="quick-links">
+    <h3 class="quick-links__title">Truy cập nhanh</h3>
+    <div class="quick-links__grid">
+      <a
+        *ngFor="let link of quickLinks"
+        [routerLink]="link.path"
+        class="quick-link"
+        [attr.data-color]="link.color">
+        <span class="material-icons quick-link__icon">{{ link.icon }}</span>
+        <span class="quick-link__label">{{ link.label }}</span>
+      </a>
+    </div>
+  </div>
+</div>

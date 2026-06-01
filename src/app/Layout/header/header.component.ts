@@ -7,6 +7,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { UserInteractionService } from '../../core/services/user-interaction.service';
 import { TranslationService, SupportedLang } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { AdminStateService } from '../../admin/services/admin-state.service';
 import { User } from '../../core/models/interfaces';
 
 @Component({
@@ -28,6 +29,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   user: User | null = null;
   isLoggedIn = false;
+  isAdmin = false;
   searchQuery = '';
   searchResults: any[] = [];
   notifications: any[] = [];
@@ -52,6 +54,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private userInteraction: UserInteractionService,
     public translation: TranslationService,
     public themeService: ThemeService,
+    private adminState: AdminStateService,
     private router: Router
   ) {}
 
@@ -68,6 +71,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.notifService.startHub();
       }
     });
+
+    this.adminState.isAdmin$.pipe(takeUntil(this.destroy$)).subscribe(v => this.isAdmin = v);
 
     this.notifService.unreadCount.pipe(takeUntil(this.destroy$)).subscribe(c => this.unreadCount = c);
     this.notifService.notifications.pipe(takeUntil(this.destroy$)).subscribe(n => this.notifications = n.slice(0, 8));

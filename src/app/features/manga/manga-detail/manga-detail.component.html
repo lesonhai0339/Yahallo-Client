@@ -18,9 +18,6 @@
             <div class="category-list">
               <a class="tag-chip" *ngFor="let cat of manga.tags | slice:0:5"
                  [routerLink]="['/the-loai', cat.id]">{{ cat.name }}</a>
-              <span class="tag-chip tag-chip--accent" *ngFor="let tag of manga.tags | slice:0:3">
-                # {{ tag.name }}
-              </span>
             </div>
             <div class="manga-stats-row">
               <div class="stat-box">
@@ -141,8 +138,8 @@
             </div>
             <div class="chapter-list">
               <a class="chapter-item" *ngFor="let ch of visibleChapters" [href]="readChapter(ch)">
-                <span class="chapter-name">{{ ch.index }}</span>
-                <span class="chapter-title">{{ ch.title }}</span>
+                <span class="chapter-name">{{ ch.title }}</span>
+                <span class="chapter-title">Không</span>
                 <span class="chapter-date">{{ formatDate(ch.chapterDate) }}</span>
               </a>
             </div>

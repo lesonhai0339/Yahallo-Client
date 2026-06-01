@@ -1,0 +1,58 @@
+<div class="admin-wrapper" [class.sidebar-closed]="!sidebarOpen">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar__logo">
+      <span class="admin-sidebar__logo-icon">⚙</span>
+      <span class="admin-sidebar__logo-text">Admin Panel</span>
+    </div>
+
+    <nav class="admin-sidebar__nav">
+      <a
+        *ngFor="let item of navItems"
+        class="admin-sidebar__nav-item"
+        [class.active]="isActive(item.path)"
+        [routerLink]="item.path">
+        <span class="material-icons admin-sidebar__icon">{{ item.icon }}</span>
+        <span class="admin-sidebar__label">{{ item.label }}</span>
+      </a>
+    </nav>
+
+    <div class="admin-sidebar__footer">
+      <a class="admin-sidebar__nav-item" routerLink="/" title="Về trang chủ">
+        <span class="material-icons admin-sidebar__icon">home</span>
+        <span class="admin-sidebar__label">Trang chủ</span>
+      </a>
+      <button class="admin-sidebar__nav-item admin-sidebar__logout" (click)="logout()">
+        <span class="material-icons admin-sidebar__icon">logout</span>
+        <span class="admin-sidebar__label">Đăng xuất</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="admin-main">
+    <!-- Top header -->
+    <header class="admin-header">
+      <button class="admin-header__toggle" (click)="toggleSidebar()" title="Toggle sidebar">
+        <span class="material-icons">menu</span>
+      </button>
+
+      <div class="admin-header__right">
+        <div class="admin-header__user" *ngIf="currentUser">
+          <img
+            *ngIf="currentUser.avatar"
+            [src]="currentUser.avatar"
+            [alt]="currentUser.name"
+            class="admin-header__avatar" />
+          <span class="admin-header__username">{{ currentUser.name }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <div class="admin-content">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

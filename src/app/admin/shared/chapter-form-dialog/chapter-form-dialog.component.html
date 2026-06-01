@@ -1,0 +1,136 @@
+<div class="chapter-dialog">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
+  <h2 class="dialog-title">{{ data.chapter ? 'Chỉnh sửa chương' : 'Thêm chương mới' }}</h2>
+
+  <!-- ── Form ───────────────────────────────────────────────────────────────── -->
+  <form [formGroup]="form">
+    <div class="field-row">
+      <div class="field-group">
+        <label>Tiêu đề *</label>
+        <input class="form-control" formControlName="title" placeholder="Chapter 1: Khởi đầu" [class.disabled]="isBusy" />
+      </div>
+      <div class="field-group field-group--sm">
+        <label>STT *</label>
+        <input class="form-control" type="number" formControlName="index" min="0" step="0.1" [class.disabled]="isBusy" />
+      </div>
+    </div>
+  </form>
+
+  <!-- ── 3-step indicator (single file mode) ────────────────────────────────── -->
+  <div class="steps" *ngIf="isBusy && isSingle">
+    <div class="step" *ngFor="let s of steps"
+         [class.step--active]="stepActive(s.key)"
+         [class.step--current]="stepCurrent(s.key)">
+      <div class="step__dot">
+        <span class="material-icons step__icon" [class.spin]="stepCurrent(s.key)">
+          {{ stepActive(s.key) ? 'check_circle' : 'radio_button_unchecked' }}
+        </span>
+      </div>
+      <span class="step__label">{{ s.label }}</span>
+      <div class="step__line" *ngIf="s.key !== 'confirming'"></div>
+    </div>
+  </div>
+
+  <!-- ── Drop zone ──────────────────────────────────────────────────────────── -->
+  <div class="drop-zone" [class.drop-zone--busy]="isBusy"
+       (dragover)="onDragOver($event)" (drop)="onDrop($event)"
+       (click)="!isBusy && fileInput.click()">
+    <span class="material-icons">add_photo_alternate</span>
+    <span>Kéo thả hoặc click chọn ảnh</span>
+    <span class="drop-zone__hint">JPG · PNG · WebP — nhiều trang cùng lúc</span>
+  </div>
+  <input #fileInput type="file" multiple accept="image/*" class="hidden-input" (change)="onFilesSelected($event)" />
+
+  <!-- ── File list ──────────────────────────────────────────────────────────── -->
+  <ng-container *ngIf="fileStates.length > 0">
+
+    <!-- Overall progress bar (multi-file) -->
+    <div class="overall-progress" *ngIf="isBusy && !isSingle">
+      <div class="overall-progress__bar">
+        <div class="overall-progress__fill" [style.width.%]="overallPercent"></div>
+      </div>
+      <span class="overall-progress__label">
+        {{ overallPercent }}% &nbsp;·&nbsp;
+        {{ doneCount }}/{{ fileStates.length }} trang
+        <span *ngIf="failedCount" class="text-danger">&nbsp;({{ failedCount }} lỗi)</span>
+      </span>
+    </div>
+
+    <!-- File list header -->
+    <div class="file-list-header">
+      <span>{{ fileStates.length }} trang đã chọn</span>
+      <span *ngIf="!isBusy" class="add-more" (click)="fileInput.click()">+ Thêm</span>
+    </div>
+
+    <!-- File items -->
+    <div class="file-list">
+      <div class="file-item" *ngFor="let fs of fileStates; let i = index"
+           [attr.data-status]="fs.status">
+        <!-- Thumbnail -->
+        <img [src]="fs.preview" [alt]="fs.file.name" class="file-thumb" />
+
+        <!-- Info column -->
+        <div class="file-info">
+          <span class="file-name">{{ fs.file.name }}</span>
+          <span class="file-meta">Trang {{ fs.pageIndex }} · {{ formatSize(fs.file.size) }}</span>
+
+          <!-- Per-file upload progress bar -->
+          <div class="file-progress" *ngIf="fs.status === 'uploading'">
+            <div class="file-progress__bar">
+              <div class="file-progress__fill" [style.width.%]="fs.uploadPercent"></div>
+            </div>
+            <span class="file-progress__pct">{{ fs.uploadPercent }}%</span>
+          </div>
+
+          <!-- ETag (success) -->
+          <span class="file-etag" *ngIf="fs.status === 'done' && fs.etag" title="ETag từ S3">
+            <span class="material-icons">verified</span> {{ fs.etag | slice:0:16 }}...
+          </span>
+
+          <!-- Error (fail) -->
+          <span class="file-error" *ngIf="fs.status === 'failed'">
+            <span class="material-icons">error</span> {{ fs.error || 'Upload thất bại' }}
+          </span>
+        </div>
+
+        <!-- Status icon -->
+        <span class="status-icon" [attr.data-status]="fs.status">
+          <span class="material-icons" [class.spin]="fs.status === 'uploading' || fs.status === 'signing'">
+            {{ statusIcon(fs.status) }}
+          </span>
+        </span>
+
+        <!-- Reorder / remove (idle only) -->
+        <div class="file-actions" *ngIf="!isBusy">
+          <button class="ia" (click)="moveUp(i)" [disabled]="i === 0">
+            <span class="material-icons">arrow_upward</span>
+          </button>
+          <button class="ia" (click)="moveDown(i)" [disabled]="i === fileStates.length - 1">
+            <span class="material-icons">arrow_downward</span>
+          </button>
+          <button class="ia ia--del" (click)="removeFile(fs)">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ── Mock notice ────────────────────────────────────────────────────────── -->
+  <div class="mock-notice">
+    <span class="material-icons">construction</span>
+    Mock mode — Signed URL & S3 đều được giả lập. Thay <code>USE_MOCK = false</code> khi API sẵn sàng.
+  </div>
+
+  <!-- ── Actions ────────────────────────────────────────────────────────────── -->
+  <div class="dialog-actions">
+    <button class="btn btn-secondary" (click)="cancel()" [disabled]="isBusy">Hủy</button>
+    <button class="btn btn-primary" (click)="save()" [disabled]="form.invalid || isBusy">
+      <span class="material-icons spin" *ngIf="isBusy">sync</span>
+      <span class="material-icons" *ngIf="!isBusy">cloud_upload</span>
+      {{ isBusy ? 'Đang xử lý...' : (fileStates.length ? 'Upload & Lưu' : 'Lưu chương') }}
+    </button>
+  </div>
+
+</div>

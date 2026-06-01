@@ -5,6 +5,21 @@ export interface User {
   email: string;
 }
 
+export interface UserRolePagination{
+  pageCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  data: UserRole[];
+}
+export interface UserRole{
+  roleId: string;
+  roleName: string;
+  userId: string;
+  userName: string;
+}
+
+
 export interface AuthCookie {
   status: boolean;
   isLogout: boolean;

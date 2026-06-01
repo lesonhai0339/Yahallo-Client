@@ -1,0 +1,131 @@
+<div class="manga-list-page">
+  <div class="page-header">
+    <div>
+      <h1>Quản lý Truyện</h1>
+      <p>{{ totalCount | number }} truyện</p>
+    </div>
+    <button class="btn btn-primary" (click)="goCreate()">
+      <span class="material-icons">add</span> Thêm truyện
+    </button>
+  </div>
+
+  <!-- Filter -->
+  <div class="toolbar">
+    <div class="toolbar__search">
+      <span class="material-icons toolbar__search-icon">search</span>
+      <input
+        class="toolbar__search-input"
+        placeholder="Tìm theo tên..."
+        (keyup)="applyFilter($event)" />
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <div *ngIf="loading" class="table-loading">
+      <div class="spinner"></div>
+      <span>Đang tải...</span>
+    </div>
+
+    <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
+
+      <!-- Thumbnail -->
+      <ng-container matColumnDef="thumbnail">
+        <th mat-header-cell *matHeaderCellDef>Ảnh</th>
+        <td mat-cell *matCellDef="let m">
+          <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="thumb" />
+          <div *ngIf="!m.thumbnail" class="thumb-placeholder">?</div>
+        </td>
+      </ng-container>
+
+      <!-- Name -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tên truyện</th>
+        <td mat-cell *matCellDef="let m">
+          <div class="manga-name">{{ m.name }}</div>
+          <div class="manga-id">ID: {{ m.id | slice:0:8 }}...</div>
+        </td>
+      </ng-container>
+
+      <!-- Type -->
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Loại</th>
+        <td mat-cell *matCellDef="let m">
+          <span class="type-badge">{{ m.type || '—' }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Status -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Trạng thái</th>
+        <td mat-cell *matCellDef="let m">
+          <span class="status-badge" [ngClass]="getStatusClass(m.status)">{{ getStatusLabel(m.status) }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Chapters -->
+      <ng-container matColumnDef="totalChapters">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Chương</th>
+        <td mat-cell *matCellDef="let m">{{ m.totalChapters ?? 0 }}</td>
+      </ng-container>
+
+      <!-- Views -->
+      <ng-container matColumnDef="totalViews">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Lượt xem</th>
+        <td mat-cell *matCellDef="let m">{{ m.totalViews ?? 0 | number }}</td>
+      </ng-container>
+
+      <!-- Date -->
+      <ng-container matColumnDef="updateDate">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cập nhật</th>
+        <td mat-cell *matCellDef="let m">
+          {{ m.updateDate ? (m.updateDate | date:'dd/MM/yy') : '—' }}
+        </td>
+      </ng-container>
+
+      <!-- Actions -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Thao tác</th>
+        <td mat-cell *matCellDef="let m">
+          <div class="action-btns">
+            <button class="action-btn action-btn--edit" (click)="goEdit(m)" title="Chỉnh sửa">
+              <span class="material-icons">edit</span>
+            </button>
+            <button class="action-btn action-btn--chapter" (click)="goChapters(m)" title="Quản lý chương">
+              <span class="material-icons">format_list_numbered</span>
+            </button>
+            <button
+              class="action-btn"
+              [class.action-btn--hide]="m.status !== 'Hidden'"
+              [class.action-btn--show]="m.status === 'Hidden'"
+              (click)="toggleStatus(m)"
+              [title]="m.status === 'Hidden' ? 'Hiện truyện' : 'Ẩn truyện'">
+              <span class="material-icons">{{ m.status === 'Hidden' ? 'visibility' : 'visibility_off' }}</span>
+            </button>
+            <button class="action-btn action-btn--delete" (click)="deleteManga(m)" title="Xóa">
+              <span class="material-icons">delete</span>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
+          Không tìm thấy truyện nào
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <mat-paginator
+    [length]="totalCount"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[10, 20, 50]"
+    (page)="onPageChange($event)"
+    showFirstLastButtons>
+  </mat-paginator>
+</div>
