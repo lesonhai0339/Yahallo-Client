@@ -30,7 +30,7 @@ export class MangaService {
           { 
             id: t.id, 
             name: t.name, 
-            thumbnail: `${this.imgBase}/image?filepath=${t.thumbnail}`, 
+            thumbnail: t.thumbnail, 
             status: t.status, 
             countries: t.countries,
             description: t.description,
@@ -91,7 +91,7 @@ export class MangaService {
           type: t.type,
           countries: t.countries,
           season: t.season,
-          thumbnail: `${this.imgBase}/image?filepath=${t.thumbnail}`,
+          thumbnail: t.thumbnail,
           userId: t.userId,
           averageRating: t.averageRating,
           totalFollows: t.totalFollows,
@@ -157,7 +157,7 @@ export class MangaService {
     return this.http.get(`${this.base}/filter-manga`, { params: httpParams })
     .pipe(map((res: any) =>{
         const tags: MangaPagination = res?.value ?? null;
-        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.name, mangaImage: `${this.imgBase}/image?filepath=${t.thumbnail}`, status: t.status,  })) ?? [];
+        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.name, mangaImage: t.thumbnail, status: t.status,  })) ?? [];
     }));
   }
 
@@ -175,7 +175,7 @@ export class MangaService {
     return this.http.get(`${this.base}/filter-manga-by-tags`, { params: httpParams })
     .pipe(map((res: any) =>{
         const tags: MangaPagination = res?.value ?? null;
-        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.name, mangaImage: `${this.imgBase}/image?filepath=${t.thumbnail}`, status: t.status,  })) ?? [];
+        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.name, mangaImage: t.thumbnail, status: t.status,  })) ?? [];
     }));
   }
 
