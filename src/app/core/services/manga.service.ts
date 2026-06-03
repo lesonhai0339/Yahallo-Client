@@ -21,6 +21,31 @@ export class MangaService {
     return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
 
+  getNewestPaginated(page: number, pageSize = 20): Observable<any> {
+    const params = new HttpParams()
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.base}/get-newest-update-pagination`, { params });
+  }
+
+  getNewest(page: number): Observable<any[]> {
+    return this.getNewestPaginated(page, 20).pipe(
+      map((res: any) => {
+        const tags: MangaPagination = res?.value ?? null;
+        return tags?.data?.map((t: any) => (
+          { 
+            id: t.id, 
+            name: t.name, 
+            thumbnail: t.thumbnail, 
+            status: t.status, 
+            countries: t.countries,
+            description: t.description,
+            type: t.type
+          })) ?? [];
+      })
+    );
+  }
+
   /** @deprecated Use getPaginated() instead */
   getAll(page: number): Observable<any[]> {
     return this.getPaginated(page, 20).pipe(

@@ -32,7 +32,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   loadData(): void {
     this.isLoading = true;
     forkJoin({
-      latest: this.mangaService.getAll(this.currentPage),
+      latest: this.mangaService.getNewest(this.currentPage),
       trending: this.mangaService.getTrending(10),
       categories: this.mangaService.getCategories(),
       pageCount: this.mangaService.getPageCount()

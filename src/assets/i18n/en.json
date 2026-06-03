@@ -73,7 +73,19 @@
     "RESULTS_COUNT": "results",
     "NO_RESULTS": "No results found",
     "NO_RESULTS_HINT": "Try a different keyword or choose another genre",
-    "INITIAL_HINT": "Enter a title or select genres to search"
+    "INITIAL_HINT": "Enter a title or select genres to search",
+    "PREFIX_HEADER": "Search by",
+    "PREFIX_TAG": "Genre",
+    "PREFIX_TAG_HINT": "Search by genre",
+    "PREFIX_NAME": "Title",
+    "PREFIX_NAME_HINT": "Search by title",
+    "PREFIX_AUTHOR": "Author",
+    "PREFIX_AUTHOR_HINT": "Search by author",
+    "PREFIX_ARTIST": "Artist",
+    "PREFIX_ARTIST_HINT": "Search by artist",
+    "SEARCHING": "Searching...",
+    "SELECT_GENRE": "Select genre...",
+    "CLEAR_ALL": "Clear all"
   },
   "AUTH": {
     "LOGIN_TITLE": "Welcome back",

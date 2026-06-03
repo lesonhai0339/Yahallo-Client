@@ -1,26 +1,108 @@
 <div class="search-page container py-4">
   <h1 class="page-title"><i class="fa-solid fa-search me-2"></i>{{ 'SEARCH.TITLE' | translate }}</h1>
 
-  <!-- Search Input -->
+  <!-- Search Input with Prefix Hints -->
   <div class="search-box mb-4">
-    <div class="search-input-group">
-      <i class="fa-solid fa-search"></i>
-      <input type="text" class="form-control" [(ngModel)]="searchQuery"
-        (input)="onSearchInput()" [placeholder]="'SEARCH.PLACEHOLDER' | translate">
-      <button class="btn btn-primary" (click)="doSearch(searchQuery)">
+    <div class="search-input-group" [class.search-input-group--prefix]="!!activePrefixOption">
+
+      <!-- Search icon — click to show prefix hints -->
+      <button class="search-icon-btn" type="button" (mousedown)="togglePrefixHints(); $event.preventDefault()">
+        <i class="fa-solid fa-search"></i>
+      </button>
+
+      <!-- Active prefix badge -->
+      <span class="prefix-badge" *ngIf="selectedPrefix">
+        <i [class]="selectedPrefix.icon"></i>
+        {{ selectedPrefix.label | translate }}
+        <button class="prefix-badge__x" (mousedown)="clearPrefix(); $event.preventDefault()" tabindex="-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </span>
+
+      <input #searchInput type="text" class="form-control" [(ngModel)]="searchQuery"
+        (input)="onSearchInput()" (keydown)="onSearchKeyDown($event)" (focus)="onSearchFocus()"
+        [placeholder]="selectedPrefix ? (selectedPrefix.hint | translate) + '...' : ('SEARCH.PLACEHOLDER' | translate)">
+
+      <button class="btn btn-primary" (click)="doSearch()">
         {{ 'SEARCH.SEARCH_BTN' | translate }}
       </button>
+
+      <!-- Prefix hints dropdown -->
+      <div class="prefix-dropdown" *ngIf="showPrefixHints">
+        <div class="prefix-dropdown__header">{{ 'SEARCH.PREFIX_HEADER' | translate }}</div>
+        <div class="prefix-dropdown__item"
+          *ngFor="let opt of (filteredPrefixOptions.length > 0 ? filteredPrefixOptions : prefixOptions); let i = index"
+          [class.prefix-dropdown__item--hl]="i === highlightedPrefixIndex"
+          (mouseenter)="highlightedPrefixIndex = i"
+          (mousedown)="selectPrefix(opt); $event.preventDefault()">
+          <i [class]="opt.icon"></i>
+          <div class="prefix-dropdown__text">
+            <span class="prefix-dropdown__label">{{ opt.label | translate }}</span>
+            <span class="prefix-dropdown__hint">{{ opt.prefix }}&lt;...&gt;</span>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
   <!-- Category Filter -->
-  <div class="filter-section mb-4">
+  <div class="filter-section mb-4" *ngIf="categories.length > 0">
     <h3 class="filter-title">{{ 'SEARCH.FILTER_BY_GENRE' | translate }}</h3>
-    <div class="tag-filter-grid">
-      <button class="tag-chip" *ngFor="let cat of categories"
-        [class.active]="isCategorySelected(cat.genreId)"
-        (click)="toggleCategory(cat.genreId)">{{ cat.genresIdName }}</button>
+
+    <!-- Tag selector input (Advanced mode) -->
+    <div class="tag-selector-wrap mb-3" *ngIf="isAdvanced">
+      <div class="tag-selector-box" [class.tag-selector-box--open]="showTagDropdown" [class.tag-selector-box--has-selected]="selectedCategories.length > 0" (click)="focusTagInput()">
+        <span class="tag-selector-indicator">
+          <i class="fa-solid" [class.fa-chevron-down]="!showTagDropdown" [class.fa-chevron-up]="showTagDropdown"></i>
+        </span>
+
+        <div class="tag-selector-field">
+          <span class="tag-chip" *ngFor="let cat of selectedCategoryItems" (click)="$event.stopPropagation()">
+            {{ cat.genresIdName }}
+            <button class="tag-chip__x" (mousedown)="removeCategory(cat.genreId); $event.preventDefault()" tabindex="-1">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </span>
+
+          <input #tagInput class="tag-selector-input" autocomplete="off"
+            [(ngModel)]="tagSearchText"
+            (input)="onTagInput()" (focus)="onTagFocus()"
+            (keydown)="onTagKeyDown($event)"
+            [placeholder]="selectedCategories.length === 0 ? ('SEARCH.SELECT_GENRE' | translate) : ''">
+        </div>
+
+        <div class="tag-selector-footer" *ngIf="selectedCategories.length > 0" (click)="$event.stopPropagation()">
+          <button class="tag-clear-btn" (mousedown)="clearAllCategories(); $event.preventDefault()" tabindex="-1">
+            <i class="fa-solid fa-xmark"></i> {{ 'SEARCH.CLEAR_ALL' | translate }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Tag dropdown -->
+      <div class="tag-dropdown" *ngIf="showTagDropdown" #tagDropdownEl>
+        <div class="tag-dropdown-item" *ngFor="let cat of filteredCategories; let i = index"
+          [class.tag-dropdown-item--hl]="i === tagHighlightedIndex"
+          (mouseenter)="tagHighlightedIndex = i"
+          (mousedown)="selectCategory(cat); $event.preventDefault()">
+          {{ cat.genresIdName }}
+        </div>
+
+        <div class="tag-dropdown-empty" *ngIf="filteredCategories.length === 0">
+          <i class="fa-solid fa-magnifying-glass-minus"></i>
+          {{ tagSearchText ? 'Không tìm thấy "' + tagSearchText + '"' : 'Tất cả đã được chọn' }}
+        </div>
+      </div>
     </div>
+
+    <!-- Category chips grid (always visible for quick select) -->
+    <div class="tag-filter-grid">
+      <button class="tag-chip-filter" *ngFor="let cat of categories"
+        [class.active]="selectedCategories.includes(cat.genreId)"
+        (click)="toggleCategoryChip(cat)">{{ cat.genresIdName }}</button>
+    </div>
+  </div>
+
   <!-- Results -->
   <div class="results-section">
     <div class="results-header" *ngIf="hasSearched">

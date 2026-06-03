@@ -73,7 +73,19 @@
     "RESULTS_COUNT": "kết quả",
     "NO_RESULTS": "Không tìm thấy kết quả",
     "NO_RESULTS_HINT": "Thử tìm với từ khóa khác hoặc lọc thể loại khác",
-    "INITIAL_HINT": "Nhập tên truyện hoặc chọn thể loại để tìm kiếm"
+    "INITIAL_HINT": "Nhập tên truyện hoặc chọn thể loại để tìm kiếm",
+    "PREFIX_HEADER": "Tìm kiếm theo",
+    "PREFIX_TAG": "Thể loại",
+    "PREFIX_TAG_HINT": "Tìm theo thể loại",
+    "PREFIX_NAME": "Tên truyện",
+    "PREFIX_NAME_HINT": "Tìm theo tên truyện",
+    "PREFIX_AUTHOR": "Tác giả",
+    "PREFIX_AUTHOR_HINT": "Tìm theo tên tác giả",
+    "PREFIX_ARTIST": "Họa sĩ",
+    "PREFIX_ARTIST_HINT": "Tìm theo tên họa sĩ",
+    "SEARCHING": "Đang tìm kiếm...",
+    "SELECT_GENRE": "Chọn thể loại...",
+    "CLEAR_ALL": "Bỏ tất cả"
   },
   "AUTH": {
     "LOGIN_TITLE": "Chào mừng trở lại",

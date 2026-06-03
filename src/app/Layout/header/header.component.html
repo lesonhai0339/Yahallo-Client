@@ -31,32 +31,71 @@
 
       <!-- Search -->
       <div class="search-wrapper" [class.open]="isSearchOpen">
-        <button class="icon-btn" (click)="isSearchOpen = !isSearchOpen" [title]="'NAV.ADVANCED_SEARCH' | translate">
+        <button class="icon-btn" (click)="isSearchOpen = !isSearchOpen; showPrefixHints = !isSearchOpen ? false : showPrefixHints" [title]="'NAV.ADVANCED_SEARCH' | translate">
           <i class="fa-solid fa-search"></i>
         </button>
         <div class="search-dropdown" *ngIf="isSearchOpen">
           <div class="search-input-wrap">
-            <i class="fa-solid fa-search"></i>
+            <button class="prefix-hint-btn" type="button"
+              (mousedown)="togglePrefixHints(); $event.preventDefault()"
+              title="Chọn kiểu tìm kiếm">
+              <i class="fa-solid fa-filter"></i>
+            </button>
+            <span class="header-prefix-badge" *ngIf="selectedPrefix">
+              <i [class]="selectedPrefix.icon"></i>
+              {{ selectedPrefix.label | translate }}
+              <button class="header-prefix-badge__x" (mousedown)="clearPrefix(); $event.preventDefault()" tabindex="-1">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </span>
             <input #searchInput type="text" [(ngModel)]="searchQuery"
-              (input)="onSearchInput()" (keydown.enter)="submitSearch()"
-              [placeholder]="'NAV.SEARCH_PLACEHOLDER' | translate" autofocus>
-            <button *ngIf="searchQuery" class="clear-btn" (click)="searchQuery=''; searchResults=[]"
+              (input)="onSearchInput()" (keydown)="onSearchKeyDown($event)" (focus)="onSearchFocus()"
+              [placeholder]="selectedPrefix ? (selectedPrefix.hint | translate) + '...' : ('NAV.SEARCH_PLACEHOLDER' | translate)" autofocus>
+            <button *ngIf="searchQuery || selectedPrefix" class="clear-btn" (click)="searchQuery=''; searchResults=[]; showPrefixHints=false; hasSearched=false; isSearchLoading=false; selectedPrefix=null"
               [title]="'NAV.CLEAR' | translate">
               <i class="fa-solid fa-times"></i>
             </button>
           </div>
-          <ul class="search-results" *ngIf="searchResults.length > 0">
-            <li *ngFor="let item of searchResults" (click)="goToManga(item)">
+
+          <!-- Prefix hints -->
+          <div class="header-prefix-dropdown" *ngIf="showPrefixHints">
+            <div class="header-prefix-dropdown__header">{{ 'SEARCH.PREFIX_HEADER' | translate }}</div>
+            <div class="header-prefix-dropdown__item"
+              *ngFor="let opt of (filteredPrefixOptions.length > 0 ? filteredPrefixOptions : prefixOptions); let i = index"
+              [class.header-prefix-dropdown__item--hl]="i === highlightedPrefixIndex"
+              (mouseenter)="highlightedPrefixIndex = i"
+              (mousedown)="selectPrefix(opt); $event.preventDefault()">
+              <i [class]="opt.icon"></i>
+              <div class="header-prefix-dropdown__text">
+                <span class="header-prefix-dropdown__label">{{ opt.label | translate }}</span>
+                <span class="header-prefix-dropdown__hint">{{ opt.prefix }}&lt;...&gt;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading row -->
+          <div class="search-loading" *ngIf="isSearchLoading && !showPrefixHints">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span>{{ 'SEARCH.SEARCHING' | translate }}</span>
+          </div>
+
+          <ul class="search-results" *ngIf="!showPrefixHints && !isSearchLoading && searchResults.length > 0">
+            <li *ngFor="let item of searchResults; let i = index"
+              [class.hl]="i === highlightedResultIndex"
+              (mouseenter)="highlightedResultIndex = i"
+              (click)="goToManga(item)">
               <img [src]="item.mangaImage" [alt]="item.mangaName" appImageFallback>
               <div class="search-result-info">
                 <span class="name">{{ item.mangaName }}</span>
                 <span class="chapter">{{ item.listChaper?.[0]?.chapterName ?? '' }}</span>
               </div>
             </li>
-            <li class="view-all" (click)="submitSearch()">
-              {{ 'NAV.SEARCH_VIEW_ALL' | translate }} "{{ searchQuery }}"
-            </li>
           </ul>
+
+          <div class="search-empty" *ngIf="!showPrefixHints && !isSearchLoading && hasSearched && searchResults.length === 0">
+            <i class="fa-regular fa-face-sad-tear"></i>
+            <span>{{ 'SEARCH.NO_RESULTS' | translate }}</span>
+          </div>
         </div>
       </div>
 
