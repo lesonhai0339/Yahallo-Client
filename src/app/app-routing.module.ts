@@ -13,8 +13,9 @@ import { AuthGuard } from './core/guards/auth.guard';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
+  { path: 'manga/:id', component: MangaDetailComponent },
   { path: 'manga/:id/:name', component: MangaDetailComponent },
-  { path: 'manga/:id/:name/:chapterId/:chapterIndex', component: MangaReaderComponent, canActivate: [AuthGuard] },
+  { path: 'manga/:id/:chapterId/:chapterIndex', component: MangaReaderComponent},
   { path: 'search', component: MangaSearchComponent },
   { path: 'search/advanced', component: MangaSearchComponent },
   { path: 'the-loai/:id', component: MangaSearchComponent },

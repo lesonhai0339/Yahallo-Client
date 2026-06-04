@@ -1,0 +1,36 @@
+.reader-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.reader-page-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.reader-img {
+  width: 100%;
+  display: block;
+  margin: 0 auto;
+}
+
+.page-indicator {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  .reader-page-wrapper:hover & {
+    opacity: 1;
+  }
+}

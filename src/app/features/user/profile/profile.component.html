@@ -85,7 +85,8 @@
                 <span>{{ h.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
               </div>
             </div>
-            <a class="btn btn-secondary btn-sm" [href]="'/manga/' + h.mangaId + '/' + h.chapterId">
+            <a class="btn btn-secondary btn-sm"
+               [routerLink]="['/manga', h.mangaId, h.chapterId, h.lastPage ?? 0]">
               {{ 'USER.CONTINUE_READING' | translate }}
             </a>
           </div>

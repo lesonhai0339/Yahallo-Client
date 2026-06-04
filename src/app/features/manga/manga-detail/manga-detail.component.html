@@ -1,12 +1,12 @@
 <div class="detail-page" *ngIf="!isLoading && manga">
 
   <!-- Hero Banner -->
-  <div class="detail-hero" [style.backgroundImage]="'url('+manga.thumbnail+')'">
+  <div class="detail-hero" [style.backgroundImage]="'url('+manga.mangaThumbnail+')'">
     <div class="hero-overlay">
       <div class="container">
         <div class="hero-content">
           <div class="manga-cover">
-            <img [src]="manga.thumbnail" [alt]="manga.name" appImageFallback>
+            <img [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback>
           </div>
           <div class="manga-hero-info">
             <div class="breadcrumb-nav">
@@ -43,11 +43,11 @@
             </div>
             <div class="manga-actions">
               <a class="btn btn-primary btn-lg" *ngIf="chapters.length > 0"
-                 [href]="readChapter(chapters[0])">
+                 [routerLink]="readChapterLink(chapters[0])">
                 <i class="fa-solid fa-book-open me-2"></i>{{ 'MANGA.READ_FROM_START' | translate }}
               </a>
               <a class="btn btn-secondary btn-lg" *ngIf="chapters.length > 0"
-                 [href]="readChapter(chapters[chapters.length-1])">
+                 [routerLink]="readChapterLink(chapters[chapters.length-1])">
                 <i class="fa-solid fa-forward me-2"></i>{{ 'MANGA.READ_LATEST' | translate }}
               </a>
               <button class="btn btn-lg"
@@ -137,7 +137,7 @@
               <span>{{ 'MANGA.DATE_COL' | translate }}</span>
             </div>
             <div class="chapter-list">
-              <a class="chapter-item" *ngFor="let ch of visibleChapters" [href]="readChapter(ch)">
+              <a class="chapter-item" *ngFor="let ch of visibleChapters" [routerLink]="readChapterLink(ch)">
                 <span class="chapter-name">{{ ch.title }}</span>
                 <span class="chapter-title">Không</span>
                 <span class="chapter-date">{{ formatDate(ch.chapterDate) }}</span>

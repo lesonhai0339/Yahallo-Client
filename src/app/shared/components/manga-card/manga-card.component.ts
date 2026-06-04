@@ -23,6 +23,6 @@ export class MangaCardComponent {
   }
 
   getLatestChapter(): string {
-    return this.manga.chapters?.[0]?.title ?? 'N/A';
+    return `Chương ${this.manga.lastestChapter?.index ?? 'N/A'}`;
   }
 }

@@ -3,14 +3,14 @@
   <!-- Top Bar -->
   <div class="reader-topbar" [class.visible]="isMenuVisible">
     <div class="reader-topbar-inner">
-      <a class="back-btn" [routerLink]="['/manga', mangaId, currentChapter?.mangaName ?? '']">
+      <a class="back-btn" [routerLink]="['/manga', mangaId]">
         <i class="fa-solid fa-arrow-left me-2"></i>{{ 'READER.BACK' | translate }}
       </a>
       <div class="chapter-select-wrapper">
         <select class="form-select form-select-sm"
           (change)="goToChapter(chapters[$any($event.target).selectedIndex])"
           [value]="chapterId">
-          <option *ngFor="let ch of chapters" [value]="ch.chapterId">{{ ch.chapterName }}</option>
+          <option *ngFor="let ch of chapters" [value]="ch.id">{{ ch.title }}</option>
         </select>
       </div>
       <div class="chapter-nav">
@@ -26,16 +26,12 @@
     </div>
   </div>
 
-  <!-- Images -->
-  <div class="reader-content" *ngIf="!isLoading">
-    <img *ngFor="let img of images; let i = index"
-      [src]="img.imageUrl ?? img.imageurl ?? img"
-      [alt]="'READER.PAGE' | translate"
-      appImageFallback
-      class="reader-img"
-      loading="lazy"
-      (load)="saveProgress(i)">
-  </div>
+  <!-- Reader Viewer -->
+  <app-reader-viewer *ngIf="!isLoading"
+    [images]="images"
+    [initialPage]="initialPage"
+    (pageChange)="onPageChange($event)">
+  </app-reader-viewer>
 
   <div class="reader-loading" *ngIf="isLoading">
     <div class="spinner-border" style="color:var(--accent-primary)"></div>
@@ -46,7 +42,7 @@
     <button class="btn btn-secondary" (click)="prevChapter()" [disabled]="currentChapterIndex <= 0">
       <i class="fa-solid fa-chevron-left me-2"></i>{{ 'READER.PREV_CHAPTER' | translate }}
     </button>
-    <span class="chapter-label">{{ currentChapter?.chapterName }}</span>
+    <span class="chapter-label">{{ currentChapter?.title }}</span>
     <button class="btn btn-secondary" (click)="nextChapter()" [disabled]="currentChapterIndex >= chapters.length-1">
       {{ 'READER.NEXT_CHAPTER' | translate }}<i class="fa-solid fa-chevron-right ms-2"></i>
     </button>

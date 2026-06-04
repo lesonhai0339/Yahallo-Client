@@ -1,3 +1,5 @@
+import { LastestChapter } from "./chapter.interface";
+
 export interface User {
   id: string;
   avatar: string;
@@ -60,7 +62,8 @@ export interface Manga {
   type: string;
   countries: string;
   season: number;
-  thumbnail: string;
+  mangaThumbnail: string;
+  mangaBackground: string;
   userId: string;
   averageRating: number;
   totalFollows: number;
@@ -72,6 +75,7 @@ export interface Manga {
   chapters: Chapter[];
   comments: any[];
   updateDate: string; 
+  lastestChapter: LastestChapter
 }
 export interface Author {
   id: string;

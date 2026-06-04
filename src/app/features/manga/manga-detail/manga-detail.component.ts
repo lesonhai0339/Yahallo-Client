@@ -113,8 +113,8 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  readChapter(chapter: Chapter): string {
-    return `/manga/${this.mangaId}/${this.manga?.name}/${chapter.id}/0`;
+  readChapterLink(chapter: Chapter): string[] {
+    return ['/manga', this.mangaId, chapter.id, '0'];
   }
 
   formatDate(date: string): string {

@@ -1,6 +1,6 @@
 <a class="manga-card" [routerLink]="getRouterLink()">
   <div class="manga-card__image">
-    <img [src]="manga.thumbnail" [alt]="manga.name" appImageFallback loading="lazy">
+    <img [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback loading="lazy">
     <div class="manga-card__overlay"></div>
     <span class="manga-card__status"
       [class.manga-card__status--completed]="manga.status"

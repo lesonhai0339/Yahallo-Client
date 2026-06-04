@@ -4,10 +4,10 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Chapter, Manga, MangaPagination, PagedResult } from '../models/interfaces';
+import { ChapterImage } from '../models/chapter.interface';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
-  private readonly imgBase = environment.serviceApi;   
   private readonly base = environment.mangaApi;
   private readonly chapterBase = environment.chapterApi;
   private readonly tagBase = environment.tagApi;
@@ -21,30 +21,6 @@ export class MangaService {
     return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
 
-  getNewestPaginated(page: number, pageSize = 20): Observable<any> {
-    const params = new HttpParams()
-      .set('PageNumber', page)
-      .set('PageSize', pageSize);
-    return this.http.get(`${this.base}/get-newest-update-pagination`, { params });
-  }
-
-  getNewest(page: number): Observable<any[]> {
-    return this.getNewestPaginated(page, 20).pipe(
-      map((res: any) => {
-        const tags: MangaPagination = res?.value ?? null;
-        return tags?.data?.map((t: any) => (
-          { 
-            id: t.id, 
-            name: t.name, 
-            thumbnail: t.thumbnail, 
-            status: t.status, 
-            countries: t.countries,
-            description: t.description,
-            type: t.type
-          })) ?? [];
-      })
-    );
-  }
 
   /** @deprecated Use getPaginated() instead */
   getAll(page: number): Observable<any[]> {
@@ -55,12 +31,31 @@ export class MangaService {
           { 
             id: t.id, 
             name: t.name, 
-            thumbnail: t.thumbnail, 
+            mangaThumbnail: t.mangaThumbnail, 
+            mangaBackground: t.mangaBackground,
             status: t.status, 
             countries: t.countries,
             description: t.description,
             type: t.type
           })) ?? [];
+      })
+    );
+  }
+
+ getNewestManga(page: number): Observable<any[]> {
+    return this.getPaginated(page, 20).pipe(
+      map((res: any) => {
+        return res?.value?.data?.map((t: any) => ({
+           id: t.id, 
+            name: t.name, 
+            mangaThumbnail: t.mangaThumbnail, 
+            mangaBackground: t.mangaBackground,
+            status: t.status, 
+            countries: t.countries,
+            description: t.description,
+            type: t.type,
+            lastestChapter: t.lastestChapter
+        })) ?? [];
       })
     );
   }
@@ -116,7 +111,8 @@ export class MangaService {
           type: t.type,
           countries: t.countries,
           season: t.season,
-          thumbnail: t.thumbnail,
+          mangaThumbnail: t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
           userId: t.userId,
           averageRating: t.averageRating,
           totalFollows: t.totalFollows,
@@ -155,9 +151,14 @@ export class MangaService {
     );
   }
 
-  getChapterImages(mangaId: string, chapterId: string): Observable<any> {
-    const params = new HttpParams().set('Id', chapterId).set('MangaId', mangaId);
-    return this.http.get(`${this.chapterBase}/filter-chapter`, { params });
+  getChapterImages(chapterId: string): Observable<ChapterImage[]> {
+    const params = new HttpParams().set('ChapterId', chapterId);
+    return this.http.get(`${this.chapterBase}/get-image`, { params }).pipe(
+      map((res: any) => {
+        const images: ChapterImage[] = res?.value ?? res;
+        return images;
+      })
+    );
   }
 
   filter(params: {

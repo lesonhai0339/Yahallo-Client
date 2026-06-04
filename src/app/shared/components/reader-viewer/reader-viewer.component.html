@@ -1,0 +1,11 @@
+<div class="reader-content">
+  <div class="reader-page-wrapper" *ngFor="let img of images; let i = index"
+       #pageRef [attr.data-page]="i">
+    <img [src]="img.cloudUrl"
+         [alt]="'Page ' + (i + 1)"
+         appImageFallback
+         class="reader-img"
+         loading="lazy">
+    <div class="page-indicator">{{ i + 1 }} / {{ images.length }}</div>
+  </div>
+</div>

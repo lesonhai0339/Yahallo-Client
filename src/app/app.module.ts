@@ -24,6 +24,7 @@ import { FormatTextPipe } from './shared/pipes/format-text.pipe';
 import { CommentEditorComponent } from './shared/components/comment-editor/comment-editor.component';
 import { CommentItemComponent } from './shared/components/comment-item/comment-item.component';
 import { CommentSectionComponent } from './shared/components/comment-section/comment-section.component';
+import { ReaderViewerComponent } from './shared/components/reader-viewer/reader-viewer.component';
 
 // Features
 import { HomeComponent } from './features/home/home.component';
@@ -62,6 +63,7 @@ export function initTranslations(translation: TranslationService) {
     CommentEditorComponent,
     CommentItemComponent,
     CommentSectionComponent,
+    ReaderViewerComponent,
     HomeComponent,
     MangaDetailComponent,
     MangaReaderComponent,
