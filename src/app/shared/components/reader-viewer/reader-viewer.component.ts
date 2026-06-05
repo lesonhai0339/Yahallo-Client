@@ -14,11 +14,15 @@ import { ChapterImage } from 'src/app/core/models/chapter.interface';
 export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() images: ChapterImage[] = [];
   @Input() initialPage = 0;
+  @Input() direction: 'vertical' | 'horizontal' = 'vertical';
+  @Input() imageSize = 100;
+  @Input() preloadCount = 3;
   @Output() pageChange = new EventEmitter<number>();
 
   @ViewChildren('pageRef') pageRefs!: QueryList<ElementRef>;
 
   currentPage = 0;
+  visibleIndices = new Set<number>();
 
   private observer: IntersectionObserver | null = null;
   private visiblePages = new Set<number>();
@@ -40,6 +44,10 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['images']) {
       this.hasScrolledToInitial = false;
+      this.updateVisibleIndices();
+    }
+    if (changes['preloadCount'] || changes['images']) {
+      this.updateVisibleIndices();
     }
   }
 
@@ -68,6 +76,7 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
         if (topPage !== this.currentPage) {
           this.currentPage = topPage;
           this.pageChange.emit(topPage);
+          this.updateVisibleIndices();
         }
       }
     }, {
@@ -77,6 +86,26 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     this.pageRefs.forEach(ref => {
       this.observer!.observe(ref.nativeElement);
     });
+  }
+
+  private updateVisibleIndices(): void {
+    this.visibleIndices.clear();
+    const start = Math.max(0, this.currentPage - 1);
+    const end = Math.min(this.images.length - 1, this.currentPage + this.preloadCount);
+    for (let i = start; i <= end; i++) {
+      this.visibleIndices.add(i);
+    }
+  }
+
+  shouldLoad(index: number): boolean {
+    return this.visibleIndices.has(index);
+  }
+
+  goToPage(direction: 'prev' | 'next'): void {
+    const target = direction === 'prev'
+      ? Math.max(0, this.currentPage - 1)
+      : Math.min(this.images.length - 1, this.currentPage + 1);
+    this.scrollToPage(target);
   }
 
   private scrollToInitialIfNeeded(): void {

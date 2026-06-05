@@ -2,7 +2,7 @@ export interface LastestChapter{
     id: string,
     title: string,
     index: number,
-    createDate: Date
+    createDate: string
 }
 export interface ChapterImage{
     id: string,

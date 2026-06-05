@@ -36,6 +36,8 @@ import { RegisterComponent } from './features/auth/register/register.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
 import { ProfileComponent } from './features/user/profile/profile.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
+import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
+import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 
 // Core
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
@@ -73,6 +75,8 @@ export function initTranslations(translation: TranslationService) {
     ForgotPasswordComponent,
     ProfileComponent,
     NotificationsComponent,
+    TopMangaComponent,
+    MangaListPageComponent,
   ],
   imports: [
     BrowserModule,

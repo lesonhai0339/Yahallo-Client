@@ -22,9 +22,15 @@
   "HOME": {
     "TRENDING": "Đang thịnh hành",
     "LATEST_UPDATE": "Mới cập nhật",
+    "POPULAR": "Phổ biến",
+    "RECOMMENDED": "Đề xuất",
     "SEE_MORE": "Xem thêm",
+    "COLLAPSE": "Thu gọn",
     "CATEGORIES": "Thể loại",
-    "TOP_MONTH": "Top tháng"
+    "TOP_LIST": "Bảng xếp hạng",
+    "TOP_DAY": "Ngày",
+    "TOP_MONTH": "Tháng",
+    "TOP_YEAR": "Năm"
   },
   "MANGA": {
     "VIEWS": "Lượt xem",
@@ -63,7 +69,17 @@
   "READER": {
     "BACK": "Quay lại",
     "PREV_CHAPTER": "Chương trước",
-    "NEXT_CHAPTER": "Chương sau"
+    "NEXT_CHAPTER": "Chương sau",
+    "SETTINGS": "Cài đặt đọc",
+    "BACK_TO_DETAIL": "Quay lại chi tiết truyện",
+    "DIRECTION": "Hướng đọc",
+    "VERTICAL": "Dọc",
+    "HORIZONTAL": "Ngang",
+    "MODE": "Chế độ đọc",
+    "MODE_NORMAL": "Bình thường",
+    "MODE_FOCUS": "Tập trung",
+    "IMAGE_SIZE": "Kích thước ảnh",
+    "PRELOAD_COUNT": "Số ảnh tải trước"
   },
   "SEARCH": {
     "TITLE": "Tìm kiếm nâng cao",
@@ -85,7 +101,12 @@
     "PREFIX_ARTIST_HINT": "Tìm theo tên họa sĩ",
     "SEARCHING": "Đang tìm kiếm...",
     "SELECT_GENRE": "Chọn thể loại...",
-    "CLEAR_ALL": "Bỏ tất cả"
+    "CLEAR_ALL": "Bỏ tất cả",
+    "TAG_SUGGEST": "Gợi ý thể loại",
+    "AUTHOR_SUGGEST": "Gợi ý tác giả",
+    "ARTIST_SUGGEST": "Gợi ý họa sĩ",
+    "NO_RECOMMEND_MATCH": "Không tìm thấy kết quả phù hợp",
+    "TAG_LIST": "Danh sách thể loại"
   },
   "AUTH": {
     "LOGIN_TITLE": "Chào mừng trở lại",
@@ -157,6 +178,17 @@
     "CONTACT": "Liên hệ",
     "CONTACT_TEXT": "Nếu có vấn đề về bản quyền hoặc nội dung, vui lòng liên hệ với chúng tôi.",
     "ALL_RIGHTS": "All rights reserved."
+  },
+  "TOP": {
+    "TITLE": "Bảng xếp hạng truyện",
+    "VIEWS": "Lượt xem",
+    "RATING": "Đánh giá",
+    "CHAPTERS": "Số chương",
+    "COMMENTS": "Bình luận",
+    "UPDATED": "Cập nhật",
+    "VIEW_LIST": "Dạng danh sách",
+    "VIEW_GRID": "Dạng lưới",
+    "PAGE": "trang"
   },
   "COMMON": {
     "LOADING": "Đang tải...",

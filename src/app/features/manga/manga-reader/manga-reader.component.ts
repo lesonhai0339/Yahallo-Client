@@ -7,6 +7,13 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
 import { ChapterImage } from 'src/app/core/models/chapter.interface';
 
+export interface ReaderSettings {
+  direction: 'vertical' | 'horizontal';
+  mode: 'normal' | 'focus';
+  imageSize: number;
+  preloadCount: number;
+}
+
 @Component({
   selector: 'app-manga-reader',
   templateUrl: './manga-reader.component.html',
@@ -17,11 +24,23 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   chapters: any[] = [];
   mangaId!: string;
   chapterId!: string;
+  mangaName = '';
   initialPage = 0;
   currentChapterIndex = 0;
   isLoading = true;
   isMenuVisible = true;
+  isSidebarOpen = false;
+  isChapterListOpen = false;
+  isBottombarVisible = true;
   menuTimeout: any;
+  private lastScrollY = 0;
+
+  settings: ReaderSettings = {
+    direction: 'vertical',
+    mode: 'normal',
+    imageSize: 100,
+    preloadCount: 3
+  };
 
   private destroy$ = new Subject<void>();
 
@@ -35,9 +54,11 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadSettings();
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(p => {
       this.mangaId = p['id'];
       this.chapterId = p['chapterId'];
+      this.mangaName = p['name'] || '';
       this.initialPage = parseInt(p['chapterIndex'] || '0', 10);
       this.loadImages();
       this.loadChapters();
@@ -109,7 +130,53 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     this.menuTimeout = setTimeout(() => { this.isMenuVisible = false; }, 3000);
   }
 
+  @HostListener('window:scroll')
+  onScroll(): void {
+    const currentY = window.scrollY;
+    this.isBottombarVisible = currentY < this.lastScrollY || currentY < 100;
+    this.lastScrollY = currentY;
+  }
+
   get currentChapter(): any {
     return this.chapters[this.currentChapterIndex] ?? null;
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+    this.isChapterListOpen = false;
+  }
+
+  closeSidebar(): void {
+    this.isSidebarOpen = false;
+  }
+
+  toggleChapterList(): void {
+    this.isChapterListOpen = !this.isChapterListOpen;
+  }
+
+  closeChapterList(): void {
+    this.isChapterListOpen = false;
+  }
+
+  selectChapter(chapter: any): void {
+    this.isChapterListOpen = false;
+    this.goToChapter(chapter);
+  }
+
+  onSettingChange(): void {
+    this.saveSettings();
+  }
+
+  private loadSettings(): void {
+    try {
+      const saved = localStorage.getItem('reader-settings');
+      if (saved) {
+        this.settings = { ...this.settings, ...JSON.parse(saved) };
+      }
+    } catch {}
+  }
+
+  private saveSettings(): void {
+    localStorage.setItem('reader-settings', JSON.stringify(this.settings));
   }
 }

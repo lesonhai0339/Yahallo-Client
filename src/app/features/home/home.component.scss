@@ -103,6 +103,25 @@
 
 .main-content {}
 
+.manga-section {
+  margin-bottom: 32px;
+}
+
+.see-more-link {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: var(--transition);
+
+  &:hover {
+    color: var(--accent-primary);
+  }
+
+  i { font-size: 0.65rem; }
+}
+
 // Manga Grid
 .manga-grid {
   display: grid;
@@ -164,6 +183,35 @@
 }
 
 // Top List
+.top-period-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.top-period-tab {
+  flex: 1;
+  padding: 5px 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover { color: var(--text-primary); }
+
+  &.active {
+    background: var(--accent-primary);
+    color: #fff;
+  }
+}
+
 .top-list { display: flex; flex-direction: column; gap: 8px; }
 .top-item {
   display: flex;

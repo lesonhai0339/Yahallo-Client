@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -23,6 +23,7 @@ interface UserRolePagination {
 
 @Injectable({ providedIn: 'root' })
 export class AdminStateService {
+  private readonly userRoleApi = environment.userRoleApi;
   private isAdminSubject = new BehaviorSubject<boolean>(false);
   isAdmin$ = this.isAdminSubject.asObservable();
 
@@ -37,8 +38,9 @@ export class AdminStateService {
         if (!userId) return of(null);
 
         const params = { PageNumber: 1, PageSize: 1, UserId: userId };
+        const headers = new HttpHeaders({ Authorization: `Bearer ${state.accessToken}` });
         return this.http.get<{ value: UserRolePagination }>(
-          `${environment.userRoleApi}/filter-user-role`, { params }
+          `${this.userRoleApi}/filter-user-role`, { params ,headers }
         ).pipe(catchError(() => of(null)));
       })
     ).subscribe((res: any) => {

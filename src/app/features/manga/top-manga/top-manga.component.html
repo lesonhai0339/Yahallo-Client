@@ -1,0 +1,111 @@
+<div class="top-manga-page">
+  <div class="container-fluid px-3 px-md-4">
+
+    <h1 class="page-title">
+      <i class="fa-solid fa-ranking-star me-2"></i>{{ 'TOP.TITLE' | translate }}
+    </h1>
+
+    <!-- Sort + View Controls -->
+    <div class="controls-bar">
+      <div class="sort-bar">
+        <button *ngFor="let opt of sortOptions"
+          class="sort-chip"
+          [class.active]="activeSort.key === opt.key"
+          (click)="setSort(opt)">
+          <i [class]="opt.icon" class="me-1"></i>
+          {{ opt.labelKey | translate }}
+          <i class="sort-arrow fa-solid"
+            *ngIf="activeSort.key === opt.key"
+            [class.fa-arrow-down-short-wide]="opt.direction === 'desc'"
+            [class.fa-arrow-up-short-wide]="opt.direction === 'asc'">
+          </i>
+        </button>
+      </div>
+
+      <div class="view-controls">
+        <div class="page-size-select">
+          <select [ngModel]="pageSize" (ngModelChange)="setPageSize($event)">
+            <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }} / {{ 'TOP.PAGE' | translate }}</option>
+          </select>
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn" [class.active]="viewMode === 'list'" (click)="setViewMode('list')"
+            [title]="'TOP.VIEW_LIST' | translate">
+            <i class="fa-solid fa-list"></i>
+          </button>
+          <button class="view-btn" [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')"
+            [title]="'TOP.VIEW_GRID' | translate">
+            <i class="fa-solid fa-table-cells-large"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="top-loading" *ngIf="isLoading">
+      <div class="spinner-border" style="color:var(--accent-primary)"></div>
+    </div>
+
+    <!-- List View -->
+    <div class="manga-list" *ngIf="!isLoading && viewMode === 'list'">
+      <a class="manga-row" *ngFor="let manga of sortedList; let i = index"
+         [routerLink]="['/manga', manga.id, manga.name]">
+
+        <span class="manga-row__rank"
+          [class.gold]="getRank(i) === 1"
+          [class.silver]="getRank(i) === 2"
+          [class.bronze]="getRank(i) === 3">
+          {{ getRank(i) }}
+        </span>
+
+        <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback>
+
+        <div class="manga-row__info">
+          <div class="manga-row__name">{{ manga.name }}</div>
+          <div class="manga-row__tags" *ngIf="manga.tags?.length">
+            <span class="row-tag" *ngFor="let t of manga.tags | slice:0:3">{{ t.name }}</span>
+          </div>
+        </div>
+
+        <div class="manga-row__stats">
+          <span class="stat" [title]="'TOP.VIEWS' | translate">
+            <i class="fa-solid fa-eye"></i>{{ formatViews(manga.totalViews) }}
+          </span>
+          <span class="stat" [title]="'TOP.RATING' | translate">
+            <i class="fa-solid fa-star" style="color:#ffd700"></i>{{ manga.averageRating?.toFixed?.(1) ?? '—' }}
+          </span>
+          <span class="stat" [title]="'TOP.CHAPTERS' | translate">
+            <i class="fa-solid fa-book"></i>{{ manga.totalChapters ?? 0 }}
+          </span>
+          <span class="stat stat--update" [title]="'TOP.UPDATED' | translate">
+            <i class="fa-solid fa-clock-rotate-left"></i>{{ manga.lastestChapter?.createDate | date:'dd/MM/yyyy' }}
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Grid View -->
+    <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid'">
+      <app-manga-card *ngFor="let manga of sortedList" [manga]="manga"></app-manga-card>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper" *ngIf="!isLoading && totalPages > 1">
+      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-backward-step"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button class="page-btn" *ngFor="let page of paginationPages"
+        [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-forward-step"></i>
+      </button>
+    </div>
+
+  </div>
+</div>

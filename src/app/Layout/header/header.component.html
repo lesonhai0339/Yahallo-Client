@@ -31,7 +31,7 @@
 
       <!-- Search -->
       <div class="search-wrapper" [class.open]="isSearchOpen">
-        <button class="icon-btn" (click)="isSearchOpen = !isSearchOpen; showPrefixHints = !isSearchOpen ? false : showPrefixHints" [title]="'NAV.ADVANCED_SEARCH' | translate">
+        <button class="icon-btn" (click)="isSearchOpen ? closeSearch() : isSearchOpen = true" [title]="'NAV.ADVANCED_SEARCH' | translate">
           <i class="fa-solid fa-search"></i>
         </button>
         <div class="search-dropdown" *ngIf="isSearchOpen">
@@ -73,13 +73,33 @@
             </div>
           </div>
 
+          <!-- Recommend dropdown (tag / author / artist) -->
+          <div class="header-recommend" *ngIf="showRecommend && hasRecommendSource && !showPrefixHints">
+            <div class="header-recommend__header">
+              <i [class]="recommendIcon"></i>{{ recommendTitleKey | translate }}
+            </div>
+            <div class="header-recommend__items" *ngIf="recommendList.length > 0">
+              <div class="header-recommend__item"
+                *ngFor="let item of recommendList; let i = index"
+                [class.header-recommend__item--hl]="i === recommendIndex"
+                (mouseenter)="recommendIndex = i"
+                (mousedown)="selectRecommendItem(item); $event.preventDefault()">
+                {{ item.name }}
+              </div>
+            </div>
+            <div class="search-empty" *ngIf="recommendList.length === 0">
+              <i class="fa-solid fa-magnifying-glass-minus"></i>
+              <span>{{ 'SEARCH.NO_RECOMMEND_MATCH' | translate }}</span>
+            </div>
+          </div>
+
           <!-- Loading row -->
-          <div class="search-loading" *ngIf="isSearchLoading && !showPrefixHints">
+          <div class="search-loading" *ngIf="isSearchLoading && !showPrefixHints && !showRecommend">
             <i class="fa-solid fa-spinner fa-spin"></i>
             <span>{{ 'SEARCH.SEARCHING' | translate }}</span>
           </div>
 
-          <ul class="search-results" *ngIf="!showPrefixHints && !isSearchLoading && searchResults.length > 0">
+          <ul class="search-results" *ngIf="!showPrefixHints && !showRecommend && !isSearchLoading && searchResults.length > 0">
             <li *ngFor="let item of searchResults; let i = index"
               [class.hl]="i === highlightedResultIndex"
               (mouseenter)="highlightedResultIndex = i"
@@ -92,7 +112,7 @@
             </li>
           </ul>
 
-          <div class="search-empty" *ngIf="!showPrefixHints && !isSearchLoading && hasSearched && searchResults.length === 0">
+          <div class="search-empty" *ngIf="!showPrefixHints && !showRecommend && !isSearchLoading && hasSearched && searchResults.length === 0">
             <i class="fa-regular fa-face-sad-tear"></i>
             <span>{{ 'SEARCH.NO_RESULTS' | translate }}</span>
           </div>

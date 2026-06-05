@@ -1,11 +1,43 @@
-<div class="reader-content">
-  <div class="reader-page-wrapper" *ngFor="let img of images; let i = index"
-       #pageRef [attr.data-page]="i">
-    <img [src]="img.cloudUrl"
-         [alt]="'Page ' + (i + 1)"
-         appImageFallback
-         class="reader-img"
-         loading="lazy">
-    <div class="page-indicator">{{ i + 1 }} / {{ images.length }}</div>
-  </div>
+<div class="reader-content" [class.horizontal]="direction === 'horizontal'">
+  <!-- Vertical mode -->
+  <ng-container *ngIf="direction === 'vertical'">
+    <div class="reader-page-wrapper" *ngFor="let img of images; let i = index"
+         #pageRef [attr.data-page]="i"
+         [style.max-width.%]="imageSize">
+      <img *ngIf="shouldLoad(i)"
+           [src]="img.cloudUrl"
+           [alt]="'Page ' + (i + 1)"
+           appImageFallback
+           class="reader-img">
+      <div *ngIf="!shouldLoad(i)" class="reader-img-placeholder"></div>
+      <div class="page-indicator">{{ i + 1 }} / {{ images.length }}</div>
+    </div>
+  </ng-container>
+
+  <!-- Horizontal mode -->
+  <ng-container *ngIf="direction === 'horizontal'">
+    <div class="horizontal-viewer">
+      <button class="horizontal-nav horizontal-nav--prev"
+        (click)="goToPage('prev')" [disabled]="currentPage <= 0">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+
+      <div class="horizontal-page" #pageRef [attr.data-page]="currentPage"
+           [style.max-width.%]="imageSize">
+        <img *ngIf="images[currentPage]"
+             [src]="images[currentPage].cloudUrl"
+             [alt]="'Page ' + (currentPage + 1)"
+             appImageFallback
+             class="reader-img">
+        <div class="page-indicator page-indicator--visible">
+          {{ currentPage + 1 }} / {{ images.length }}
+        </div>
+      </div>
+
+      <button class="horizontal-nav horizontal-nav--next"
+        (click)="goToPage('next')" [disabled]="currentPage >= images.length - 1">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </ng-container>
 </div>

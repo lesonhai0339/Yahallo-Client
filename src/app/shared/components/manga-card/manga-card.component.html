@@ -2,23 +2,21 @@
   <div class="manga-card__image">
     <img [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback loading="lazy">
     <div class="manga-card__overlay"></div>
-    <span class="manga-card__status"
-      [class.manga-card__status--completed]="manga.status"
-      [class.manga-card__status--ongoing]="!manga.status">
-      {{ (manga.status ? 'MANGA.STATUS_COMPLETED' : 'MANGA.STATUS_ONGOING') | translate }}
+    <span class="manga-card__update-time" *ngIf="manga.lastestChapter?.createDate">
+      <i class="fa-regular fa-clock me-1"></i>{{ getTimeAgo(manga.lastestChapter.createDate) }}
     </span>
-    <div class="manga-card__chapter">
+    <button class="manga-card__chapter" (click)="goToChapter($event)" *ngIf="manga.lastestChapter">
       <i class="fa-solid fa-book-open me-1" style="font-size:0.7rem"></i>{{ getLatestChapter() }}
-    </div>
+    </button>
   </div>
   <div class="manga-card__info">
     <div class="manga-card__title" [title]="manga.name">{{ manga.name }}</div>
+    <div class="manga-card__tags" *ngIf="sortedTags.length">
+      <button class="tag-chip" *ngFor="let cat of sortedTags" (click)="goToTag($event, cat.id)">{{ cat.name }}</button>
+    </div>
     <div class="manga-card__meta">
       <span><i class="fa-solid fa-eye me-1"></i>{{ formatViews(manga.totalViews) }}</span>
       <span><i class="fa-solid fa-star me-1" style="color:#ffd700"></i>{{ manga.averageRating?.toFixed?.(1) ?? '—' }}</span>
-    </div>
-    <div class="manga-card__tags" *ngIf="showTags && manga.tags?.length">
-      <span class="tag-chip" *ngFor="let cat of manga.tags | slice:0:3">{{ cat.name }}</span>
     </div>
   </div>
 </a>

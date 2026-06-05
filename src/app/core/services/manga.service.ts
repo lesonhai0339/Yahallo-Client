@@ -42,8 +42,8 @@ export class MangaService {
     );
   }
 
- getNewestManga(page: number): Observable<any[]> {
-    return this.getPaginated(page, 20).pipe(
+ getNewestManga(page: number, pageSize = 20): Observable<any[]> {
+    return this.getPaginated(page, pageSize).pipe(
       map((res: any) => {
         return res?.value?.data?.map((t: any) => ({
            id: t.id, 
@@ -71,9 +71,58 @@ export class MangaService {
     return this.http.get(`${this.base}/trending`);
   }
 
+  getTopMangaPaginated(page = 1, pageSize = 20): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
+    return this.getPaginated(page, pageSize).pipe(
+      map((res: any) => {
+        const raw = res?.value ?? res;
+        const items = (raw?.data ?? []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          mangaThumbnail: t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
+          status: t.status,
+          totalViews: t.totalViews ?? 0,
+          averageRating: t.averageRating ?? 0,
+          totalChapters: t.totalChapters ?? 0,
+          totalFollows: t.totalFollows ?? 0,
+          tags: t.tags ?? [],
+          comments: t.comments ?? [],
+          updateDate: t.updateDate ?? '',
+          lastestChapter: t.lastestChapter,
+        } as Manga));
+        const totalCount = raw?.totalCount ?? 0;
+        const totalPages = raw?.totalPages
+          ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        return { data: items, totalPages, totalCount };
+      })
+    );
+  }
+
   getTrending(take = 10): Observable<any> {
     return this.http.get(`${this.base}/trending`, { params: { take } })
     .pipe(map((res: any) => res?.data?.items ?? res?.items ?? []));
+  }
+
+  getPopular(page = 1, pageSize = 12): Observable<Manga[]> {
+    return this.getNewestManga(page, pageSize);
+  }
+
+  getRecommended(page = 1, pageSize = 12): Observable<Manga[]> {
+    return this.getPaginated(page, pageSize).pipe(
+      map((res: any) => {
+        return res?.value?.data?.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          mangaThumbnail: t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
+          status: t.status,
+          totalViews: t.totalViews ?? 0,
+          averageRating: t.averageRating ?? 0,
+          lastestChapter: t.lastestChapter,
+          tags: t.tags ?? [],
+        } as Manga)) ?? [];
+      })
+    );
   }
 
   getLatestUpdated(page = 1, pageSize = 20): Observable<any> {
@@ -231,6 +280,84 @@ export class MangaService {
 
   getByCategories(tagIds: string[]): Observable<any> {
     return this.filterByTags({ tagIds: tagIds, pageSize: 50 });
+  }
+
+  filterPaginated(params: {
+    name?: string;
+    tagId?: string;
+    status?: number;
+    type?: number;
+    countries?: number;
+    level?: number;
+    page?: number;
+    pageSize?: number;
+  }): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
+    let httpParams = new HttpParams();
+    if (params.name) httpParams = httpParams.set('name', params.name);
+    if (params.tagId) httpParams = httpParams.set('tagId', params.tagId);
+    if (params.status != null) httpParams = httpParams.set('Status', params.status);
+    if (params.type != null) httpParams = httpParams.set('Type', params.type);
+    if (params.countries != null) httpParams = httpParams.set('Countries', params.countries);
+    if (params.level != null) httpParams = httpParams.set('Level', params.level);
+    httpParams = httpParams.set('pageNumber', params.page ?? 1);
+    httpParams = httpParams.set('pageSize', params.pageSize ?? 20);
+    return this.http.get(`${this.base}/filter-manga`, { params: httpParams }).pipe(
+      map((res: any) => {
+        const raw = res?.value ?? res;
+        const items = (raw?.data ?? []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
+          status: t.status,
+          totalViews: t.totalViews ?? 0,
+          averageRating: t.averageRating ?? 0,
+          totalChapters: t.totalChapters ?? 0,
+          tags: t.tags ?? [],
+          updateDate: t.updateDate ?? '',
+          lastestChapter: t.lastestChapter,
+        } as Manga));
+        const totalCount = raw?.totalCount ?? 0;
+        const pageSize = params.pageSize ?? 20;
+        const totalPages = raw?.totalPages ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        return { data: items, totalPages, totalCount };
+      })
+    );
+  }
+
+  filterByTagsPaginated(params: {
+    tagIds?: string[];
+    page?: number;
+    pageSize?: number;
+  }): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
+    let httpParams = new HttpParams();
+    if (params.tagIds && params.tagIds.length > 0) {
+      httpParams = httpParams.set('tagIds', params.tagIds.join(','));
+    }
+    httpParams = httpParams.set('pageNumber', params.page ?? 1);
+    httpParams = httpParams.set('pageSize', params.pageSize ?? 20);
+    return this.http.get(`${this.base}/filter-manga-by-tags`, { params: httpParams }).pipe(
+      map((res: any) => {
+        const raw = res?.value ?? res;
+        const items = (raw?.data ?? []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
+          status: t.status,
+          totalViews: t.totalViews ?? 0,
+          averageRating: t.averageRating ?? 0,
+          totalChapters: t.totalChapters ?? 0,
+          tags: t.tags ?? [],
+          updateDate: t.updateDate ?? '',
+          lastestChapter: t.lastestChapter,
+        } as Manga));
+        const totalCount = raw?.totalCount ?? 0;
+        const pageSize = params.pageSize ?? 20;
+        const totalPages = raw?.totalPages ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        return { data: items, totalPages, totalCount };
+      })
+    );
   }
 
   getTotalCount(): Observable<number> {

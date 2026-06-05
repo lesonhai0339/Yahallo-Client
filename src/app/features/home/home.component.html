@@ -29,37 +29,55 @@
   <div class="container-fluid px-3 px-md-4 mt-4">
     <div class="main-layout">
 
-      <!-- Manga Grid -->
       <main class="main-content">
-        <div class="section-header">
-          <h2 class="section-header__title">
-            <i class="fa-solid fa-clock-rotate-left"></i>{{ 'HOME.LATEST_UPDATE' | translate }}
-          </h2>
-        </div>
 
-        <app-loading-skeleton *ngIf="isLoading" [count]="18" [cols]="6"></app-loading-skeleton>
+        <!-- Latest Update -->
+        <section class="manga-section">
+          <div class="section-header">
+            <h2 class="section-header__title">
+              <i class="fa-solid fa-clock-rotate-left"></i>{{ 'HOME.LATEST_UPDATE' | translate }}
+            </h2>
+            <a routerLink="/latest" class="see-more-link">
+              {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+            </a>
+          </div>
 
-        <div class="manga-grid" *ngIf="!isLoading">
-          <app-manga-card *ngFor="let manga of latestManga" [manga]="manga" [showTags]="false"></app-manga-card>
-        </div>
+          <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
 
-        <!-- Pagination -->
-        <div class="pagination-wrapper" *ngIf="!isLoading && totalPages > 1">
-          <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
-            <i class="fa-solid fa-backward-step"></i>
-          </button>
-          <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
-            <i class="fa-solid fa-chevron-left"></i>
-          </button>
-          <button class="page-btn" *ngFor="let page of paginationPages"
-            [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
-          <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
-            <i class="fa-solid fa-chevron-right"></i>
-          </button>
-          <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
-            <i class="fa-solid fa-forward-step"></i>
-          </button>
-        </div>
+          <div class="manga-grid" *ngIf="!isLoading">
+            <app-manga-card *ngFor="let manga of latestManga" [manga]="manga"></app-manga-card>
+          </div>
+        </section>
+
+        <!-- Popular -->
+        <section class="manga-section" *ngIf="popularManga.length > 0">
+          <div class="section-header">
+            <h2 class="section-header__title">
+              <i class="fa-solid fa-chart-line"></i>{{ 'HOME.POPULAR' | translate }}
+            </h2>
+            <a routerLink="/popular" class="see-more-link">
+              {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+            </a>
+          </div>
+
+          <div class="manga-grid">
+            <app-manga-card *ngFor="let manga of popularManga" [manga]="manga"></app-manga-card>
+          </div>
+        </section>
+
+        <!-- Recommended -->
+        <section class="manga-section" *ngIf="recommendedManga.length > 0">
+          <div class="section-header">
+            <h2 class="section-header__title">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>{{ 'HOME.RECOMMENDED' | translate }}
+            </h2>
+          </div>
+
+          <div class="manga-grid">
+            <app-manga-card *ngFor="let manga of recommendedManga" [manga]="manga"></app-manga-card>
+          </div>
+        </section>
+
       </main>
 
       <!-- Sidebar -->
@@ -73,7 +91,15 @@
         </div>
 
         <div class="sidebar-section mt-4">
-          <h3 class="sidebar-title"><i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_MONTH' | translate }}</h3>
+          <h3 class="sidebar-title"><i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_LIST' | translate }}</h3>
+          <div class="top-period-tabs">
+            <button class="top-period-tab" [class.active]="topListPeriod === 'day'"
+              (click)="onTopListPeriodChange('day')">{{ 'HOME.TOP_DAY' | translate }}</button>
+            <button class="top-period-tab" [class.active]="topListPeriod === 'month'"
+              (click)="onTopListPeriodChange('month')">{{ 'HOME.TOP_MONTH' | translate }}</button>
+            <button class="top-period-tab" [class.active]="topListPeriod === 'year'"
+              (click)="onTopListPeriodChange('year')">{{ 'HOME.TOP_YEAR' | translate }}</button>
+          </div>
           <div class="top-list">
             <a class="top-item" *ngFor="let m of trendingManga | slice:0:5; let i = index"
                [routerLink]="['/manga', m.mangaId, m.mangaName]">

@@ -214,13 +214,35 @@ a {
     &--completed { background: var(--accent-primary); color: white; }
   }
 
-  &__chapter {
+  &__update-time {
     position: absolute;
-    bottom: 60px;
+    bottom: 32px;
     left: 8px;
     right: 8px;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.75);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  &__chapter {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-size: 0.75rem;
-    color: #adb5bd;
+    color: #fff;
+    z-index: 2;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: left;
+
+    &:hover {
+      background: rgba(255,255,255,0.15);
+    }
   }
 
   &__info {
@@ -253,14 +275,25 @@ a {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+    max-height: 40px;
+    overflow: hidden;
 
     .tag-chip {
-      background: rgba(83, 52, 131, 0.3);
-      border: 1px solid var(--accent-secondary);
-      color: #b39ddb;
-      padding: 1px 6px;
-      border-radius: 3px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
       font-size: 0.65rem;
+      line-height: 1.1;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+      &:hover {
+        background: rgba(233,69,96,0.12);
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+      }
     }
   }
 }
@@ -425,7 +458,39 @@ a {
 }
 
 // === Responsive ===
+@media (max-width: 1200px) {
+  .manga-card__tags {
+    max-height: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .manga-card__tags {
+    gap: 3px;
+    max-height: 18px;
+
+    .tag-chip {
+      font-size: 0.58rem;
+      padding: 1px 4px;
+    }
+  }
+
+  .manga-card__meta {
+    font-size: 0.68rem;
+  }
+
+  .manga-card__update-time {
+    font-size: 0.6rem;
+  }
+}
+
 @media (max-width: 576px) {
   .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
   .manga-card__title { font-size: 0.8rem; }
+}
+
+@media (max-width: 480px) {
+  .manga-card__tags {
+    display: none;
+  }
 }

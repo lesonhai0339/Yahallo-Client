@@ -22,9 +22,15 @@
   "HOME": {
     "TRENDING": "Trending",
     "LATEST_UPDATE": "Latest Updates",
+    "POPULAR": "Popular",
+    "RECOMMENDED": "Recommended",
     "SEE_MORE": "See more",
+    "COLLAPSE": "Collapse",
     "CATEGORIES": "Categories",
-    "TOP_MONTH": "Top this month"
+    "TOP_LIST": "Top List",
+    "TOP_DAY": "Day",
+    "TOP_MONTH": "Month",
+    "TOP_YEAR": "Year"
   },
   "MANGA": {
     "VIEWS": "Views",
@@ -63,7 +69,17 @@
   "READER": {
     "BACK": "Back",
     "PREV_CHAPTER": "Previous chapter",
-    "NEXT_CHAPTER": "Next chapter"
+    "NEXT_CHAPTER": "Next chapter",
+    "SETTINGS": "Reader settings",
+    "BACK_TO_DETAIL": "Back to manga detail",
+    "DIRECTION": "Reading direction",
+    "VERTICAL": "Vertical",
+    "HORIZONTAL": "Horizontal",
+    "MODE": "Reading mode",
+    "MODE_NORMAL": "Normal",
+    "MODE_FOCUS": "Focus",
+    "IMAGE_SIZE": "Image size",
+    "PRELOAD_COUNT": "Preload images"
   },
   "SEARCH": {
     "TITLE": "Advanced Search",
@@ -85,7 +101,12 @@
     "PREFIX_ARTIST_HINT": "Search by artist",
     "SEARCHING": "Searching...",
     "SELECT_GENRE": "Select genre...",
-    "CLEAR_ALL": "Clear all"
+    "CLEAR_ALL": "Clear all",
+    "TAG_SUGGEST": "Suggested tags",
+    "AUTHOR_SUGGEST": "Suggested authors",
+    "ARTIST_SUGGEST": "Suggested artists",
+    "NO_RECOMMEND_MATCH": "No matches found",
+    "TAG_LIST": "Genre list"
   },
   "AUTH": {
     "LOGIN_TITLE": "Welcome back",
@@ -157,6 +178,17 @@
     "CONTACT": "Contact",
     "CONTACT_TEXT": "For copyright or content issues, please contact us.",
     "ALL_RIGHTS": "All rights reserved."
+  },
+  "TOP": {
+    "TITLE": "Top Manga",
+    "VIEWS": "Views",
+    "RATING": "Rating",
+    "CHAPTERS": "Chapters",
+    "COMMENTS": "Comments",
+    "UPDATED": "Updated",
+    "VIEW_LIST": "List view",
+    "VIEW_GRID": "Grid view",
+    "PAGE": "page"
   },
   "COMMON": {
     "LOADING": "Loading...",

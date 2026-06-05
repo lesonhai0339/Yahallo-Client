@@ -9,7 +9,14 @@ import { TranslationService, SupportedLang } from '../../core/services/translati
 import { ThemeService } from '../../core/services/theme.service';
 import { AdminStateService } from '../../admin/services/admin-state.service';
 import { TagService } from '../../core/services/tag.service';
+import { AuthorService } from '../../core/services/author.service';
+import { ArtistService } from '../../core/services/artist.service';
 import { User, Tag } from '../../core/models/interfaces';
+
+interface RecommendItem {
+  id: string;
+  name: string;
+}
 
 export interface SearchPrefix {
   prefix: string;
@@ -50,6 +57,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
   unreadCount = 0;
   categories: any[] = [];
   tags: Tag[] = [];
+  authors: RecommendItem[] = [];
+  artists: RecommendItem[] = [];
+
+  showRecommend = false;
+  recommendList: RecommendItem[] = [];
+  recommendIndex = -1;
 
   readonly prefixOptions: SearchPrefix[] = [
     { prefix: 'tag:',    label: 'SEARCH.PREFIX_TAG',    icon: 'fa-solid fa-tags',    hint: 'SEARCH.PREFIX_TAG_HINT' },
@@ -79,6 +92,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     public themeService: ThemeService,
     private adminState: AdminStateService,
     private tagService: TagService,
+    private authorService: AuthorService,
+    private artistService: ArtistService,
     private router: Router
   ) {}
 
@@ -103,7 +118,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     this.mangaService.getCategories().pipe(takeUntil(this.destroy$)).subscribe(cats => this.categories = cats || []);
     this.tagService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
-      this.tags = (res?.value ?? res?.data ?? res) || [];
+      this.tags = ((res?.value ?? res?.data ?? res) || []).sort((a: Tag, b: Tag) => a.name.localeCompare(b.name));
+    });
+    this.authorService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
+      const raw = res?.value ?? res?.data ?? res ?? [];
+      this.authors = raw.map((a: any) => ({ id: a.id, name: a.name })).sort((a: RecommendItem, b: RecommendItem) => a.name.localeCompare(b.name));
+    });
+    this.artistService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
+      const raw = res?.value ?? res?.data ?? res ?? [];
+      this.artists = raw.map((a: any) => ({ id: a.id, name: a.name })).sort((a: RecommendItem, b: RecommendItem) => a.name.localeCompare(b.name));
     });
 
     this.searchSubject.pipe(
@@ -144,7 +167,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     const target = e.target as HTMLElement;
     if (!target.closest('.notif-wrapper')) this.isNotifOpen = false;
     if (!target.closest('.user-menu-wrapper')) this.isUserMenuOpen = false;
-    if (!target.closest('.search-wrapper')) { this.isSearchOpen = false; this.searchResults = []; this.showPrefixHints = false; this.hasSearched = false; }
+    if (!target.closest('.search-wrapper')) { this.closeSearch(); }
     if (!target.closest('.lang-wrapper')) this.isLangOpen = false;
   }
 
@@ -197,6 +220,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.showPrefixHints = false;
     this.filteredPrefixOptions = [];
     this.highlightedPrefixIndex = -1;
+
+    if (this.hasRecommendSource) {
+      this.updateRecommend(this.searchQuery.trim().toLowerCase());
+      return;
+    }
+
+    this.hideRecommend();
     const keyword = this.getSearchKeyword();
     if (keyword.length > 0) {
       this.isSearchLoading = true;
@@ -228,11 +258,27 @@ export class HeaderComponent implements OnInit, OnDestroy {
             this.selectPrefix(items[this.highlightedPrefixIndex]);
           }
           break;
-        case 'Escape':
-          this.showPrefixHints = false;
-          break;
       }
       return;
+    }
+
+    if (this.showRecommend && this.recommendList.length > 0) {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          this.recommendIndex = Math.min(this.recommendIndex + 1, this.recommendList.length - 1);
+          return;
+        case 'ArrowUp':
+          event.preventDefault();
+          this.recommendIndex = Math.max(this.recommendIndex - 1, 0);
+          return;
+        case 'Enter':
+          event.preventDefault();
+          if (this.recommendIndex >= 0 && this.recommendList[this.recommendIndex]) {
+            this.selectRecommendItem(this.recommendList[this.recommendIndex]);
+          }
+          return;
+      }
     }
 
     if (this.searchResults.length > 0) {
@@ -253,11 +299,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
             this.submitSearch();
           }
           return;
-        case 'Escape':
-          this.searchResults = [];
-          this.hasSearched = false;
-          return;
       }
+    }
+
+    if (event.key === 'Escape') {
+      this.closeSearch();
+      (event.target as HTMLElement)?.blur();
+      return;
     }
 
     if (event.key === 'Enter') {
@@ -297,6 +345,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.showPrefixHints = false;
     this.searchResults = [];
+    if (this.hasRecommendSource) {
+      this.updateRecommend('');
+    }
     setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
   }
 
@@ -304,7 +355,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.selectedPrefix = null;
     this.searchResults = [];
     this.hasSearched = false;
+    this.hideRecommend();
     setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
+  }
+
+  closeSearch(): void {
+    this.isSearchOpen = false;
+    this.searchResults = [];
+    this.showPrefixHints = false;
+    this.hasSearched = false;
+    this.isSearchLoading = false;
+    this.selectedPrefix = null;
+    this.searchQuery = '';
+    this.hideRecommend();
   }
 
   get activePrefixOption(): SearchPrefix | null {
@@ -354,6 +417,67 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
 
     return this.mangaService.filter({ name: fullQuery.trim(), pageSize: 6 });
+  }
+
+  // ── Recommend (tag / author / artist) ───────────────────────────────────────
+
+  get hasRecommendSource(): boolean {
+    const p = this.selectedPrefix?.prefix;
+    return p === 'tag:' || p === 'author:' || p === 'artist:';
+  }
+
+  get recommendTitleKey(): string {
+    switch (this.selectedPrefix?.prefix) {
+      case 'tag:': return 'SEARCH.TAG_SUGGEST';
+      case 'author:': return 'SEARCH.AUTHOR_SUGGEST';
+      case 'artist:': return 'SEARCH.ARTIST_SUGGEST';
+      default: return '';
+    }
+  }
+
+  get recommendIcon(): string {
+    return this.selectedPrefix?.icon ?? 'fa-solid fa-tags';
+  }
+
+  private get recommendSource(): RecommendItem[] {
+    switch (this.selectedPrefix?.prefix) {
+      case 'tag:': return this.tags;
+      case 'author:': return this.authors;
+      case 'artist:': return this.artists;
+      default: return [];
+    }
+  }
+
+  private updateRecommend(query: string): void {
+    const source = this.recommendSource;
+    this.recommendList = (!query ? source : source.filter(item => item.name.toLowerCase().includes(query))).slice(0, 12);
+    this.showRecommend = true;
+    this.recommendIndex = this.recommendList.length > 0 ? 0 : -1;
+  }
+
+  private hideRecommend(): void {
+    this.showRecommend = false;
+    this.recommendList = [];
+    this.recommendIndex = -1;
+  }
+
+  selectRecommendItem(item: RecommendItem): void {
+    this.searchQuery = item.name;
+    this.hideRecommend();
+    this.isSearchLoading = true;
+
+    const prefix = this.selectedPrefix?.prefix;
+    const search$ = prefix === 'tag:'
+      ? this.mangaService.getByCategories([item.id])
+      : this.mangaService.filter({ name: item.name, pageSize: 6 });
+
+    search$.pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.isSearchLoading = false)
+    ).subscribe(r => {
+      this.searchResults = (r as any[]).slice(0, 6);
+      this.hasSearched = true;
+    });
   }
 
   goToManga(item: any): void {

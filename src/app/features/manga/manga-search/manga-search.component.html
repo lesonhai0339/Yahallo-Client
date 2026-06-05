@@ -41,7 +41,26 @@
             <span class="prefix-dropdown__hint">{{ opt.prefix }}&lt;...&gt;</span>
           </div>
         </div>
+      </div>
 
+      <!-- Recommend dropdown (tag / author / artist) -->
+      <div class="recommend-dropdown" *ngIf="showRecommend && hasRecommendSource">
+        <div class="recommend-dropdown__header">
+          <i [class]="recommendIcon"></i>{{ recommendTitleKey | translate }}
+        </div>
+        <div class="recommend-dropdown__items" *ngIf="recommendList.length > 0">
+          <div class="recommend-dropdown__item"
+            *ngFor="let item of recommendList; let i = index"
+            [class.recommend-dropdown__item--hl]="i === recommendIndex"
+            (mouseenter)="recommendIndex = i"
+            (mousedown)="selectRecommendItem(item); $event.preventDefault()">
+            {{ item.name }}
+          </div>
+        </div>
+        <div class="tag-dropdown-empty" *ngIf="recommendList.length === 0">
+          <i class="fa-solid fa-magnifying-glass-minus"></i>
+          {{ 'SEARCH.NO_RECOMMEND_MATCH' | translate }}
+        </div>
       </div>
     </div>
   </div>
@@ -53,9 +72,10 @@
     <!-- Tag selector input (Advanced mode) -->
     <div class="tag-selector-wrap mb-3" *ngIf="isAdvanced">
       <div class="tag-selector-box" [class.tag-selector-box--open]="showTagDropdown" [class.tag-selector-box--has-selected]="selectedCategories.length > 0" (click)="focusTagInput()">
-        <span class="tag-selector-indicator">
+        <button class="tag-selector-indicator" type="button"
+          (mousedown)="toggleTagDropdown(); $event.preventDefault(); $event.stopPropagation()">
           <i class="fa-solid" [class.fa-chevron-down]="!showTagDropdown" [class.fa-chevron-up]="showTagDropdown"></i>
-        </span>
+        </button>
 
         <div class="tag-selector-field">
           <span class="tag-chip" *ngFor="let cat of selectedCategoryItems" (click)="$event.stopPropagation()">
@@ -95,8 +115,14 @@
       </div>
     </div>
 
-    <!-- Category chips grid (always visible for quick select) -->
-    <div class="tag-filter-grid">
+    <!-- Category chips grid (collapsible) -->
+    <div class="tag-grid-toggle-wrap">
+      <button class="tag-grid-toggle" type="button" (click)="showCategoryGrid = !showCategoryGrid">
+        {{ 'SEARCH.TAG_LIST' | translate }}
+        <i class="fa-solid" [class.fa-angles-down]="!showCategoryGrid" [class.fa-angles-up]="showCategoryGrid"></i>
+      </button>
+    </div>
+    <div class="tag-filter-grid" *ngIf="showCategoryGrid">
       <button class="tag-chip-filter" *ngFor="let cat of categories"
         [class.active]="selectedCategories.includes(cat.genreId)"
         (click)="toggleCategoryChip(cat)">{{ cat.genresIdName }}</button>
@@ -105,14 +131,79 @@
 
   <!-- Results -->
   <div class="results-section">
-    <div class="results-header" *ngIf="hasSearched">
-      <span>{{ results.length }} {{ 'SEARCH.RESULTS_COUNT' | translate }}</span>
+
+    <!-- Controls bar (visible when has results) -->
+    <div class="controls-bar" *ngIf="hasSearched && results.length > 0">
+      <div class="results-header">
+        <span>{{ totalCount }} {{ 'SEARCH.RESULTS_COUNT' | translate }}</span>
+      </div>
+      <div class="view-controls">
+        <div class="page-size-select">
+          <select [ngModel]="pageSize" (ngModelChange)="setPageSize($event)">
+            <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }} / {{ 'TOP.PAGE' | translate }}</option>
+          </select>
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn" [class.active]="viewMode === 'list'" (click)="setViewMode('list')"
+            [title]="'TOP.VIEW_LIST' | translate">
+            <i class="fa-solid fa-list"></i>
+          </button>
+          <button class="view-btn" [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')"
+            [title]="'TOP.VIEW_GRID' | translate">
+            <i class="fa-solid fa-table-cells-large"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
 
-    <div class="manga-grid" *ngIf="!isLoading && results.length > 0">
+    <!-- List View -->
+    <div class="search-list" *ngIf="!isLoading && viewMode === 'list' && results.length > 0">
+      <a class="search-row" *ngFor="let m of results"
+         [routerLink]="['/manga', m.id, m.name]">
+        <img class="search-row__thumb" [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
+        <div class="search-row__info">
+          <div class="search-row__name">{{ m.name }}</div>
+          <div class="search-row__tags" *ngIf="m.tags?.length">
+            <span class="row-tag" *ngFor="let t of m.tags | slice:0:3">{{ t.name }}</span>
+          </div>
+        </div>
+        <div class="search-row__stats">
+          <span class="stat" *ngIf="m.totalViews">
+            <i class="fa-solid fa-eye"></i>{{ m.totalViews | number }}
+          </span>
+          <span class="stat" *ngIf="m.averageRating">
+            <i class="fa-solid fa-star" style="color:#ffd700"></i>{{ m.averageRating?.toFixed?.(1) ?? '—' }}
+          </span>
+          <span class="stat" *ngIf="m.totalChapters">
+            <i class="fa-solid fa-book"></i>{{ m.totalChapters }}
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Grid View -->
+    <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid' && results.length > 0">
       <app-manga-card *ngFor="let m of results" [manga]="m" [showTags]="true"></app-manga-card>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper" *ngIf="!isLoading && hasSearched && totalPages > 1">
+      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-backward-step"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button class="page-btn" *ngFor="let page of paginationPages"
+        [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-forward-step"></i>
+      </button>
     </div>
 
     <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">

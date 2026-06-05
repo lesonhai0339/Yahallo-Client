@@ -1,9 +1,16 @@
 import { Component, OnInit, OnDestroy, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, of, debounceTime, distinctUntilChanged, switchMap, takeUntil, finalize } from 'rxjs';
+import { Subject, Observable, of, debounceTime, distinctUntilChanged, switchMap, takeUntil, finalize } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { TagService } from '../../../core/services/tag.service';
+import { AuthorService } from '../../../core/services/author.service';
+import { ArtistService } from '../../../core/services/artist.service';
 import { Manga, Tag } from '../../../core/models/interfaces';
+
+export interface RecommendItem {
+  id: string;
+  name: string;
+}
 
 export interface SearchPrefix {
   prefix: string;
@@ -27,12 +34,27 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   hasSearched = false;
   isAdvanced = false;
 
+  currentPage = 1;
+  totalPages = 1;
+  totalCount = 0;
+  pageSize = 20;
+  pageSizeOptions = [10, 20, 50];
+  viewMode: 'list' | 'grid' = 'grid';
+
   showPrefixHints = false;
   highlightedPrefixIndex = -1;
   selectedPrefix: SearchPrefix | null = null;
   showTagDropdown = false;
   tagSearchText = '';
   tagHighlightedIndex = -1;
+
+  showCategoryGrid = false;
+  showRecommend = false;
+  recommendList: RecommendItem[] = [];
+  recommendIndex = -1;
+
+  authors: RecommendItem[] = [];
+  artists: RecommendItem[] = [];
 
   readonly prefixOptions: SearchPrefix[] = [
     { prefix: 'tag:',    label: 'SEARCH.PREFIX_TAG',    icon: 'fa-solid fa-tags',    hint: 'SEARCH.PREFIX_TAG_HINT' },
@@ -54,15 +76,27 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     private router: Router,
     private mangaService: MangaService,
     private tagService: TagService,
+    private authorService: AuthorService,
+    private artistService: ArtistService,
     private host: ElementRef
   ) {}
 
   ngOnInit(): void {
     this.isAdvanced = this.router.url.includes('advanced');
 
-    this.mangaService.getCategories().pipe(takeUntil(this.destroy$)).subscribe(c => this.categories = c || []);
+    this.mangaService.getCategories().pipe(takeUntil(this.destroy$)).subscribe(c => {
+      this.categories = (c || []).sort((a: any, b: any) => a.genresIdName.localeCompare(b.genresIdName));
+    });
     this.tagService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
-      this.tags = (res?.value ?? res?.data ?? res) || [];
+      this.tags = ((res?.value ?? res?.data ?? res) || []).sort((a: Tag, b: Tag) => a.name.localeCompare(b.name));
+    });
+    this.authorService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
+      const raw = res?.value ?? res?.data ?? res ?? [];
+      this.authors = raw.map((a: any) => ({ id: a.id, name: a.name })).sort((a: RecommendItem, b: RecommendItem) => a.name.localeCompare(b.name));
+    });
+    this.artistService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
+      const raw = res?.value ?? res?.data ?? res ?? [];
+      this.artists = raw.map((a: any) => ({ id: a.id, name: a.name })).sort((a: RecommendItem, b: RecommendItem) => a.name.localeCompare(b.name));
     });
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
@@ -79,16 +113,20 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
         if (!q.trim()) {
           this.results = [];
           this.hasSearched = false;
-          return of([]);
+          return of(null);
         }
         this.isLoading = true;
-        return this.executeSearchByPrefix(q).pipe(
+        this.currentPage = 1;
+        return this.executeSearchByPrefix(q, 1).pipe(
           finalize(() => this.isLoading = false)
         );
       }),
       takeUntil(this.destroy$)
     ).subscribe(r => {
-      this.results = r as Manga[];
+      if (!r) return;
+      this.results = r.data;
+      this.totalPages = r.totalPages;
+      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
       this.hasSearched = true;
     });
   }
@@ -103,6 +141,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     if (!this.host.nativeElement.contains(e.target as Node)) {
       this.showPrefixHints = false;
       this.showTagDropdown = false;
+      this.showRecommend = false;
     }
   }
 
@@ -123,6 +162,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.selectedPrefix = opt;
     this.searchQuery = '';
     this.showPrefixHints = false;
+    if (this.hasRecommendSource) {
+      this.updateRecommend('');
+    }
     setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
   }
 
@@ -131,6 +173,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.results = [];
     this.hasSearched = false;
+    this.hideRecommend();
     setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
   }
 
@@ -148,6 +191,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
         this.showPrefixHints = true;
         this.filteredPrefixOptions = [];
         this.highlightedPrefixIndex = 0;
+        this.hideRecommend();
         return;
       }
 
@@ -156,6 +200,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
         this.showPrefixHints = true;
         this.filteredPrefixOptions = [];
         this.highlightedPrefixIndex = this.prefixOptions.indexOf(exactPrefix);
+        this.hideRecommend();
         return;
       }
 
@@ -164,6 +209,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
         this.showPrefixHints = true;
         this.filteredPrefixOptions = matchingPrefixes;
         this.highlightedPrefixIndex = 0;
+        this.hideRecommend();
         return;
       }
     }
@@ -171,6 +217,13 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.showPrefixHints = false;
     this.filteredPrefixOptions = [];
     this.highlightedPrefixIndex = -1;
+
+    if (this.hasRecommendSource) {
+      this.updateRecommend(q);
+      return;
+    }
+
+    this.hideRecommend();
     this.searchSubject.next(this.searchQuery);
     this.router.navigate([], { queryParams: { q: this.searchQuery }, replaceUrl: true });
   }
@@ -200,6 +253,28 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.showRecommend && this.recommendList.length > 0) {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          this.recommendIndex = Math.min(this.recommendIndex + 1, this.recommendList.length - 1);
+          return;
+        case 'ArrowUp':
+          event.preventDefault();
+          this.recommendIndex = Math.max(this.recommendIndex - 1, 0);
+          return;
+        case 'Enter':
+          event.preventDefault();
+          if (this.recommendIndex >= 0 && this.recommendList[this.recommendIndex]) {
+            this.selectRecommendItem(this.recommendList[this.recommendIndex]);
+          }
+          return;
+        case 'Escape':
+          this.hideRecommend();
+          return;
+      }
+    }
+
     if (event.key === 'Enter') {
       event.preventDefault();
       this.doSearch();
@@ -220,27 +295,33 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   doSearch(): void {
     if (!this.searchQuery.trim()) return;
     this.isLoading = true;
-    this.executeSearchByPrefix(this.searchQuery).pipe(
+    this.currentPage = 1;
+    this.executeSearchByPrefix(this.searchQuery, 1).pipe(
       takeUntil(this.destroy$),
       finalize(() => this.isLoading = false)
     ).subscribe(r => {
-      this.results = r as Manga[];
+      this.results = r.data;
+      this.totalPages = r.totalPages;
+      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
       this.hasSearched = true;
     });
   }
 
   private executeSearch(query: string): void {
     this.isLoading = true;
-    this.executeSearchByPrefix(query).pipe(
+    this.currentPage = 1;
+    this.executeSearchByPrefix(query, 1).pipe(
       takeUntil(this.destroy$),
       finalize(() => this.isLoading = false)
     ).subscribe(r => {
-      this.results = r as Manga[];
+      this.results = r.data;
+      this.totalPages = r.totalPages;
+      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
       this.hasSearched = true;
     });
   }
 
-  private executeSearchByPrefix(fullQuery: string) {
+  private executeSearchByPrefix(fullQuery: string, page: number): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
     const effectiveQuery = this.selectedPrefix ? this.selectedPrefix.prefix + fullQuery : fullQuery;
     const tagMatch = effectiveQuery.match(/^tag:(.+)/i);
     const nameMatch = effectiveQuery.match(/^name:(.+)/i);
@@ -251,25 +332,146 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       const tagName = tagMatch[1].trim();
       const tag = this.tags.find((t: Tag) => t.name.toLowerCase().includes(tagName.toLowerCase()));
       if (tag) {
-        return this.mangaService.getByCategories([tag.id]);
+        return this.mangaService.filterByTagsPaginated({ tagIds: [tag.id], page, pageSize: this.pageSize });
       }
       const catTag = this.categories.find((c: any) => c.genresIdName.toLowerCase().includes(tagName.toLowerCase()));
       if (catTag) {
-        return this.mangaService.getByCategories([catTag.genreId]);
+        return this.mangaService.filterByTagsPaginated({ tagIds: [catTag.genreId], page, pageSize: this.pageSize });
       }
-      return this.mangaService.filter({ name: tagName, pageSize: 30 });
+      return this.mangaService.filterPaginated({ name: tagName, page, pageSize: this.pageSize });
     }
 
     if (nameMatch) {
-      return this.mangaService.filter({ name: nameMatch[1].trim(), pageSize: 30 });
+      return this.mangaService.filterPaginated({ name: nameMatch[1].trim(), page, pageSize: this.pageSize });
     }
 
     if (authorMatch || artistMatch) {
       const name = (authorMatch || artistMatch)![1].trim();
-      return this.mangaService.filter({ name: name, pageSize: 30 });
+      return this.mangaService.filterPaginated({ name, page, pageSize: this.pageSize });
     }
 
-    return this.mangaService.filter({ name: fullQuery.trim(), pageSize: 30 });
+    return this.mangaService.filterPaginated({ name: fullQuery.trim(), page, pageSize: this.pageSize });
+  }
+
+  // ── View & Pagination ─────────────────────────────────────────────────────
+
+  setViewMode(mode: 'list' | 'grid'): void {
+    this.viewMode = mode;
+  }
+
+  setPageSize(size: number): void {
+    if (size === this.pageSize) return;
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.totalPages = Math.max(1, Math.ceil(this.totalCount / size));
+    if (size <= this.results.length) {
+      this.results = this.results.slice(0, size);
+    } else {
+      this.reloadCurrentSearch();
+    }
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+    this.reloadCurrentSearch();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  get paginationPages(): number[] {
+    const pages: number[] = [];
+    const delta = 2;
+    const from = Math.max(1, this.currentPage - delta);
+    const to = Math.min(this.totalPages, this.currentPage + delta);
+    for (let i = from; i <= to; i++) pages.push(i);
+    return pages;
+  }
+
+  private reloadCurrentSearch(): void {
+    if (this.selectedCategories.length > 0) {
+      this.searchByCategories();
+    } else if (this.searchQuery.trim()) {
+      this.isLoading = true;
+      this.executeSearchByPrefix(this.searchQuery, this.currentPage).pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isLoading = false)
+      ).subscribe(r => {
+        this.results = r.data;
+        this.totalPages = r.totalPages;
+        this.totalCount = r.totalCount || r.totalPages * this.pageSize;
+        this.hasSearched = true;
+      });
+    }
+  }
+
+  // ── Recommend dropdown (tag / author / artist) ─────────────────────────────
+
+  get hasRecommendSource(): boolean {
+    const p = this.selectedPrefix?.prefix;
+    return p === 'tag:' || p === 'author:' || p === 'artist:';
+  }
+
+  get recommendTitleKey(): string {
+    switch (this.selectedPrefix?.prefix) {
+      case 'tag:': return 'SEARCH.TAG_SUGGEST';
+      case 'author:': return 'SEARCH.AUTHOR_SUGGEST';
+      case 'artist:': return 'SEARCH.ARTIST_SUGGEST';
+      default: return '';
+    }
+  }
+
+  get recommendIcon(): string {
+    return this.selectedPrefix?.icon ?? 'fa-solid fa-tags';
+  }
+
+  private get recommendSource(): RecommendItem[] {
+    switch (this.selectedPrefix?.prefix) {
+      case 'tag:': return this.tags;
+      case 'author:': return this.authors;
+      case 'artist:': return this.artists;
+      default: return [];
+    }
+  }
+
+  private updateRecommend(query: string): void {
+    const source = this.recommendSource;
+    if (!query) {
+      this.recommendList = source.slice(0, 20);
+    } else {
+      this.recommendList = source
+        .filter(item => item.name.toLowerCase().includes(query))
+        .slice(0, 20);
+    }
+    this.showRecommend = true;
+    this.recommendIndex = this.recommendList.length > 0 ? 0 : -1;
+  }
+
+  private hideRecommend(): void {
+    this.showRecommend = false;
+    this.recommendList = [];
+    this.recommendIndex = -1;
+  }
+
+  selectRecommendItem(item: RecommendItem): void {
+    this.searchQuery = item.name;
+    this.hideRecommend();
+    this.isLoading = true;
+    this.currentPage = 1;
+
+    const prefix = this.selectedPrefix?.prefix;
+    const search$ = prefix === 'tag:'
+      ? this.mangaService.filterByTagsPaginated({ tagIds: [item.id], page: 1, pageSize: this.pageSize })
+      : this.mangaService.filterPaginated({ name: item.name, page: 1, pageSize: this.pageSize });
+
+    search$.pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.isLoading = false)
+    ).subscribe(r => {
+      this.results = r.data;
+      this.totalPages = r.totalPages;
+      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
+      this.hasSearched = true;
+    });
   }
 
   // ── Category multi-tag selector (Advanced) ────────────────────────────────
@@ -290,6 +492,14 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   focusTagInput(): void {
     this.tagInputRef?.nativeElement.focus();
+  }
+
+  toggleTagDropdown(): void {
+    this.showTagDropdown = !this.showTagDropdown;
+    if (this.showTagDropdown) {
+      this.tagHighlightedIndex = this.filteredCategories.length ? 0 : -1;
+      setTimeout(() => this.tagInputRef?.nativeElement.focus(), 0);
+    }
   }
 
   onTagFocus(): void {
@@ -336,6 +546,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   selectCategory(cat: any): void {
     if (!this.selectedCategories.includes(cat.genreId)) {
       this.selectedCategories = [...this.selectedCategories, cat.genreId];
+      this.currentPage = 1;
       this.searchByCategories();
     }
     this.tagSearchText = '';
@@ -346,6 +557,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   removeCategory(id: string): void {
     this.selectedCategories = this.selectedCategories.filter(sid => sid !== id);
+    this.currentPage = 1;
     if (this.selectedCategories.length > 0) {
       this.searchByCategories();
     } else {
@@ -371,6 +583,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   toggleCategoryChip(cat: any): void {
+    this.currentPage = 1;
     if (this.selectedCategories.includes(cat.genreId)) {
       this.removeCategory(cat.genreId);
     } else {
@@ -381,11 +594,13 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   searchByCategories(): void {
     this.isLoading = true;
-    this.mangaService.getByCategories(this.selectedCategories).pipe(
+    this.mangaService.filterByTagsPaginated({ tagIds: this.selectedCategories, page: this.currentPage, pageSize: this.pageSize }).pipe(
       takeUntil(this.destroy$),
       finalize(() => this.isLoading = false)
     ).subscribe(r => {
-      this.results = r as Manga[];
+      this.results = r.data;
+      this.totalPages = r.totalPages;
+      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
       this.hasSearched = true;
     });
   }

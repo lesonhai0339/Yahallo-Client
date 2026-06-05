@@ -9,6 +9,8 @@ import { RegisterComponent } from './features/auth/register/register.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
 import { ProfileComponent } from './features/user/profile/profile.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
+import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
+import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { AuthGuard } from './core/guards/auth.guard';
 
 const routes: Routes = [
@@ -19,6 +21,9 @@ const routes: Routes = [
   { path: 'search', component: MangaSearchComponent },
   { path: 'search/advanced', component: MangaSearchComponent },
   { path: 'the-loai/:id', component: MangaSearchComponent },
+  { path: 'latest', component: MangaListPageComponent, data: { mode: 'latest', titleKey: 'HOME.LATEST_UPDATE', icon: 'fa-solid fa-clock-rotate-left' } },
+  { path: 'popular', component: MangaListPageComponent, data: { mode: 'popular', titleKey: 'HOME.POPULAR', icon: 'fa-solid fa-chart-line' } },
+  { path: 'top-manga', component: TopMangaComponent },
   { path: 'auth/login', component: LoginComponent },
   { path: 'auth/register', component: RegisterComponent },
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },

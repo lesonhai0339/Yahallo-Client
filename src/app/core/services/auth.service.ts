@@ -63,7 +63,7 @@ export class AuthService {
         const user = {
           id: data.id,
           name: data.name,
-          avatar: data.avatarUri ? `data:image/png;base64,${data.avatarUri}` : null
+          avatar: data.avatarUri  ?? null
         }
         if (accessToken) {
           const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(user), ENCRYPT_KEY).toString();

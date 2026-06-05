@@ -10,11 +10,13 @@ import { Manga } from '../../core/models/interfaces';
 })
 export class HomeComponent implements OnInit, OnDestroy {
   latestManga: Manga[] = [];
+  popularManga: Manga[] = [];
+  recommendedManga: Manga[] = [];
   trendingManga: any[] = [];
   categories: any[] = [];
-  totalPages = 1;
-  currentPage = 1;
   isLoading = true;
+
+  topListPeriod: 'day' | 'month' | 'year' = 'month';
 
   private destroy$ = new Subject<void>();
 
@@ -32,45 +34,30 @@ export class HomeComponent implements OnInit, OnDestroy {
   loadData(): void {
     this.isLoading = true;
     forkJoin({
-      latest: this.mangaService.getNewestManga(this.currentPage),
+      latest: this.mangaService.getNewestManga(1, 12),
       trending: this.mangaService.getTrending(10),
       categories: this.mangaService.getCategories(),
-      pageCount: this.mangaService.getPageCount()
+      popular: this.mangaService.getPopular(1, 6),
+      recommended: this.mangaService.getRecommended(2, 6)
     }).pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ latest, trending, categories, pageCount }) => {
+        next: ({ latest, trending, categories, popular, recommended }) => {
           this.latestManga = latest || [];
           this.trendingManga = trending || [];
           this.categories = categories || [];
-          this.totalPages = typeof pageCount === 'number' ? pageCount : 1;
+          this.popularManga = popular || [];
+          this.recommendedManga = recommended || [];
           this.isLoading = false;
         },
         error: () => {
           this.isLoading = false;
-          this.mangaService.getAll(this.currentPage).pipe(takeUntil(this.destroy$)).subscribe(m => {
-            this.latestManga = m || [];
-          });
         }
       });
   }
 
-  goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
-    this.currentPage = page;
-    this.isLoading = true;
-    this.mangaService.getAll(page).pipe(takeUntil(this.destroy$)).subscribe(m => {
-      this.latestManga = m || [];
-      this.isLoading = false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }
-
-  get paginationPages(): number[] {
-    const pages: number[] = [];
-    const delta = 2;
-    const from = Math.max(1, this.currentPage - delta);
-    const to = Math.min(this.totalPages, this.currentPage + delta);
-    for (let i = from; i <= to; i++) pages.push(i);
-    return pages;
+  onTopListPeriodChange(period: 'day' | 'month' | 'year'): void {
+    this.topListPeriod = period;
+    // TODO: call period-specific API when available
+    // e.g. this.mangaService.getTrending(10, period)
   }
 }

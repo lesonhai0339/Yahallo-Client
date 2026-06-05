@@ -1,7 +1,7 @@
-<div class="reader-page">
+<div class="reader-page" [class.focus-mode]="settings.mode === 'focus'">
 
   <!-- Top Bar -->
-  <div class="reader-topbar" [class.visible]="isMenuVisible">
+  <div class="reader-topbar" [class.visible]="isMenuVisible && settings.mode !== 'focus'">
     <div class="reader-topbar-inner">
       <a class="back-btn" [routerLink]="['/manga', mangaId]">
         <i class="fa-solid fa-arrow-left me-2"></i>{{ 'READER.BACK' | translate }}
@@ -26,10 +26,88 @@
     </div>
   </div>
 
+  <!-- Settings Sidebar -->
+  <div class="reader-sidebar-overlay" *ngIf="isSidebarOpen" (click)="closeSidebar()"></div>
+  <div class="reader-sidebar" [class.open]="isSidebarOpen">
+    <div class="sidebar-header">
+      <span>{{ 'READER.SETTINGS' | translate }}</span>
+      <button class="btn-close-sidebar" (click)="closeSidebar()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="sidebar-content">
+      <a class="sidebar-back-btn" [routerLink]="['/manga', mangaId]" (click)="closeSidebar()">
+        <i class="fa-solid fa-book me-2"></i>{{ 'READER.BACK_TO_DETAIL' | translate }}
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="setting-group">
+        <label class="setting-label">{{ 'READER.DIRECTION' | translate }}</label>
+        <div class="setting-options">
+          <button class="option-btn" [class.active]="settings.direction === 'vertical'"
+            (click)="settings.direction = 'vertical'; onSettingChange()">
+            <i class="fa-solid fa-arrows-up-down me-1"></i>{{ 'READER.VERTICAL' | translate }}
+          </button>
+          <button class="option-btn" [class.active]="settings.direction === 'horizontal'"
+            (click)="settings.direction = 'horizontal'; onSettingChange()">
+            <i class="fa-solid fa-arrows-left-right me-1"></i>{{ 'READER.HORIZONTAL' | translate }}
+          </button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">{{ 'READER.MODE' | translate }}</label>
+        <div class="setting-options">
+          <button class="option-btn" [class.active]="settings.mode === 'normal'"
+            (click)="settings.mode = 'normal'; onSettingChange()">
+            <i class="fa-solid fa-expand me-1"></i>{{ 'READER.MODE_NORMAL' | translate }}
+          </button>
+          <button class="option-btn" [class.active]="settings.mode === 'focus'"
+            (click)="settings.mode = 'focus'; onSettingChange()">
+            <i class="fa-solid fa-compress me-1"></i>{{ 'READER.MODE_FOCUS' | translate }}
+          </button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">
+          {{ 'READER.IMAGE_SIZE' | translate }}
+          <span class="setting-value">{{ settings.imageSize }}%</span>
+        </label>
+        <input type="range" class="form-range" min="50" max="150" step="5"
+          [(ngModel)]="settings.imageSize" (ngModelChange)="onSettingChange()">
+        <div class="range-labels">
+          <span>50%</span>
+          <span>100%</span>
+          <span>150%</span>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">
+          {{ 'READER.PRELOAD_COUNT' | translate }}
+          <span class="setting-value">{{ settings.preloadCount }}</span>
+        </label>
+        <input type="range" class="form-range" min="1" max="10" step="1"
+          [(ngModel)]="settings.preloadCount" (ngModelChange)="onSettingChange()">
+        <div class="range-labels">
+          <span>1</span>
+          <span>5</span>
+          <span>10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Reader Viewer -->
   <app-reader-viewer *ngIf="!isLoading"
     [images]="images"
     [initialPage]="initialPage"
+    [direction]="settings.direction"
+    [imageSize]="settings.imageSize"
+    [preloadCount]="settings.preloadCount"
     (pageChange)="onPageChange($event)">
   </app-reader-viewer>
 
@@ -37,19 +115,49 @@
     <div class="spinner-border" style="color:var(--accent-primary)"></div>
   </div>
 
-  <!-- Bottom Bar -->
-  <div class="reader-bottombar" [class.visible]="isMenuVisible">
-    <button class="btn btn-secondary" (click)="prevChapter()" [disabled]="currentChapterIndex <= 0">
-      <i class="fa-solid fa-chevron-left me-2"></i>{{ 'READER.PREV_CHAPTER' | translate }}
-    </button>
-    <span class="chapter-label">{{ currentChapter?.title }}</span>
-    <button class="btn btn-secondary" (click)="nextChapter()" [disabled]="currentChapterIndex >= chapters.length-1">
-      {{ 'READER.NEXT_CHAPTER' | translate }}<i class="fa-solid fa-chevron-right ms-2"></i>
-    </button>
+  <!-- Bottom Bar — floating left on desktop, full-width on mobile -->
+  <div class="reader-bottombar" [class.visible]="isBottombarVisible">
+
+    <!-- Chapter list dropdown -->
+    <div class="chapter-list-overlay" *ngIf="isChapterListOpen" (click)="closeChapterList()"></div>
+    <div class="chapter-list-dropdown" [class.open]="isChapterListOpen">
+      <div class="chapter-list-scroll">
+        <button *ngFor="let ch of chapters; let i = index"
+          class="chapter-list-item"
+          [class.active]="ch.id === chapterId"
+          (mousedown)="selectChapter(ch)">
+          <span class="chapter-list-item__title">{{ ch.title }}</span>
+          <i class="fa-solid fa-check" *ngIf="ch.id === chapterId"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 4 buttons -->
+    <div class="bottombar-buttons">
+      <button class="bb-btn" (click)="prevChapter()"
+        [disabled]="currentChapterIndex <= 0"
+        [title]="'READER.PREV_CHAPTER' | translate">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button class="bb-btn bb-btn--chapter" (click)="toggleChapterList()"
+        [title]="currentChapter?.title">
+        <i class="fa-solid fa-list me-1"></i>
+        <span class="bb-chapter-label">{{ currentChapter?.title }}</span>
+      </button>
+      <button class="bb-btn" (click)="toggleSidebar()"
+        [title]="'READER.SETTINGS' | translate">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+      <button class="bb-btn" (click)="nextChapter()"
+        [disabled]="currentChapterIndex >= chapters.length - 1"
+        [title]="'READER.NEXT_CHAPTER' | translate">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
   </div>
 
   <!-- Chapter Comments -->
-  <div class="reader-comments" *ngIf="!isLoading">
+  <div class="reader-comments" *ngIf="!isLoading && settings.mode !== 'focus'">
     <div class="container">
       <app-comment-section [mangaId]="mangaId" [chapterId]="chapterId"></app-comment-section>
     </div>
