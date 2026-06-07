@@ -10,7 +10,17 @@ $header-height: 60px;
   background: var(--header-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid transparent;
-  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    background: var(--bg-primary);
+  }
 
   &.scrolled {
     border-bottom-color: var(--border-color);
@@ -110,7 +120,7 @@ $header-height: 60px;
 
   .dropdown-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 4px;
   }
 
@@ -208,6 +218,7 @@ $header-height: 60px;
       cursor: pointer;
       padding: 0;
       flex-shrink: 0;
+      margin-right: 4px;
       transition: color 0.15s, background 0.15s;
 
       &:hover {
@@ -451,12 +462,19 @@ $header-height: 60px;
         }
       }
 
-      &.view-all {
+      &.view-all,
+      &.search-see-more {
         justify-content: center;
         font-size: 0.82rem;
-        color: var(--accent-primary);
-        border-top: 1px solid var(--border-color);
+        color: #4287f5;
+        border-top: 1px solid #e8ecf1;
         padding: 12px;
+        font-weight: 500;
+
+        &:hover {
+          background: rgba(66, 135, 245, 0.06);
+          border-left-color: #4287f5;
+        }
       }
     }
   }
@@ -804,8 +822,36 @@ $header-height: 60px;
 }
 
 @media (max-width: 768px) {
+  .header-inner {
+    padding: 0 8px;
+  }
+
+  .header-actions {
+    gap: 4px;
+    margin-left: auto;
+  }
+
   .search-wrapper .search-dropdown {
-    width: calc(100vw - 32px);
-    right: -60px;
+    position: fixed;
+    top: $header-height;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .lang-btn {
+    padding: 4px 6px;
+    .lang-code { font-size: 0.7rem; }
+    .lang-arrow { display: none; }
   }
 }

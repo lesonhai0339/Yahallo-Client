@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
-import { Manga } from '../../../core/models/interfaces';
+import { MangaSumaryDto } from '../../../core/models/manga.interface';
 
 @Component({
   selector: 'app-manga-list-page',
@@ -10,13 +10,13 @@ import { Manga } from '../../../core/models/interfaces';
   styleUrls: ['./manga-list-page.component.scss']
 })
 export class MangaListPageComponent implements OnInit, OnDestroy {
-  mangaList: Manga[] = [];
-  displayList: Manga[] = [];
+  mangaList: MangaSumaryDto[] = [];
+  displayList: MangaSumaryDto[] = [];
   isLoading = true;
   currentPage = 1;
   totalPages = 1;
   totalCount = 0;
-  pageSize = 20;
+  pageSize = 10;
   pageSizeOptions = [10, 20, 50];
   viewMode: 'list' | 'grid' = 'grid';
 
@@ -45,13 +45,13 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
 
   loadPage(): void {
     this.isLoading = true;
-    this.mangaService.getTopMangaPaginated(this.currentPage, this.pageSize)
+    this.mangaService.getNewestManga(this.currentPage, this.pageSize)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ data, totalPages, totalCount }) => {
-          this.mangaList = data;
-          this.totalPages = totalPages;
-          this.totalCount = totalCount || totalPages * this.pageSize;
+        next: (data) => {
+          this.mangaList = data || [];
+          this.totalPages = Math.max(1, Math.ceil(this.mangaList.length / this.pageSize));
+          this.totalCount = this.mangaList.length;
           this.displayList = [...this.mangaList];
           this.isLoading = false;
         },
@@ -93,7 +93,7 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
   }
 
   formatViews(views: number): string {
-    if (!views) return '0';
+    if (!views) return 'N/A';
     if (views >= 1_000_000) return (views / 1_000_000).toFixed(1) + 'M';
     if (views >= 1_000) return (views / 1_000).toFixed(1) + 'K';
     return views.toString();

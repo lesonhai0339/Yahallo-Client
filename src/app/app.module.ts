@@ -17,6 +17,7 @@ import { FooterComponent } from './Layout/footer/footer.component';
 
 // Shared
 import { MangaCardComponent } from './shared/components/manga-card/manga-card.component';
+import { MangaSumaryCardComponent } from './shared/components/manga-sumary-card/manga-sumary-card.component';
 import { LoadingSkeletonComponent } from './shared/components/loading-skeleton/loading-skeleton.component';
 import { ImageFallbackDirective } from './shared/directives/image-fallback.directive';
 import { TranslatePipe } from './shared/pipes/translate.pipe';
@@ -38,9 +39,11 @@ import { ProfileComponent } from './features/user/profile/profile.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
+import { ServerErrorComponent } from './features/error/server-error.component';
 
 // Core
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
+import { ErrorInterceptor } from './core/interceptors/error.interceptor';
 import { AuthService } from './core/services/auth.service';
 import { TranslationService } from './core/services/translation.service';
 
@@ -58,6 +61,7 @@ export function initTranslations(translation: TranslationService) {
     HeaderComponent,
     FooterComponent,
     MangaCardComponent,
+    MangaSumaryCardComponent,
     LoadingSkeletonComponent,
     ImageFallbackDirective,
     TranslatePipe,
@@ -77,6 +81,7 @@ export function initTranslations(translation: TranslationService) {
     NotificationsComponent,
     TopMangaComponent,
     MangaListPageComponent,
+    ServerErrorComponent,
   ],
   imports: [
     BrowserModule,
@@ -115,6 +120,11 @@ export function initTranslations(translation: TranslationService) {
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ErrorInterceptor,
       multi: true
     }
   ],

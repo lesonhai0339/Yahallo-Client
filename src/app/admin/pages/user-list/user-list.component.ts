@@ -48,8 +48,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
         this.totalCount = d?.totalCount ?? items.length;
         this.dataSource.data = items.map((u: any) => ({
           ...u,
-          avatarUrl: u.avatarUri ? `data:image/png;base64,${u.avatarUri}` :
-                     u.avatar ? `${this.imgBase}/image?filepath=${u.avatar}` : null,
+          avatarUrl:  u.avatar ?? null,
           roleList: []
         }));
         this.loading = false;

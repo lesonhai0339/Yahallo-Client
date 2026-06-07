@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { Manga } from '../../../core/models/interfaces';
@@ -35,13 +36,38 @@ export class TopMangaComponent implements OnInit, OnDestroy {
   ];
 
   activeSort: SortOption = this.sortOptions[0];
+  showFilters = false;
+
+  filterDateFrom = '';
+  filterDateTo = '';
+  filterRatingMin = 0;
+  filterRatingMax = 10;
+
+  readonly criterionMap: Record<string, string> = {
+    views: 'totalViews',
+    rating: 'averageRating',
+    chapters: 'totalChapters',
+    comments: 'totalComments',
+    updated: 'updateDate',
+  };
 
   private destroy$ = new Subject<void>();
 
-  constructor(private mangaService: MangaService) {}
+  constructor(
+    private mangaService: MangaService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    this.loadPage();
+    this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const criterion = params['criterion'];
+      if (criterion && this.criterionMap[criterion]) {
+        const opt = this.sortOptions.find(o => o.key === this.criterionMap[criterion]);
+        if (opt) this.activeSort = opt;
+      }
+      this.loadPage();
+    });
   }
 
   ngOnDestroy(): void {
@@ -89,6 +115,8 @@ export class TopMangaComponent implements OnInit, OnDestroy {
       option.direction = option.direction === 'desc' ? 'asc' : 'desc';
     }
     this.activeSort = option;
+    const slug = Object.entries(this.criterionMap).find(([, v]) => v === option.key)?.[0] || 'views';
+    this.router.navigate(['/top-manga', slug], { replaceUrl: true });
     this.applySorting();
   }
 
@@ -96,7 +124,31 @@ export class TopMangaComponent implements OnInit, OnDestroy {
     const key = this.activeSort.key;
     const dir = this.activeSort.direction === 'desc' ? -1 : 1;
 
-    this.sortedList = [...this.mangaList].sort((a: any, b: any) => {
+    let filtered = [...this.mangaList];
+
+    if (this.filterDateFrom) {
+      const from = new Date(this.filterDateFrom).getTime();
+      filtered = filtered.filter((m: any) => {
+        const d = m.updateDate ? new Date(m.updateDate).getTime() : 0;
+        return d >= from;
+      });
+    }
+    if (this.filterDateTo) {
+      const to = new Date(this.filterDateTo).getTime() + 86400000;
+      filtered = filtered.filter((m: any) => {
+        const d = m.updateDate ? new Date(m.updateDate).getTime() : 0;
+        return d <= to;
+      });
+    }
+
+    if (key === 'averageRating') {
+      filtered = filtered.filter((m: any) => {
+        const r = m.averageRating ?? 0;
+        return r >= this.filterRatingMin && r <= this.filterRatingMax;
+      });
+    }
+
+    this.sortedList = filtered.sort((a: any, b: any) => {
       let valA = a[key];
       let valB = b[key];
 
@@ -112,6 +164,18 @@ export class TopMangaComponent implements OnInit, OnDestroy {
 
       return ((valA ?? 0) - (valB ?? 0)) * dir;
     });
+  }
+
+  applyFilters(): void {
+    this.applySorting();
+  }
+
+  clearFilters(): void {
+    this.filterDateFrom = '';
+    this.filterDateTo = '';
+    this.filterRatingMin = 0;
+    this.filterRatingMax = 10;
+    this.applySorting();
   }
 
   goToPage(page: number): void {

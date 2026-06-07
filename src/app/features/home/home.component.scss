@@ -152,6 +152,24 @@
   padding: 16px;
 }
 
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+
+  .sidebar-title { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .see-more-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    &:hover { color: var(--accent-primary); }
+  }
+}
+
 .sidebar-title {
   font-size: 0.95rem;
   font-weight: 600;

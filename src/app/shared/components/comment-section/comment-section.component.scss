@@ -120,8 +120,55 @@
   flex-direction: column;
 }
 
-// ── Show more ─────────────────────────────────────────────────────────────────
-.show-more-wrap {
-  text-align: center;
-  margin-top: 16px;
+// ── Comment controls ──────────────────────────────────────────────────────────
+.comment-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.comment-page-size {
+  select {
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:hover, &:focus { border-color: var(--accent-primary); }
+    option { background: var(--bg-primary); color: var(--text-primary); }
+  }
+}
+
+.pagination-wrapper {
+  display: flex;
+  gap: 4px;
+}
+
+.page-btn {
+  min-width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+  &.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
 }

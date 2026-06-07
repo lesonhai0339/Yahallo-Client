@@ -1,7 +1,8 @@
-<div class="detail-page" *ngIf="!isLoading && manga">
+<div class="detail-page" *ngIf="!isLoading && manga"
+     [style.backgroundImage]="'url('+manga.mangaThumbnail+')'">
 
   <!-- Hero Banner -->
-  <div class="detail-hero" [style.backgroundImage]="'url('+manga.mangaThumbnail+')'">
+  <div class="detail-hero">
     <div class="hero-overlay">
       <div class="container">
         <div class="hero-content">
@@ -17,7 +18,7 @@
             <h1 class="manga-title">{{ manga.name }}</h1>
             <div class="category-list">
               <a class="tag-chip" *ngFor="let cat of manga.tags | slice:0:5"
-                 [routerLink]="['/the-loai', cat.id]">{{ cat.name }}</a>
+                 [routerLink]="['/search/advanced']" [queryParams]="{ tagId: cat.id }">{{ cat.name }}</a>
             </div>
             <div class="manga-stats-row">
               <div class="stat-box">
@@ -64,7 +65,7 @@
   </div>
 
   <!-- Detail Body -->
-  <div class="container mt-4">
+  <div class="detail-body container mt-4">
     <div class="detail-layout">
       <main class="detail-main">
 
@@ -88,9 +89,9 @@
                   </span>
                 </span>
               </div>
-              <div class="info-row">
+              <div class="info-row info-row--end">
                 <span class="info-label"><i class="fa-regular fa-calendar me-2"></i>{{ 'MANGA.UPDATED' | translate }}</span>
-                <span class="info-value">{{ formatDate(manga.updateDate) | date:'shortDate' }}</span>
+                <span class="info-value">{{ formatDate(latestChapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
               </div>
             </div>
           </div>
@@ -140,7 +141,7 @@
               <a class="chapter-item" *ngFor="let ch of visibleChapters" [routerLink]="readChapterLink(ch)">
                 <span class="chapter-name">{{ ch.title }}</span>
                 <span class="chapter-title">Không</span>
-                <span class="chapter-date">{{ formatDate(ch.chapterDate) }}</span>
+                <span class="chapter-date">{{ formatDate(ch.chapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
               </a>
             </div>
             <div class="chapter-toggle" *ngIf="chapters.length > 10">
@@ -164,13 +165,51 @@
       </main>
 
       <aside class="detail-side">
-        <div class="card">
-          <div class="card-body text-center p-4">
-            <i class="fa-solid fa-compass fa-3x mb-3" style="color:var(--accent-secondary)"></i>
-            <p class="text-muted">{{ 'COMMON.EXPLORE' | translate }}</p>
-            <a routerLink="/" class="btn btn-primary btn-sm mt-2">{{ 'COMMON.BACK_HOME' | translate }}</a>
+
+        <!-- Same Author -->
+        <div class="card side-card mb-3" *ngIf="sameAuthorManga.length > 0">
+          <div class="card-body">
+            <div class="side-card__header">
+              <h4 class="side-card__title">
+                <i class="fa-solid fa-user-pen me-2"></i>{{ 'MANGA.SAME_AUTHOR' | translate }}
+              </h4>
+            </div>
+            <div class="side-card__list">
+              <a class="side-manga-item" *ngFor="let m of sameAuthorManga"
+                 [routerLink]="['/manga', m.id]">
+                <img [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
+                <span class="side-manga-item__name">{{ m.name }}</span>
+              </a>
+            </div>
+            <a class="side-card__see-more"
+               [routerLink]="['/search/advanced']" [queryParams]="{ prefix: 'author', q: manga?.authors?.[0]?.name || '' }">
+              {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+            </a>
           </div>
         </div>
+
+        <!-- Same Artist -->
+        <div class="card side-card mb-3" *ngIf="sameArtistManga.length > 0">
+          <div class="card-body">
+            <div class="side-card__header">
+              <h4 class="side-card__title">
+                <i class="fa-solid fa-pen-nib me-2"></i>{{ 'MANGA.SAME_ARTIST' | translate }}
+              </h4>
+            </div>
+            <div class="side-card__list">
+              <a class="side-manga-item" *ngFor="let m of sameArtistManga"
+                 [routerLink]="['/manga', m.id]">
+                <img [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
+                <span class="side-manga-item__name">{{ m.name }}</span>
+              </a>
+            </div>
+            <a class="side-card__see-more"
+               [routerLink]="['/search/advanced']" [queryParams]="{ prefix: 'artist', q: manga?.artists?.[0]?.name || '' }">
+              {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+
       </aside>
     </div>
   </div>

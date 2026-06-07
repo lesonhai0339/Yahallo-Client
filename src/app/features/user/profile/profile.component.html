@@ -86,7 +86,7 @@
               </div>
             </div>
             <a class="btn btn-secondary btn-sm"
-               [routerLink]="['/manga', h.mangaId, h.chapterId, h.lastPage ?? 0]">
+               [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ?? 0]">
               {{ 'USER.CONTINUE_READING' | translate }}
             </a>
           </div>

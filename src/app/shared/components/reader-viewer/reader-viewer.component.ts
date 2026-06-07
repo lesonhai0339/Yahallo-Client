@@ -1,7 +1,7 @@
 import {
   Component, Input, Output, EventEmitter,
   ViewChildren, QueryList, ElementRef,
-  AfterViewInit, OnDestroy, OnChanges, SimpleChanges
+  AfterViewInit, OnDestroy, OnChanges, SimpleChanges, HostListener
 } from '@angular/core';
 import { Subject } from 'rxjs';
 import { ChapterImage } from 'src/app/core/models/chapter.interface';
@@ -90,7 +90,8 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
 
   private updateVisibleIndices(): void {
     this.visibleIndices.clear();
-    const start = Math.max(0, this.currentPage - 1);
+    const behind = this.direction === 'horizontal' ? this.preloadCount : 1;
+    const start = Math.max(0, this.currentPage - behind);
     const end = Math.min(this.images.length - 1, this.currentPage + this.preloadCount);
     for (let i = start; i <= end; i++) {
       this.visibleIndices.add(i);
@@ -101,11 +102,29 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     return this.visibleIndices.has(index);
   }
 
+  @HostListener('window:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    if (this.direction !== 'horizontal') return;
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      this.goToPage('prev');
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      this.goToPage('next');
+    }
+  }
+
   goToPage(direction: 'prev' | 'next'): void {
     const target = direction === 'prev'
       ? Math.max(0, this.currentPage - 1)
       : Math.min(this.images.length - 1, this.currentPage + 1);
-    this.scrollToPage(target);
+    if (this.direction === 'horizontal') {
+      this.currentPage = target;
+      this.pageChange.emit(target);
+      this.updateVisibleIndices();
+    } else {
+      this.scrollToPage(target);
+    }
   }
 
   private scrollToInitialIfNeeded(): void {

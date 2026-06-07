@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Chapter, Manga, MangaPagination, PagedResult } from '../models/interfaces';
 import { ChapterImage } from '../models/chapter.interface';
+import { MangaSumaryDto } from '../models/manga.interface';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
@@ -19,6 +20,12 @@ export class MangaService {
       .set('PageNumber', page)
       .set('PageSize', pageSize);
     return this.http.get(`${this.base}/get-all-pagination`, { params });
+  }
+  getNewestUpdatePaginated(page: number, pageSize = 20): Observable<any> {
+    const params = new HttpParams()
+      .set('PageNumber', page)
+      .set('PageSize', pageSize);
+    return this.http.get(`${this.base}/lastest-updated`, { params });
   }
 
 
@@ -42,21 +49,9 @@ export class MangaService {
     );
   }
 
- getNewestManga(page: number, pageSize = 20): Observable<any[]> {
-    return this.getPaginated(page, pageSize).pipe(
-      map((res: any) => {
-        return res?.value?.data?.map((t: any) => ({
-           id: t.id, 
-            name: t.name, 
-            mangaThumbnail: t.mangaThumbnail, 
-            mangaBackground: t.mangaBackground,
-            status: t.status, 
-            countries: t.countries,
-            description: t.description,
-            type: t.type,
-            lastestChapter: t.lastestChapter
-        })) ?? [];
-      })
+ getNewestManga(page: number, pageSize = 20): Observable<MangaSumaryDto[]> {
+    return this.getNewestUpdatePaginated(page, pageSize).pipe(
+      map((res: any) => (res?.value?.data as MangaSumaryDto[]) ?? [])
     );
   }
 
@@ -103,7 +98,8 @@ export class MangaService {
     .pipe(map((res: any) => res?.data?.items ?? res?.items ?? []));
   }
 
-  getPopular(page = 1, pageSize = 12): Observable<Manga[]> {
+  // TODO: replace with dedicated popular API when available
+  getPopular(page = 1, pageSize = 12): Observable<MangaSumaryDto[]> {
     return this.getNewestManga(page, pageSize);
   }
 
@@ -255,51 +251,69 @@ export class MangaService {
   }
 
   search(query: string): Observable<any[]> {
-    return this.filter({ name: query, page: 1, pageSize: 10 }).pipe(
+    return this.filterPaginated({ name: query, pageNo: 1, pageSize: 10 }).pipe(
       map((res: any) => res?.data?.items ?? res?.items ?? [])
     );
+    // return this.filter({ name: query, page: 1, pageSize: 10 }).pipe(
+    //   map((res: any) => res?.data?.items ?? res?.items ?? [])
+    // );
   }
 
-  getByCategory(tagId: string, page: number, pageSize: number): Observable<any> {
-    return this.filter({ tagId, page, pageSize });
+  getByCategory(tagId: string, page: number, size: number): Observable<any> {
+    //return this.filter({ tagId, page, pageSize });
+    return this.filterPaginated({ tagIds: [tagId], pageNo: page, pageSize: size });
   }
 
   /** @deprecated Use getByCategory() with a tag ID instead */
-  getByType(type: string, page: number, pageSize: number): Observable<any[]> {
-    return this.filter({ page, pageSize }).pipe(
+  getByType(type: string, page: number, size: number): Observable<any[]> {
+     return this.filterPaginated({ pageNo: page, pageSize: size }).pipe(
       map((res: any) => res?.data?.items ?? res?.items ?? [])
     );
+    // return this.filter({ page, pageSize }).pipe(
+    //   map((res: any) => res?.data?.items ?? res?.items ?? [])
+    // );
   }
 
   /** @deprecated Use filter() with combined params instead */
-  getAllByType(type: string, page: number, pageSize: number): Observable<any[]> {
-    return this.filter({ page, pageSize }).pipe(
+  getAllByType(type: string, page: number, size: number): Observable<any[]> {
+    return this.filterPaginated({ pageNo: page, pageSize: size }).pipe(
       map((res: any) => res?.data?.items ?? res?.items ?? [])
     );
+    // return this.filter({ page, pageSize }).pipe(
+    //   map((res: any) => res?.data?.items ?? res?.items ?? [])
+    // );
   }
 
-  getByCategories(tagIds: string[]): Observable<any> {
-    return this.filterByTags({ tagIds: tagIds, pageSize: 50 });
+  getByCategories(tags: string[]): Observable<any> {
+    return this.filterPaginated({ pageNo: 1, pageSize: 50 ,  tagIds: tags});
+    //return this.filterByTags({ tagIds: tagIds, pageSize: 50 });
   }
 
   filterPaginated(params: {
+    pageNo?: number;
+    pageSize?: number;
+    id?: string;
     name?: string;
-    tagId?: string;
+    tagIds?: string[],
+    authorId?: string,
+    artistId?: string,
+    level?: number;
     status?: number;
     type?: number;
     countries?: number;
-    level?: number;
-    page?: number;
-    pageSize?: number;
   }): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
     let httpParams = new HttpParams();
+    if (params.id) httpParams = httpParams.set('id', params.id);
     if (params.name) httpParams = httpParams.set('name', params.name);
-    if (params.tagId) httpParams = httpParams.set('tagId', params.tagId);
     if (params.status != null) httpParams = httpParams.set('Status', params.status);
     if (params.type != null) httpParams = httpParams.set('Type', params.type);
     if (params.countries != null) httpParams = httpParams.set('Countries', params.countries);
     if (params.level != null) httpParams = httpParams.set('Level', params.level);
-    httpParams = httpParams.set('pageNumber', params.page ?? 1);
+    if (params.tagIds) httpParams = httpParams.set('tagIds', params.tagIds.join(','));
+    if (params.authorId) httpParams = httpParams.set('authorId', params.authorId);
+    if (params.artistId) httpParams = httpParams.set('artistId', params.artistId);
+
+    httpParams = httpParams.set('pageNumber', params.pageNo ?? 1);
     httpParams = httpParams.set('pageSize', params.pageSize ?? 20);
     return this.http.get(`${this.base}/filter-manga`, { params: httpParams }).pipe(
       map((res: any) => {

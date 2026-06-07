@@ -1,30 +1,5 @@
 <div class="home-page">
 
-  <!-- Trending Section -->
-  <section class="trending-section" *ngIf="trendingManga.length > 0">
-    <div class="container-fluid px-3 px-md-4">
-      <div class="section-header">
-        <h2 class="section-header__title"><i class="fa-solid fa-fire"></i>{{ 'HOME.TRENDING' | translate }}</h2>
-        <a routerLink="/top-manga">{{ 'HOME.SEE_MORE' | translate }}</a>
-      </div>
-      <div class="trending-grid">
-        <div class="trending-card" *ngFor="let m of trendingManga | slice:0:6; let i = index"
-          [routerLink]="['/manga', m.mangaId, m.mangaName]">
-          <div class="rank-badge">#{{ i + 1 }}</div>
-          <img [src]="m.mangaImage" [alt]="m.mangaName" appImageFallback loading="lazy">
-          <div class="trending-overlay">
-            <h4>{{ m.mangaName }}</h4>
-            <p *ngIf="m.listChaper?.[0]">{{ m.listChaper[0].chapterName }}</p>
-            <div class="trending-stats">
-              <span><i class="fa-solid fa-eye me-1"></i>{{ m.totalViews ?? m.view }}</span>
-              <span><i class="fa-solid fa-star me-1" style="color:#ffd700"></i>{{ m.averageRating?.toFixed?.(1) ?? m.rating }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- Main Content -->
   <div class="container-fluid px-3 px-md-4 mt-4">
     <div class="main-layout">
@@ -45,12 +20,12 @@
           <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
 
           <div class="manga-grid" *ngIf="!isLoading">
-            <app-manga-card *ngFor="let manga of latestManga" [manga]="manga"></app-manga-card>
+            <app-manga-sumary-card *ngFor="let manga of latestManga" [manga]="manga"></app-manga-sumary-card>
           </div>
         </section>
 
         <!-- Popular -->
-        <section class="manga-section" *ngIf="popularManga.length > 0">
+        <section class="manga-section">
           <div class="section-header">
             <h2 class="section-header__title">
               <i class="fa-solid fa-chart-line"></i>{{ 'HOME.POPULAR' | translate }}
@@ -60,21 +35,25 @@
             </a>
           </div>
 
-          <div class="manga-grid">
-            <app-manga-card *ngFor="let manga of popularManga" [manga]="manga"></app-manga-card>
+          <app-loading-skeleton *ngIf="isLoading" [count]="6" [cols]="6"></app-loading-skeleton>
+
+          <div class="manga-grid" *ngIf="!isLoading">
+            <app-manga-sumary-card *ngFor="let manga of popularManga" [manga]="manga"></app-manga-sumary-card>
           </div>
         </section>
 
         <!-- Recommended -->
-        <section class="manga-section" *ngIf="recommendedManga.length > 0">
+        <section class="manga-section">
           <div class="section-header">
             <h2 class="section-header__title">
               <i class="fa-solid fa-wand-magic-sparkles"></i>{{ 'HOME.RECOMMENDED' | translate }}
             </h2>
           </div>
 
-          <div class="manga-grid">
-            <app-manga-card *ngFor="let manga of recommendedManga" [manga]="manga"></app-manga-card>
+          <app-loading-skeleton *ngIf="isLoading" [count]="6" [cols]="6"></app-loading-skeleton>
+
+          <div class="manga-grid" *ngIf="!isLoading">
+            <app-manga-sumary-card *ngFor="let manga of recommendedManga" [manga]="manga"></app-manga-sumary-card>
           </div>
         </section>
 
@@ -85,13 +64,16 @@
         <div class="sidebar-section">
           <h3 class="sidebar-title"><i class="fa-solid fa-tags me-2"></i>{{ 'HOME.CATEGORIES' | translate }}</h3>
           <div class="category-grid">
-            <a class="category-chip" *ngFor="let cat of categories | slice:0:20"
-               [routerLink]="['/the-loai', cat.genreId]">{{ cat.genresIdName }}</a>
+            <a class="category-chip" *ngFor="let cat of randomCategories"
+               [routerLink]="['/search/advanced']" [queryParams]="{ tagId: cat.genreId }">{{ cat.genresIdName }}</a>
           </div>
         </div>
 
         <div class="sidebar-section mt-4">
-          <h3 class="sidebar-title"><i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_LIST' | translate }}</h3>
+          <div class="sidebar-title-row">
+            <h3 class="sidebar-title"><i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_LIST' | translate }}</h3>
+            <a routerLink="/top-manga/views" class="see-more-link">{{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i></a>
+          </div>
           <div class="top-period-tabs">
             <button class="top-period-tab" [class.active]="topListPeriod === 'day'"
               (click)="onTopListPeriodChange('day')">{{ 'HOME.TOP_DAY' | translate }}</button>
@@ -102,7 +84,7 @@
           </div>
           <div class="top-list">
             <a class="top-item" *ngFor="let m of trendingManga | slice:0:5; let i = index"
-               [routerLink]="['/manga', m.mangaId, m.mangaName]">
+               [routerLink]="['/manga', m.mangaId]">
               <span class="top-rank" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{ i+1 }}</span>
               <img [src]="m.mangaImage" [alt]="m.mangaName" appImageFallback>
               <div class="top-info">

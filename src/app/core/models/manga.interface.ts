@@ -1,14 +1,20 @@
 import { LastestChapter } from "./chapter.interface";
 
-export interface NewestManga
+export interface MangaSumaryDto
 {
-    Id: string,
-    Name: string,
-    Thumbnail: string,
-    Description: string,
-    Status: string,
-    Countries: string,
-    Season: number,
-    Type: string,
-    LastestChapter: LastestChapter
+    id: string,
+    name: string,
+    mangaThumbnail: string,
+    mangaBackground: string,
+    totalViews: number,
+    averageRating: number,
+    tags: TagDto[],
+    lastChapterId: string,
+    lastChapterIndex: string,
+    lastChapterUpdate: string
+}
+export interface TagDto{
+    id: string,
+    name: string,
+    description: string,
 }

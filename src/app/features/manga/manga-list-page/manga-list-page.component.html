@@ -34,7 +34,7 @@
     <!-- List View -->
     <div class="manga-list" *ngIf="!isLoading && viewMode === 'list'">
       <a class="manga-row" *ngFor="let manga of displayList"
-         [routerLink]="['/manga', manga.id, manga.name]">
+         [routerLink]="['/manga', manga.id]">
 
         <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback>
 
@@ -50,10 +50,10 @@
             <i class="fa-solid fa-eye"></i>{{ formatViews(manga.totalViews) }}
           </span>
           <span class="stat" [title]="'TOP.RATING' | translate">
-            <i class="fa-solid fa-star" style="color:#ffd700"></i>{{ manga.averageRating?.toFixed?.(1) ?? '—' }}
+            <i class="fa-solid fa-star" style="color:#ffd700"></i>{{ manga.averageRating ? manga.averageRating.toFixed(1) : 'N/A' }}
           </span>
-          <span class="stat stat--update" [title]="'TOP.UPDATED' | translate">
-            <i class="fa-solid fa-clock-rotate-left"></i>{{ manga.lastestChapter?.createDate | date:'dd/MM/yyyy' }}
+          <span class="stat stat--update" [title]="'TOP.UPDATED' | translate" *ngIf="manga.lastChapterUpdate">
+            <i class="fa-solid fa-clock-rotate-left"></i>{{ manga.lastChapterUpdate | date:'dd/MM/yyyy' }}
           </span>
         </div>
       </a>
@@ -61,7 +61,7 @@
 
     <!-- Grid View -->
     <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid'">
-      <app-manga-card *ngFor="let manga of displayList" [manga]="manga"></app-manga-card>
+      <app-manga-sumary-card *ngFor="let manga of displayList" [manga]="manga"></app-manga-sumary-card>
     </div>
 
     <!-- Pagination -->

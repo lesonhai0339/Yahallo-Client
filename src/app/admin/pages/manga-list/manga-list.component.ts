@@ -49,7 +49,7 @@ export class MangaListComponent implements OnInit, AfterViewInit {
         this.totalCount = d?.totalCount ?? 0;
         this.dataSource.data = items.map((m: any) => ({
           ...m,
-          thumbnail: m.thumbnail ?? null
+          thumbnail: m.mangaThumbnail ?? null
         }));
         this.loading = false;
       },

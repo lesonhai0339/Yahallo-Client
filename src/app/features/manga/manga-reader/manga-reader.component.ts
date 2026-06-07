@@ -32,6 +32,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   isSidebarOpen = false;
   isChapterListOpen = false;
   isBottombarVisible = true;
+  isFocusScrollDown = false;
   menuTimeout: any;
   private lastScrollY = 0;
 
@@ -41,6 +42,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     imageSize: 100,
     preloadCount: 3
   };
+  pendingSettings!: ReaderSettings;
 
   private destroy$ = new Subject<void>();
 
@@ -66,6 +68,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    document.body.classList.remove('header-hidden');
     this.destroy$.next();
     this.destroy$.complete();
     clearTimeout(this.menuTimeout);
@@ -92,12 +95,17 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   onPageChange(page: number): void {
-    this.location.replaceState(`/manga/${this.mangaId}/${this.chapterId}/${page}`);
+    this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${page}`);
     this.saveProgress(page);
   }
 
   goToChapter(chapter: any): void {
-    this.router.navigate(['/manga', this.mangaId, chapter.id, 0]);
+    this.router.navigate(['/manga', this.mangaId, 'chapter', chapter.id, 0]);
+  }
+
+  goToChapterById(id: string): void {
+    const ch = this.chapters.find(c => c.id === id);
+    if (ch) this.goToChapter(ch);
   }
 
   prevChapter(): void {
@@ -123,17 +131,21 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     }).subscribe();
   }
 
-  @HostListener('mousemove')
-  onMouseMove(): void {
-    this.isMenuVisible = true;
-    clearTimeout(this.menuTimeout);
-    this.menuTimeout = setTimeout(() => { this.isMenuVisible = false; }, 3000);
-  }
-
   @HostListener('window:scroll')
   onScroll(): void {
     const currentY = window.scrollY;
-    this.isBottombarVisible = currentY < this.lastScrollY || currentY < 100;
+    const scrollingDown = currentY > this.lastScrollY && currentY > 100;
+    this.isBottombarVisible = !scrollingDown;
+    if (this.settings.mode === 'focus') {
+      this.isFocusScrollDown = scrollingDown;
+    } else {
+      this.isFocusScrollDown = false;
+    }
+    if (scrollingDown) {
+      document.body.classList.add('header-hidden');
+    } else {
+      document.body.classList.remove('header-hidden');
+    }
     this.lastScrollY = currentY;
   }
 
@@ -143,11 +155,20 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
 
   toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
+    if (this.isSidebarOpen) {
+      this.pendingSettings = { ...this.settings };
+    }
     this.isChapterListOpen = false;
   }
 
   closeSidebar(): void {
     this.isSidebarOpen = false;
+  }
+
+  applySettings(): void {
+    this.settings = { ...this.pendingSettings };
+    this.saveSettings();
+    this.closeSidebar();
   }
 
   toggleChapterList(): void {
@@ -164,7 +185,6 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   onSettingChange(): void {
-    this.saveSettings();
   }
 
   private loadSettings(): void {
@@ -173,6 +193,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
       if (saved) {
         this.settings = { ...this.settings, ...JSON.parse(saved) };
       }
+      this.pendingSettings = { ...this.settings };
     } catch {}
   }
 

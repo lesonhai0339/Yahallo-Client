@@ -64,7 +64,9 @@
     "CONFIRM_RATING": "Confirm rating",
     "BREADCRUMB_HOME": "Home",
     "NA": "N/A",
-    "LATEST_CHAPTER": "Latest chapter"
+    "LATEST_CHAPTER": "Latest chapter",
+    "SAME_AUTHOR": "Same author",
+    "SAME_ARTIST": "Same artist"
   },
   "READER": {
     "BACK": "Back",
@@ -79,7 +81,8 @@
     "MODE_NORMAL": "Normal",
     "MODE_FOCUS": "Focus",
     "IMAGE_SIZE": "Image size",
-    "PRELOAD_COUNT": "Preload images"
+    "PRELOAD_COUNT": "Preload images",
+    "APPLY": "Apply"
   },
   "SEARCH": {
     "TITLE": "Advanced Search",
@@ -106,7 +109,9 @@
     "AUTHOR_SUGGEST": "Suggested authors",
     "ARTIST_SUGGEST": "Suggested artists",
     "NO_RECOMMEND_MATCH": "No matches found",
-    "TAG_LIST": "Genre list"
+    "TAG_LIST": "Genre list",
+    "AUTHOR_LIST": "Author list",
+    "ARTIST_LIST": "Artist list"
   },
   "AUTH": {
     "LOGIN_TITLE": "Welcome back",
@@ -188,7 +193,11 @@
     "UPDATED": "Updated",
     "VIEW_LIST": "List view",
     "VIEW_GRID": "Grid view",
-    "PAGE": "page"
+    "PAGE": "page",
+    "FILTER": "Filter",
+    "DATE_RANGE": "Date",
+    "RATING_RANGE": "Rating",
+    "CLEAR_FILTER": "Clear filter"
   },
   "COMMON": {
     "LOADING": "Loading...",
@@ -229,6 +238,13 @@
     "ITALIC": "Italic",
     "QUOTE_BTN": "Quote",
     "EMOJI": "Emoji",
-    "TO_SEND": "to send"
+    "TO_SEND": "to send",
+    "PAGE": "page"
+  },
+  "ERROR": {
+    "SERVER_DOWN": "Server is not responding",
+    "SERVER_DOWN_DESC": "Unable to connect to the server. Please check your internet connection or try again later.",
+    "RETRY": "Retry",
+    "BACK_HOME": "Back to Home"
   }
 }

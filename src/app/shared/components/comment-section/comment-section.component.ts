@@ -9,8 +9,7 @@ import { CommentEditorComponent } from '../comment-editor/comment-editor.compone
 import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
 
-const PAGE_SIZE = 20;
-const MAX_INITIAL = 50;
+const DEFAULT_PAGE_SIZE = 10;
 
 @Component({
   selector: 'app-comment-section',
@@ -28,28 +27,24 @@ export class CommentSectionComponent implements OnInit {
   loading = false;
   totalCount = 0;
 
-  // Pagination (used when totalCount > MAX_INITIAL)
   currentPage = 1;
-  pageSize = PAGE_SIZE;
-  usePagination = false;
+  pageSize = DEFAULT_PAGE_SIZE;
+  pageSizeOptions = [10, 20, 50];
 
-  // Show-more (first load up to MAX_INITIAL)
-  shownCount = PAGE_SIZE;
-
-  // Quote pre-fill for top editor
   quotedAuthor = '';
   quotedText = '';
 
-  get displayedComments(): CommentData[] {
-    return this.usePagination ? this.comments : this.comments.slice(0, this.shownCount);
-  }
-
-  get canShowMore(): boolean {
-    return !this.usePagination && this.shownCount < this.comments.length && this.comments.length <= MAX_INITIAL;
-  }
-
   get totalPages(): number {
     return Math.ceil(this.totalCount / this.pageSize);
+  }
+
+  get paginationPages(): number[] {
+    const pages: number[] = [];
+    const delta = 2;
+    const from = Math.max(1, this.currentPage - delta);
+    const to = Math.min(this.totalPages, this.currentPage + delta);
+    for (let i = from; i <= to; i++) pages.push(i);
+    return pages;
   }
 
   constructor(
@@ -70,7 +65,7 @@ export class CommentSectionComponent implements OnInit {
     this.loading = true;
     const load$ = this.chapterId
       ? this.commentService.getChapterComments(this.mangaId, this.chapterId)
-      : this.commentService.getAllMangaComments(this.mangaId, MAX_INITIAL, page);
+      : this.commentService.getAllMangaComments(this.mangaId, this.pageSize, page);
 
     load$.subscribe({
       next: (res: any) => {
@@ -87,8 +82,6 @@ export class CommentSectionComponent implements OnInit {
         }));
         this.totalCount = res?.totalCount ?? this.comments.length;
         this.currentPage = page;
-        this.usePagination = this.totalCount > MAX_INITIAL;
-        this.shownCount = PAGE_SIZE;
         this.loading = false;
       },
       error: () => { this.loading = false; }
@@ -153,12 +146,14 @@ export class CommentSectionComponent implements OnInit {
   // ── Pagination ────────────────────────────────────────────────────────────
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
     this.loadComments(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  showMore(): void {
-    this.shownCount = Math.min(this.shownCount + PAGE_SIZE, MAX_INITIAL);
+  setPageSize(size: number): void {
+    if (size === this.pageSize) return;
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.loadComments(1);
   }
 }

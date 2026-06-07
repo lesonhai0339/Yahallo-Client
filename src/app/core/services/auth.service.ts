@@ -31,7 +31,9 @@ export class AuthService {
       }
     }
   }
-
+  getAccessToken(): string {
+    return this.loginState.value.accessToken;
+  }
   get currentUser(): User | null {
     const state = this.loginState.value;
     if (!state.status || !state.user) return null;

@@ -22,6 +22,10 @@
         </button>
       </div>
 
+      <button class="sort-chip filter-toggle" [class.active]="showFilters" (click)="showFilters = !showFilters">
+        <i class="fa-solid fa-filter me-1"></i>{{ 'TOP.FILTER' | translate }}
+      </button>
+
       <div class="view-controls">
         <div class="page-size-select">
           <select [ngModel]="pageSize" (ngModelChange)="setPageSize($event)">
@@ -41,6 +45,35 @@
       </div>
     </div>
 
+    <!-- Filter Panel -->
+    <div class="filter-panel" *ngIf="showFilters">
+      <div class="filter-row" *ngIf="activeSort.key === 'totalViews' || activeSort.key === 'updateDate'">
+        <label class="filter-label"><i class="fa-regular fa-calendar me-1"></i>{{ 'TOP.DATE_RANGE' | translate }}</label>
+        <div class="filter-inputs">
+          <input type="date" class="filter-date" [(ngModel)]="filterDateFrom" (change)="applyFilters()">
+          <span class="filter-separator">—</span>
+          <input type="date" class="filter-date" [(ngModel)]="filterDateTo" (change)="applyFilters()">
+        </div>
+      </div>
+
+      <div class="filter-row" *ngIf="activeSort.key === 'averageRating'">
+        <label class="filter-label"><i class="fa-solid fa-star me-1"></i>{{ 'TOP.RATING_RANGE' | translate }}</label>
+        <div class="filter-inputs">
+          <span class="filter-value">{{ filterRatingMin }}</span>
+          <input type="range" class="filter-range" min="0" max="10" step="0.5"
+            [(ngModel)]="filterRatingMin" (ngModelChange)="applyFilters()">
+          <span class="filter-separator">—</span>
+          <input type="range" class="filter-range" min="0" max="10" step="0.5"
+            [(ngModel)]="filterRatingMax" (ngModelChange)="applyFilters()">
+          <span class="filter-value">{{ filterRatingMax }}</span>
+        </div>
+      </div>
+
+      <button class="filter-clear-btn" (click)="clearFilters()">
+        <i class="fa-solid fa-xmark me-1"></i>{{ 'TOP.CLEAR_FILTER' | translate }}
+      </button>
+    </div>
+
     <!-- Loading -->
     <div class="top-loading" *ngIf="isLoading">
       <div class="spinner-border" style="color:var(--accent-primary)"></div>
@@ -49,7 +82,7 @@
     <!-- List View -->
     <div class="manga-list" *ngIf="!isLoading && viewMode === 'list'">
       <a class="manga-row" *ngFor="let manga of sortedList; let i = index"
-         [routerLink]="['/manga', manga.id, manga.name]">
+         [routerLink]="['/manga', manga.id]">
 
         <span class="manga-row__rank"
           [class.gold]="getRank(i) === 1"

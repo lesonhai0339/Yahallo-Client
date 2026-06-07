@@ -53,33 +53,37 @@
   <!-- Comment list -->
   <div class="comments-list" *ngIf="!loading && comments.length > 0">
     <app-comment-item
-      *ngFor="let c of displayedComments"
+      *ngFor="let c of comments"
       [comment]="c"
       [showChapterLabel]="!!chapterId === false"
       (quoteRequest)="onQuoteRequest($event)">
     </app-comment-item>
   </div>
 
-  <!-- Show more (first 50 without pagination) -->
-  <div class="show-more-wrap" *ngIf="canShowMore">
-    <button class="btn btn-outline-secondary btn-sm" (click)="showMore()">
-      <i class="fa-solid fa-chevron-down me-1"></i>
-      {{ 'COMMENT.SHOW_MORE' | translate }}
-    </button>
-  </div>
+  <!-- Pagination controls -->
+  <div class="comment-controls" *ngIf="!loading && totalCount > 0">
+    <div class="comment-page-size">
+      <select [ngModel]="pageSize" (ngModelChange)="setPageSize($event)">
+        <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }} / {{ 'COMMENT.PAGE' | translate }}</option>
+      </select>
+    </div>
 
-  <!-- Pagination (> 50 total) -->
-  <div class="pagination-wrapper" *ngIf="usePagination && totalPages > 1">
-    <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-      <i class="fa-solid fa-chevron-left"></i>
-    </button>
-    <ng-container *ngFor="let p of [].constructor(totalPages); let i = index">
-      <button class="page-btn" [class.active]="currentPage === i + 1"
-              (click)="goToPage(i + 1)">{{ i + 1 }}</button>
-    </ng-container>
-    <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-      <i class="fa-solid fa-chevron-right"></i>
-    </button>
+    <div class="pagination-wrapper" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-backward-step"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button class="page-btn" *ngFor="let p of paginationPages"
+        [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-forward-step"></i>
+      </button>
+    </div>
   </div>
 
 </section>

@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { MangaService } from '../../core/services/manga.service';
-import { Manga } from '../../core/models/interfaces';
+import { MasterDataService } from '../../core/services/master-data.service';
+import { MangaSumaryDto } from 'src/app/core/models/manga.interface';
 
 @Component({
   selector: 'app-home',
@@ -9,18 +10,19 @@ import { Manga } from '../../core/models/interfaces';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  latestManga: Manga[] = [];
-  popularManga: Manga[] = [];
-  recommendedManga: Manga[] = [];
+  latestManga: MangaSumaryDto[] = [];
+  popularManga: MangaSumaryDto[] = [];
+  recommendedManga: MangaSumaryDto[] = [];
   trendingManga: any[] = [];
   categories: any[] = [];
+  randomCategories: any[] = [];
   isLoading = true;
 
   topListPeriod: 'day' | 'month' | 'year' = 'month';
 
   private destroy$ = new Subject<void>();
 
-  constructor(private mangaService: MangaService) {}
+  constructor(private mangaService: MangaService, private masterData: MasterDataService) {}
 
   ngOnInit(): void {
     this.loadData();
@@ -33,18 +35,23 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   loadData(): void {
     this.isLoading = true;
+    this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => {
+      this.categories = c;
+      this.randomCategories = [...c].sort(() => Math.random() - 0.5).slice(0, 20);
+    });
+
     forkJoin({
       latest: this.mangaService.getNewestManga(1, 12),
-      trending: this.mangaService.getTrending(10),
-      categories: this.mangaService.getCategories(),
       popular: this.mangaService.getPopular(1, 6),
-      recommended: this.mangaService.getRecommended(2, 6)
+      recommended: this.mangaService.getNewestManga(2, 6)
     }).pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ latest, trending, categories, popular, recommended }) => {
+        next: ({ latest, popular, recommended }) => {
           this.latestManga = latest || [];
-          this.trendingManga = trending || [];
-          this.categories = categories || [];
+          this.trendingManga = (latest || []).slice(0, 5).map((m: any) => ({
+            mangaId: m.id, mangaName: m.name, mangaImage: m.mangaThumbnail,
+            totalViews: m.totalViews, averageRating: m.averageRating
+          }));
           this.popularManga = popular || [];
           this.recommendedManga = recommended || [];
           this.isLoading = false;

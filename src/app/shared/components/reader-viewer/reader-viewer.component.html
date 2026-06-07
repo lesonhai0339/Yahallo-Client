@@ -18,7 +18,7 @@
   <ng-container *ngIf="direction === 'horizontal'">
     <div class="horizontal-viewer">
       <button class="horizontal-nav horizontal-nav--prev"
-        (click)="goToPage('prev')" [disabled]="currentPage <= 0">
+        (click)="goToPage('next')" [disabled]="currentPage >= images.length - 1">
         <i class="fa-solid fa-chevron-left"></i>
       </button>
 
@@ -35,7 +35,7 @@
       </div>
 
       <button class="horizontal-nav horizontal-nav--next"
-        (click)="goToPage('next')" [disabled]="currentPage >= images.length - 1">
+        (click)="goToPage('prev')" [disabled]="currentPage <= 0">
         <i class="fa-solid fa-chevron-right"></i>
       </button>
     </div>

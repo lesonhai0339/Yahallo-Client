@@ -65,8 +65,11 @@
     </div>
   </div>
 
+  <!-- Main Layout -->
+  <div class="search-layout">
+
   <!-- Category Filter -->
-  <div class="filter-section mb-4" *ngIf="categories.length > 0">
+  <div class="filter-section" *ngIf="categories.length > 0">
     <h3 class="filter-title">{{ 'SEARCH.FILTER_BY_GENRE' | translate }}</h3>
 
     <!-- Tag selector input (Advanced mode) -->
@@ -115,17 +118,58 @@
       </div>
     </div>
 
+    <!-- Author list (collapsible) -->
+    <div class="tag-grid-toggle-wrap">
+      <button class="tag-grid-toggle" type="button" (click)="showAuthorGrid = !showAuthorGrid">
+        <i class="fa-solid fa-user-pen me-1"></i>{{ 'SEARCH.AUTHOR_LIST' | translate }}
+        <i class="fa-solid" [class.fa-angles-down]="!showAuthorGrid" [class.fa-angles-up]="showAuthorGrid"></i>
+      </button>
+    </div>
+    <div class="tag-filter-grid" *ngIf="showAuthorGrid">
+      <div class="tag-group" *ngFor="let group of groupedAuthors">
+        <span class="tag-group__letter">{{ group.letter }}</span>
+        <div class="tag-group__items">
+          <button class="tag-chip-filter" *ngFor="let item of group.items"
+            [class.active]="selectedAuthor?.id === item.id"
+            (click)="selectAuthorChip(item)">{{ item.name }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Artist list (collapsible) -->
+    <div class="tag-grid-toggle-wrap">
+      <button class="tag-grid-toggle" type="button" (click)="showArtistGrid = !showArtistGrid">
+        <i class="fa-solid fa-pen-nib me-1"></i>{{ 'SEARCH.ARTIST_LIST' | translate }}
+        <i class="fa-solid" [class.fa-angles-down]="!showArtistGrid" [class.fa-angles-up]="showArtistGrid"></i>
+      </button>
+    </div>
+    <div class="tag-filter-grid" *ngIf="showArtistGrid">
+      <div class="tag-group" *ngFor="let group of groupedArtists">
+        <span class="tag-group__letter">{{ group.letter }}</span>
+        <div class="tag-group__items">
+          <button class="tag-chip-filter" *ngFor="let item of group.items"
+            [class.active]="selectedArtist?.id === item.id"
+            (click)="selectArtistChip(item)">{{ item.name }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Category chips grid (collapsible) -->
     <div class="tag-grid-toggle-wrap">
       <button class="tag-grid-toggle" type="button" (click)="showCategoryGrid = !showCategoryGrid">
-        {{ 'SEARCH.TAG_LIST' | translate }}
+        <i class="fa-solid fa-tags me-1"></i>{{ 'SEARCH.TAG_LIST' | translate }}
         <i class="fa-solid" [class.fa-angles-down]="!showCategoryGrid" [class.fa-angles-up]="showCategoryGrid"></i>
       </button>
     </div>
     <div class="tag-filter-grid" *ngIf="showCategoryGrid">
-      <button class="tag-chip-filter" *ngFor="let cat of categories"
-        [class.active]="selectedCategories.includes(cat.genreId)"
-        (click)="toggleCategoryChip(cat)">{{ cat.genresIdName }}</button>
+      <div class="tag-group" *ngFor="let group of groupedCategories">
+        <span class="tag-group__letter">{{ group.letter }}</span>
+        <div class="tag-group__items">
+          <button class="tag-chip-filter" *ngFor="let cat of group.items"
+            [class.active]="selectedCategories.includes(cat.genreId)"
+            (click)="toggleCategoryChip(cat)">{{ cat.genresIdName }}</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -156,38 +200,6 @@
       </div>
     </div>
 
-    <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
-
-    <!-- List View -->
-    <div class="search-list" *ngIf="!isLoading && viewMode === 'list' && results.length > 0">
-      <a class="search-row" *ngFor="let m of results"
-         [routerLink]="['/manga', m.id, m.name]">
-        <img class="search-row__thumb" [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
-        <div class="search-row__info">
-          <div class="search-row__name">{{ m.name }}</div>
-          <div class="search-row__tags" *ngIf="m.tags?.length">
-            <span class="row-tag" *ngFor="let t of m.tags | slice:0:3">{{ t.name }}</span>
-          </div>
-        </div>
-        <div class="search-row__stats">
-          <span class="stat" *ngIf="m.totalViews">
-            <i class="fa-solid fa-eye"></i>{{ m.totalViews | number }}
-          </span>
-          <span class="stat" *ngIf="m.averageRating">
-            <i class="fa-solid fa-star" style="color:#ffd700"></i>{{ m.averageRating?.toFixed?.(1) ?? '—' }}
-          </span>
-          <span class="stat" *ngIf="m.totalChapters">
-            <i class="fa-solid fa-book"></i>{{ m.totalChapters }}
-          </span>
-        </div>
-      </a>
-    </div>
-
-    <!-- Grid View -->
-    <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid' && results.length > 0">
-      <app-manga-card *ngFor="let m of results" [manga]="m" [showTags]="true"></app-manga-card>
-    </div>
-
     <!-- Pagination -->
     <div class="pagination-wrapper" *ngIf="!isLoading && hasSearched && totalPages > 1">
       <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
@@ -206,6 +218,38 @@
       </button>
     </div>
 
+    <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
+
+    <!-- List View -->
+    <div class="search-list" *ngIf="!isLoading && viewMode === 'list' && results.length > 0">
+      <a class="search-row" *ngFor="let m of results"
+         [routerLink]="['/manga', m.id]">
+        <img class="search-row__thumb" [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
+        <div class="search-row__info">
+          <div class="search-row__name">{{ m.name }}</div>
+          <div class="search-row__tags" *ngIf="m.tags?.length">
+            <span class="row-tag" *ngFor="let t of m.tags | slice:0:3">{{ t.name }}</span>
+          </div>
+        </div>
+        <div class="search-row__stats">
+          <span class="stat">
+            <i class="fa-solid fa-eye"></i>{{ m.totalViews ? (m.totalViews | number) : 'N/A' }}
+          </span>
+          <span class="stat">
+            <i class="fa-solid fa-star" style="color:#ffd700"></i>{{ m.averageRating ? m.averageRating.toFixed(1) : 'N/A' }}
+          </span>
+          <span class="stat" *ngIf="m.totalChapters">
+            <i class="fa-solid fa-book"></i>{{ m.totalChapters }}
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Grid View -->
+    <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid' && results.length > 0">
+      <app-manga-card *ngFor="let m of results" [manga]="m" [showTags]="true"></app-manga-card>
+    </div>
+
     <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">
       <i class="fa-regular fa-face-sad-tear"></i>
       <h3>{{ 'SEARCH.NO_RESULTS' | translate }}</h3>
@@ -216,5 +260,7 @@
       <i class="fa-solid fa-magnifying-glass"></i>
       <p>{{ 'SEARCH.INITIAL_HINT' | translate }}</p>
     </div>
+  </div>
+
   </div>
 </div>

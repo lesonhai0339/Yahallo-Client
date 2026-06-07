@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ThemeService } from './core/services/theme.service';
+import { MasterDataService } from './core/services/master-data.service';
 
 @Component({
   selector: 'app-root',
@@ -19,10 +20,11 @@ import { ThemeService } from './core/services/theme.service';
 export class AppComponent implements OnInit {
   isAdminRoute = false;
 
-  constructor(private theme: ThemeService, private router: Router) {}
+  constructor(private theme: ThemeService, private router: Router, private masterData: MasterDataService) {}
 
   ngOnInit(): void {
     this.theme.apply();
+    this.masterData.load();
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe((e: any) => {

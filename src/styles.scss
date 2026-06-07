@@ -24,6 +24,7 @@
   --radius-md: 10px;
   --radius-lg: 16px;
   --transition: all 0.25s ease;
+  --reader-bg: #000;
 }
 
 // === Light Theme ===
@@ -48,6 +49,7 @@
   --icon-btn-bg: rgba(0, 0, 0, 0.05);
   --icon-btn-bg-hover: rgba(14, 165, 233, 0.12);
   --overlay-light: rgba(0, 0, 0, 0.03);
+  --reader-bg: #fff;
 }
 
 // === Reset & Base ===
@@ -67,6 +69,12 @@ html, body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   scroll-behavior: smooth;
+}
+
+// === Header hide on scroll (reader page) ===
+body.header-hidden .site-header {
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
 }
 
 // === Scrollbar ===
@@ -165,6 +173,9 @@ a {
   transition: var(--transition);
   border: 1px solid var(--border-color);
   cursor: pointer;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 
   &:hover {
     transform: translateY(-4px);
@@ -247,6 +258,10 @@ a {
 
   &__info {
     padding: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
 
   &__title {
@@ -258,11 +273,12 @@ a {
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.4;
-    min-height: 2.5rem;
+    margin-bottom: 6px;
   }
 
   &__meta {
-    margin-top: 6px;
+    margin-top: auto;
+    padding-top: 6px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -271,11 +287,10 @@ a {
   }
 
   &__tags {
-    margin-top: 6px;
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    max-height: 40px;
+    height: 20px;
     overflow: hidden;
 
     .tag-chip {
@@ -460,14 +475,14 @@ a {
 // === Responsive ===
 @media (max-width: 1200px) {
   .manga-card__tags {
-    max-height: 20px;
+    height: 20px;
   }
 }
 
 @media (max-width: 768px) {
   .manga-card__tags {
     gap: 3px;
-    max-height: 18px;
+    height: 18px;
 
     .tag-chip {
       font-size: 0.58rem;

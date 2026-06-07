@@ -50,7 +50,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
       this.notifService.decrementUnread();
     });
     if (notif.idTarget) {
-      this.router.navigate(['/manga', notif.idTarget, notif.target]);
+      this.router.navigate(['/manga', notif.idTarget]);
     }
   }
 

@@ -12,18 +12,19 @@ import { NotificationsComponent } from './features/user/notifications/notificati
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { AuthGuard } from './core/guards/auth.guard';
+import { ServerErrorComponent } from './features/error/server-error.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'manga/:id', component: MangaDetailComponent },
-  { path: 'manga/:id/:name', component: MangaDetailComponent },
-  { path: 'manga/:id/:chapterId/:chapterIndex', component: MangaReaderComponent},
+  { path: 'manga/:id/chapter/:chapterId/:chapterIndex', component: MangaReaderComponent },
   { path: 'search', component: MangaSearchComponent },
   { path: 'search/advanced', component: MangaSearchComponent },
   { path: 'the-loai/:id', component: MangaSearchComponent },
   { path: 'latest', component: MangaListPageComponent, data: { mode: 'latest', titleKey: 'HOME.LATEST_UPDATE', icon: 'fa-solid fa-clock-rotate-left' } },
   { path: 'popular', component: MangaListPageComponent, data: { mode: 'popular', titleKey: 'HOME.POPULAR', icon: 'fa-solid fa-chart-line' } },
   { path: 'top-manga', component: TopMangaComponent },
+  { path: 'top-manga/:criterion', component: TopMangaComponent },
   { path: 'auth/login', component: LoginComponent },
   { path: 'auth/register', component: RegisterComponent },
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },
@@ -33,6 +34,7 @@ const routes: Routes = [
     path: 'admin',
     loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)
   },
+  { path: 'server-error', component: ServerErrorComponent },
   { path: '**', redirectTo: '' }
 ];
 

@@ -8,10 +8,8 @@ import { UserInteractionService } from '../../core/services/user-interaction.ser
 import { TranslationService, SupportedLang } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { AdminStateService } from '../../admin/services/admin-state.service';
-import { TagService } from '../../core/services/tag.service';
-import { AuthorService } from '../../core/services/author.service';
-import { ArtistService } from '../../core/services/artist.service';
-import { User, Tag } from '../../core/models/interfaces';
+import { MasterDataService } from '../../core/services/master-data.service';
+import { User, Tag, Manga } from '../../core/models/interfaces';
 
 interface RecommendItem {
   id: string;
@@ -49,6 +47,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   searchResults: any[] = [];
   isSearchLoading = false;
   hasSearched = false;
+  searchTotalCount = 0;
   showPrefixHints = false;
   highlightedResultIndex = -1;
   highlightedPrefixIndex = -1;
@@ -82,6 +81,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
+  private _skipInput = false;
 
   constructor(
     private auth: AuthService,
@@ -91,9 +91,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     public translation: TranslationService,
     public themeService: ThemeService,
     private adminState: AdminStateService,
-    private tagService: TagService,
-    private authorService: AuthorService,
-    private artistService: ArtistService,
+    private masterData: MasterDataService,
     private router: Router
   ) {}
 
@@ -116,18 +114,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.notifService.unreadCount.pipe(takeUntil(this.destroy$)).subscribe(c => this.unreadCount = c);
     this.notifService.notifications.pipe(takeUntil(this.destroy$)).subscribe(n => this.notifications = n.slice(0, 8));
 
-    this.mangaService.getCategories().pipe(takeUntil(this.destroy$)).subscribe(cats => this.categories = cats || []);
-    this.tagService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
-      this.tags = ((res?.value ?? res?.data ?? res) || []).sort((a: Tag, b: Tag) => a.name.localeCompare(b.name));
-    });
-    this.authorService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
-      const raw = res?.value ?? res?.data ?? res ?? [];
-      this.authors = raw.map((a: any) => ({ id: a.id, name: a.name })).sort((a: RecommendItem, b: RecommendItem) => a.name.localeCompare(b.name));
-    });
-    this.artistService.getAll().pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
-      const raw = res?.value ?? res?.data ?? res ?? [];
-      this.artists = raw.map((a: any) => ({ id: a.id, name: a.name })).sort((a: RecommendItem, b: RecommendItem) => a.name.localeCompare(b.name));
-    });
+    this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => this.categories = c);
+    this.masterData.tags$.pipe(takeUntil(this.destroy$)).subscribe(t => this.tags = t);
+    this.masterData.authors$.pipe(takeUntil(this.destroy$)).subscribe(a => this.authors = a);
+    this.masterData.artists$.pipe(takeUntil(this.destroy$)).subscribe(a => this.artists = a);
 
     this.searchSubject.pipe(
       debounceTime(200),
@@ -179,6 +169,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onSearchInput(): void {
+    if (this._skipInput) { this._skipInput = false; return; }
     const q = this.searchQuery.trim().toLowerCase();
 
     if (!this.selectedPrefix) {
@@ -367,6 +358,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.isSearchLoading = false;
     this.selectedPrefix = null;
     this.searchQuery = '';
+    this.searchTotalCount = 0;
     this.hideRecommend();
   }
 
@@ -382,7 +374,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
       finalize(() => this.isSearchLoading = false)
     ).subscribe(results => {
-      this.searchResults = (results as any[]).slice(0, 6);
+      this.searchResults = (results.data as Manga[]).slice(0, 6);
+      this.searchTotalCount = results.totalCount || 0;
       this.hasSearched = true;
     });
   }
@@ -398,25 +391,39 @@ export class HeaderComponent implements OnInit, OnDestroy {
       const tagName = tagMatch[1].trim();
       const tag = this.tags.find((t: Tag) => t.name.toLowerCase().includes(tagName.toLowerCase()));
       if (tag) {
-        return this.mangaService.getByCategories([tag.id]);
+          return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 10, tagIds: [tag.id]})
+
+        //return this.mangaService.getByCategories([tag.id]);
       }
       const catTag = this.categories.find((c: any) => c.genresIdName.toLowerCase().includes(tagName.toLowerCase()));
       if (catTag) {
-        return this.mangaService.getByCategories([catTag.genreId]);
+        return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 10, tagIds: [catTag.genreId]})
+
+        //return this.mangaService.getByCategories([catTag.genreId]);
       }
-      return this.mangaService.filter({ name: tagName, pageSize: 6 });
+      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, name: tagName})
+      //return this.mangaService.filter({ name: tagName, pageSize: 6 });
     }
 
     if (nameMatch) {
-      return this.mangaService.filter({ name: nameMatch[1].trim(), pageSize: 6 });
+      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, name: nameMatch[1].trim()})
+      //return this.mangaService.filter({ name: nameMatch[1].trim(), pageSize: 6 });
+    }
+    if(authorMatch)
+    {
+      const name = authorMatch[1].trim();
+      const author = this.authors.find(x => x.name.trim() == name);
+      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, authorId: author?.id})
     }
 
-    if (authorMatch || artistMatch) {
-      const name = (authorMatch || artistMatch)![1].trim();
-      return this.mangaService.filter({ name, pageSize: 6 });
+    if(artistMatch)
+    {
+      const name = artistMatch[1].trim();
+      const artist = this.artists.find(x => x.name.trim() == name);
+      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, artistId: artist?.id})
     }
-
-    return this.mangaService.filter({ name: fullQuery.trim(), pageSize: 6 });
+    return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, name: fullQuery.trim()})
+    //return this.mangaService.filter({ name: fullQuery.trim(), pageSize: 6 });
   }
 
   // ── Recommend (tag / author / artist) ───────────────────────────────────────
@@ -462,28 +469,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   selectRecommendItem(item: RecommendItem): void {
+    this._skipInput = true;
     this.searchQuery = item.name;
     this.hideRecommend();
-    this.isSearchLoading = true;
-
-    const prefix = this.selectedPrefix?.prefix;
-    const search$ = prefix === 'tag:'
-      ? this.mangaService.getByCategories([item.id])
-      : this.mangaService.filter({ name: item.name, pageSize: 6 });
-
-    search$.pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.isSearchLoading = false)
-    ).subscribe(r => {
-      this.searchResults = (r as any[]).slice(0, 6);
-      this.hasSearched = true;
-    });
+    setTimeout(() => this.submitSearch());
   }
 
-  goToManga(item: any): void {
-    this.router.navigate(['/manga', item.mangaId, encodeURIComponent(item.mangaName)]);
-    this.searchResults = [];
-    this.searchQuery = '';
+  goToManga(item: Manga): void {
+    this.router.navigate(['/manga', item.id]);
+    this.closeSearch();
+  }
+
+  goToAdvancedSearch(): void {
+    const q = this.searchQuery;
+    const prefix = this.selectedPrefix?.prefix?.replace(':', '') || '';
+    this.closeSearch();
+    const queryParams: any = { q };
+    if (prefix) queryParams.prefix = prefix;
+    this.router.navigate(['/search/advanced'], { queryParams });
   }
 
   loadNotifications(): void {
@@ -496,7 +499,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   openNotif(item: any): void {
     this.userInteraction.markNotificationRead(item.id).subscribe();
     this.notifService.decrementUnread();
-    if (item.idTarget) this.router.navigate(['/manga', item.idTarget, item.target]);
+    if (item.idTarget) this.router.navigate(['/manga', item.idTarget]);
     this.isNotifOpen = false;
   }
 

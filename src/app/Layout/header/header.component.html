@@ -16,8 +16,8 @@
         <span class="nav-link">{{ 'NAV.CATEGORIES' | translate }} <i class="fa-solid fa-chevron-down ms-1"></i></span>
         <div class="dropdown-menu-custom">
           <div class="dropdown-grid">
-            <a *ngFor="let cat of categories | slice:0:24"
-               [routerLink]="['/the-loai', cat.genreId]"
+            <a *ngFor="let cat of categories"
+               [routerLink]="['/search/advanced']" [queryParams]="{ tagId: cat.genreId }"
                class="dropdown-item-custom">{{ cat.genresIdName }}</a>
           </div>
         </div>
@@ -104,11 +104,15 @@
               [class.hl]="i === highlightedResultIndex"
               (mouseenter)="highlightedResultIndex = i"
               (click)="goToManga(item)">
-              <img [src]="item.mangaImage" [alt]="item.mangaName" appImageFallback>
+              <img [src]="item.mangaThumbnail" [alt]="item.name" appImageFallback>
               <div class="search-result-info">
-                <span class="name">{{ item.mangaName }}</span>
+                <span class="name">{{ item.name }}</span>
                 <span class="chapter">{{ item.listChaper?.[0]?.chapterName ?? '' }}</span>
               </div>
+            </li>
+            <li class="search-see-more" *ngIf="searchTotalCount > searchResults.length"
+              (click)="goToAdvancedSearch()">
+              <i class="fa-solid fa-magnifying-glass me-2"></i>{{ 'HOME.SEE_MORE' | translate }} ({{ searchTotalCount }} {{ 'SEARCH.RESULTS_COUNT' | translate }})
             </li>
           </ul>
 
@@ -240,7 +244,7 @@
       <strong class="text-muted">{{ 'NAV.CATEGORIES' | translate }}</strong>
       <div class="mobile-cat-grid">
         <a *ngFor="let cat of categories | slice:0:16"
-           [routerLink]="['/the-loai', cat.genreId]"
+           [routerLink]="['/search/advanced']" [queryParams]="{ tagId: cat.genreId }"
            (click)="isMenuOpen=false">{{ cat.genresIdName }}</a>
       </div>
     </div>

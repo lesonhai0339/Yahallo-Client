@@ -1,35 +1,25 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Manga } from '../../../core/models/interfaces';
-
-const MOCK_TAGS = [
-  { id: '1', name: 'Action' },
-  { id: '2', name: 'Fantasy' },
-  { id: '3', name: 'Romance' },
-  { id: '4', name: 'Comedy' },
-  { id: '5', name: 'Adventure' },
-  { id: '6', name: 'Drama' },
-  { id: '7', name: 'Sci-Fi' },
-  { id: '8', name: 'Horror' },
-];
+import { MangaSumaryDto, TagDto } from 'src/app/core/models/manga.interface';
 
 @Component({
-  selector: 'app-manga-card',
-  templateUrl: './manga-card.component.html',
-  styleUrls: ['./manga-card.component.scss']
+  selector: 'app-manga-sumary-card',
+  templateUrl: './manga-sumary-card.component.html',
+  styleUrls: ['./manga-sumary-card.component.scss']
 })
-export class MangaCardComponent implements OnInit {
-  @Input() manga!: Manga;
+export class MangaSumaryCardComponent implements OnInit {
+  @Input() manga!: MangaSumaryDto;
   @Input() showTags = false;
-  @Output() clicked = new EventEmitter<Manga>();
+  @Output() clicked = new EventEmitter<MangaSumaryDto>();
 
-  sortedTags: { id: string; name: string }[] = [];
+  sortedTags: TagDto[] = [];
 
   constructor(private router: Router) {}
 
   // TODO: remove mock tags when API returns tags
   ngOnInit(): void {
-    const tags = this.manga.tags?.length ? this.manga.tags : MOCK_TAGS;
+    const tags = this.manga.tags;
     this.sortedTags = [...tags]
       .sort((a, b) => a.name.length - b.name.length)
       .slice(0, 6);
@@ -44,9 +34,9 @@ export class MangaCardComponent implements OnInit {
   goToChapter(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    const ch = this.manga.lastestChapter;
-    if (ch) {
-      this.router.navigate(['/manga', this.manga.id, 'chapter', ch.id, 0]);
+    const chapterId = this.manga.lastChapterId;
+    if (chapterId) {
+      this.router.navigate(['/manga', this.manga.id, 'chapter', chapterId, 0]);
     }
   }
 
@@ -62,7 +52,7 @@ export class MangaCardComponent implements OnInit {
   }
 
   getLatestChapter(): string {
-    return `Chương ${this.manga.lastestChapter?.index ?? 'N/A'}`;
+    return `Chương ${this.manga.lastChapterIndex ?? 'N/A'}`;
   }
 
   getTimeAgo(date: string): string {

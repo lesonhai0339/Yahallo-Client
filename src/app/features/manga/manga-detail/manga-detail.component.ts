@@ -6,6 +6,7 @@ import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserInteractionService } from '../../../core/services/user-interaction.service';
 import { MangaDetail, Chapter, Manga } from '../../../core/models/interfaces';
+import { MangaSumaryDto } from '../../../core/models/manga.interface';
 
 @Component({
   selector: 'app-manga-detail',
@@ -20,6 +21,8 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   showAllChapters = false;
   selectedRating = 0;
   hoverRating = 0;
+  sameAuthorManga: MangaSumaryDto[] = [];
+  sameArtistManga: MangaSumaryDto[] = [];
 
   get visibleChapters(): Chapter[] {
     return this.showAllChapters ? this.chapters : this.chapters.slice(0, 10);
@@ -31,6 +34,13 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
 
   get artistNames(): string {
     return this.manga?.artists?.map(a => a.name).join(', ') || '';
+  }
+
+  get latestChapterDate(): string {
+    if (!this.chapters.length) return this.manga?.updateDate || '';
+    return [...this.chapters].sort((a, b) =>
+      new Date(b.chapterDate).getTime() - new Date(a.chapterDate).getTime()
+    )[0].chapterDate;
   }
 
   mangaId!: string;
@@ -61,10 +71,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   loadManga(): void {
     this.isLoading = true;
     this.mangaService.getDetailAggregated(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: m => { 
-        this.manga = m; 
-        this.isLoading = false; 
-        this.addView(); 
+      next: m => {
+        this.manga = m;
+        this.isLoading = false;
+        this.addView();
+        this.loadRelatedManga();
       },
       error: () => {
         this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(m => {
@@ -78,7 +89,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
 
   loadChapters(): void {
     this.mangaService.getChapters(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(c => {
-      this.chapters = c || [];
+      this.chapters = (c || []).sort((a, b) => a.index - b.index);
     });
   }
 
@@ -113,8 +124,18 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  // TODO: replace with dedicated API when available
+  loadRelatedManga(): void {
+    if (!this.manga) return;
+    this.mangaService.getNewestManga(1, 6).pipe(takeUntil(this.destroy$)).subscribe(list => {
+      const filtered = (list || []).filter(m => m.id !== this.mangaId);
+      this.sameAuthorManga = filtered.slice(0, 4);
+      this.sameArtistManga = filtered.slice(2, 6);
+    });
+  }
+
   readChapterLink(chapter: Chapter): string[] {
-    return ['/manga', this.mangaId, chapter.id, '0'];
+    return ['/manga', this.mangaId, 'chapter', chapter.id, '0'];
   }
 
   formatDate(date: string): string {
