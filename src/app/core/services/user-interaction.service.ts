@@ -39,6 +39,15 @@ export class UserInteractionService {
     return this.http.post(`${environment.serviceApi}/rating`, { mangaId, star });
   }
 
+  getUserRating(mangaId: string): Observable<number> {
+    return this.http.get<any>(`${environment.serviceApi}/rating/${mangaId}`).pipe(
+      map((res: any) => {
+        const d = res?.value ?? res;
+        return d?.star ?? d?.rating ?? 0;
+      })
+    );
+  }
+
   markNotificationRead(id: string): Observable<any> {
     return this.http.post(`${this.notifBase}/mark-read`, { id });
   }

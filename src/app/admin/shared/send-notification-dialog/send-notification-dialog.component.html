@@ -1,0 +1,55 @@
+<div class="notif-dialog">
+  <h2 class="dialog-title">
+    <span class="material-icons">notifications_active</span>
+    Gửi thông báo đến {{ data.userName }}
+  </h2>
+
+  <!-- Templates -->
+  <div class="template-bar">
+    <span class="template-bar__label">Mẫu:</span>
+    <button class="template-chip" *ngFor="let t of templates" (click)="applyTemplate(t)">{{ t.label }}</button>
+  </div>
+
+  <form [formGroup]="form">
+    <!-- Title -->
+    <div class="field">
+      <label>Tiêu đề *</label>
+      <input class="form-control" formControlName="title" placeholder="Tiêu đề thông báo" />
+      <span class="char-count">{{ form.value.title?.length ?? 0 }}/200</span>
+    </div>
+
+    <!-- Content -->
+    <div class="field">
+      <label>Nội dung *</label>
+      <textarea class="form-control" formControlName="content" rows="4" placeholder="Nội dung chi tiết..."></textarea>
+      <span class="char-count">{{ form.value.content?.length ?? 0 }}/2000</span>
+    </div>
+
+    <!-- Image -->
+    <div class="field">
+      <label>Ảnh đính kèm <small>(tùy chọn)</small></label>
+      <div class="image-attach" *ngIf="!imagePreview">
+        <label class="image-attach__btn">
+          <span class="material-icons">add_photo_alternate</span> Chọn ảnh
+          <input type="file" accept="image/*" (change)="onImageSelected($event)" hidden />
+        </label>
+      </div>
+      <div class="image-preview" *ngIf="imagePreview">
+        <img [src]="imagePreview" alt="Preview" />
+        <button class="image-preview__remove" (click)="removeImage()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Actions -->
+  <div class="dialog-actions">
+    <button class="btn btn-secondary" (click)="dialogRef.close(false)" [disabled]="sending">Hủy</button>
+    <button class="btn btn-primary" (click)="send()" [disabled]="form.invalid || sending">
+      <span class="material-icons" *ngIf="!sending">send</span>
+      <span class="material-icons spin" *ngIf="sending">sync</span>
+      {{ sending ? 'Đang gửi...' : 'Gửi thông báo' }}
+    </button>
+  </div>
+</div>

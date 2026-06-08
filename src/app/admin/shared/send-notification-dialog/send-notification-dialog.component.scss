@@ -1,0 +1,168 @@
+// ── Light-theme tokens ──────────────────────────────────────────────────────
+$bg: #ffffff;
+$bg-alt: #f8f9fb;
+$bg-hover: #f1f3f5;
+$text: #1a1d23;
+$text-sec: #4b5563;
+$text-muted: #9ca3af;
+$border: #e2e5ea;
+$border-light: #edf0f3;
+$accent: #e94560;
+$radius-sm: 6px;
+
+.notif-dialog {
+  padding: 4px;
+  min-width: 440px;
+  color: $text;
+}
+
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 16px;
+
+  .material-icons { font-size: 1.2rem !important; color: $accent; }
+}
+
+// ── Templates ────────────────────────────────────────────────────────────────
+.template-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  &__label {
+    font-size: 0.75rem;
+    color: $text-muted;
+    font-weight: 500;
+  }
+}
+
+.template-chip {
+  padding: 4px 10px;
+  border: 1px solid $border;
+  border-radius: 14px;
+  background: none;
+  color: $text-sec;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: $accent;
+    color: $accent;
+    background: rgba(233, 69, 96, 0.04);
+  }
+}
+
+// ── Fields ───────────────────────────────────────────────────────────────────
+.field {
+  margin-bottom: 14px;
+  position: relative;
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: $text-sec;
+    margin-bottom: 5px;
+
+    small { color: $text-muted; font-weight: 400; }
+  }
+
+  .form-control {
+    background: $bg-alt;
+    border-color: $border;
+    color: $text;
+
+    &:focus { border-color: $accent; box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.08); }
+    &::placeholder { color: $text-muted; }
+  }
+
+  textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+  }
+}
+
+.char-count {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  font-size: 0.65rem;
+  color: $text-muted;
+}
+
+// ── Image attach ─────────────────────────────────────────────────────────────
+.image-attach {
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 2px dashed $border;
+    border-radius: $radius-sm;
+    color: $text-muted;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    .material-icons { font-size: 1.1rem !important; }
+
+    &:hover {
+      border-color: $accent;
+      color: $accent;
+    }
+  }
+}
+
+.image-preview {
+  position: relative;
+  display: inline-block;
+
+  img {
+    max-width: 200px;
+    max-height: 120px;
+    border-radius: $radius-sm;
+    border: 1px solid $border;
+    object-fit: cover;
+  }
+
+  &__remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #dc2626;
+    border: 2px solid $bg;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    .material-icons { font-size: 0.75rem !important; }
+  }
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 6px;
+
+  .btn { display: flex; align-items: center; gap: 6px; }
+  .material-icons { font-size: 0.95rem !important; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; display: inline-block; }

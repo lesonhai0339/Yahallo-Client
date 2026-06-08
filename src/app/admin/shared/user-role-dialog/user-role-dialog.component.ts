@@ -14,19 +14,19 @@ export interface UserRoleDialogData {
   selector: 'app-user-role-dialog',
   templateUrl: './user-role-dialog.component.html',
   styles: [`
-    .role-dialog { padding: 4px; min-width: 340px; }
-    .role-dialog h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; color: var(--text-primary); }
-    .role-dialog .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 18px; }
-    .section-label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px; }
+    .role-dialog { padding: 4px; min-width: 340px; color: #1a1d23; }
+    .role-dialog h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; color: #1a1d23; }
+    .role-dialog .subtitle { font-size: 0.8rem; color: #9ca3af; margin-bottom: 18px; }
+    .section-label { font-size: 0.8rem; color: #4b5563; font-weight: 500; margin-bottom: 8px; }
     .roles-current { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; min-height: 36px; }
-    .role-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(233,69,96,0.15); border: 1px solid var(--accent-primary); color: var(--accent-primary); padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 500; }
-    .role-chip button { background: none; border: none; color: var(--accent-primary); cursor: pointer; padding: 0; font-size: 0.9rem; line-height: 1; }
-    .no-roles { font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
+    .role-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(233,69,96,0.08); border: 1px solid rgba(233,69,96,0.25); color: #e94560; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 500; }
+    .role-chip button { background: none; border: none; color: #e94560; cursor: pointer; padding: 0; font-size: 0.9rem; line-height: 1; }
+    .no-roles { font-size: 0.82rem; color: #9ca3af; font-style: italic; }
     .add-role-row { display: flex; gap: 8px; margin-bottom: 20px; }
-    .lock-section { border-top: 1px solid var(--border-color); padding-top: 16px; }
+    .lock-section { border-top: 1px solid #e2e5ea; padding-top: 16px; }
     .lock-row { display: flex; gap: 8px; align-items: center; }
     .lock-row input { width: 80px; }
-    .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px; }
+    .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; border-top: 1px solid #e2e5ea; padding-top: 16px; }
   `]
 })
 export class UserRoleDialogComponent implements OnInit {

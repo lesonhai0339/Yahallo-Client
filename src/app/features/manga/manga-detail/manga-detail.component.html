@@ -101,7 +101,16 @@
         <div class="card mb-4">
           <div class="card-body">
             <h3 class="card-section-title"><i class="fa-solid fa-book me-2"></i>{{ 'MANGA.SYNOPSIS' | translate }}</h3>
-            <p class="synopsis-text">{{ manga.description }}</p>
+            <div class="synopsis-wrap" [class.expanded]="synopsisExpanded">
+              <p class="synopsis-text">{{ manga.description }}</p>
+              <div class="synopsis-fade" *ngIf="!synopsisExpanded && manga.description && manga.description.length > 200"></div>
+            </div>
+            <button class="synopsis-toggle" [class.expanded]="synopsisExpanded"
+              *ngIf="manga.description && manga.description.length > 200"
+              (click)="synopsisExpanded = !synopsisExpanded">
+              {{ synopsisExpanded ? ('MANGA.SHOW_LESS' | translate) : ('MANGA.SHOW_MORE_DESC' | translate) }}
+              <i [class]="synopsisExpanded ? 'fa-solid fa-chevron-up ms-1' : 'fa-solid fa-chevron-down ms-1'"></i>
+            </button>
           </div>
         </div>
 
@@ -109,19 +118,40 @@
         <div class="card mb-4">
           <div class="card-body">
             <h3 class="card-section-title"><i class="fa-solid fa-star me-2"></i>{{ 'MANGA.RATE_MANGA' | translate }}</h3>
-            <div class="rating-stars">
-              <button *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="star-btn"
-                [class.filled]="i <= (hoverRating || selectedRating)"
-                (mouseenter)="hoverRating=i" (mouseleave)="hoverRating=0"
-                (click)="selectedRating=i">
-                <i class="fa-solid fa-star"></i>
-              </button>
+
+            <!-- Already rated state -->
+            <div class="rated-summary" *ngIf="hasRated && !showReratePanel">
+              <div class="rated-summary__stars">
+                <i *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="fa-solid fa-star"
+                   [class.filled]="i <= existingRating"></i>
+              </div>
+              <div class="rated-summary__info">
+                <span class="rated-summary__label">Đã đánh giá <strong>{{ existingRating }}/10</strong></span>
+                <button class="rated-summary__rerate" (click)="openRerate()">
+                  <i class="fa-solid fa-pen me-1"></i>Đánh giá lại
+                </button>
+              </div>
             </div>
-            <div class="d-flex align-items-center gap-3 mt-3">
-              <span class="rating-display">{{ selectedRating }}{{ 'MANGA.RATING_OUT_OF' | translate }}</span>
-              <button class="btn btn-primary btn-sm" (click)="submitRating()" [disabled]="selectedRating === 0">
-                {{ 'MANGA.CONFIRM_RATING' | translate }}
-              </button>
+
+            <!-- Rating panel (new or re-rate) -->
+            <div class="rating-panel" *ngIf="!hasRated || showReratePanel">
+              <div class="rating-stars">
+                <button *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="star-btn"
+                  [class.filled]="i <= (hoverRating || selectedRating)"
+                  (mouseenter)="hoverRating=i" (mouseleave)="hoverRating=0"
+                  (click)="selectedRating=i">
+                  <i class="fa-solid fa-star"></i>
+                </button>
+              </div>
+              <div class="d-flex align-items-center gap-3 mt-3">
+                <span class="rating-display">{{ selectedRating }}{{ 'MANGA.RATING_OUT_OF' | translate }}</span>
+                <button class="btn btn-primary btn-sm" (click)="submitRating()" [disabled]="selectedRating === 0">
+                  {{ 'MANGA.CONFIRM_RATING' | translate }}
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" *ngIf="showReratePanel" (click)="cancelRerate()">
+                  Hủy
+                </button>
+              </div>
             </div>
           </div>
         </div>

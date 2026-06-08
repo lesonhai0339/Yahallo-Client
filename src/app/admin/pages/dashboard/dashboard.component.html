@@ -1,9 +1,10 @@
 <div class="dashboard">
   <div class="page-title">
     <h1>Dashboard</h1>
-    <p>Tổng quan hệ thống</p>
+    <p>{{ dashboardSubtitle }}</p>
   </div>
 
+  <!-- Stats cards -->
   <div class="stats-grid" *ngIf="!loading; else loadingTpl">
     <div class="stat-card">
       <div class="stat-card__icon stat-card__icon--red">
@@ -14,8 +15,7 @@
         <div class="stat-card__label">Tổng truyện</div>
       </div>
     </div>
-
-    <div class="stat-card">
+    <div class="stat-card" *ngIf="perm.canManageUsers()">
       <div class="stat-card__icon stat-card__icon--blue">
         <span class="material-icons">people</span>
       </div>
@@ -24,7 +24,6 @@
         <div class="stat-card__label">Người dùng</div>
       </div>
     </div>
-
     <div class="stat-card">
       <div class="stat-card__icon stat-card__icon--green">
         <span class="material-icons">label</span>
@@ -42,14 +41,103 @@
     </div>
   </ng-template>
 
+  <!-- Charts section -->
+  <div class="chart-section" *ngIf="perm.hasAdminAccess">
+    <div class="chart-section__header">
+      <h3>Thống kê theo thời gian</h3>
+      <div class="range-toggle">
+        <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
+          {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <!-- Registration chart -->
+      <div class="chart-card" *ngIf="perm.canManageUsers()">
+        <div class="chart-card__header">
+          <div class="chart-card__title">
+            <span class="material-icons chart-card__icon chart-card__icon--blue">person_add</span>
+            Đăng ký mới
+          </div>
+          <div class="chart-type-toggle">
+            <button *ngFor="let t of chartTypes" class="type-btn" [class.active]="regChartType === t"
+              (click)="onChartTypeChange('reg', t)">
+              <span class="material-icons">{{ t === 'line' ? 'show_chart' : t === 'bar' ? 'bar_chart' : 'area_chart' }}</span>
+            </button>
+          </div>
+        </div>
+        <div class="chart-card__body">
+          <canvas baseChart [type]="getChartJsType(regChartType)" [data]="registrationChart"
+            [options]="regChartOptions" (chartClick)="onRegClick($event)"></canvas>
+        </div>
+      </div>
+
+      <!-- New manga chart -->
+      <div class="chart-card">
+        <div class="chart-card__header">
+          <div class="chart-card__title">
+            <span class="material-icons chart-card__icon chart-card__icon--red">auto_stories</span>
+            Truyện mới
+          </div>
+          <div class="chart-type-toggle">
+            <button *ngFor="let t of chartTypes" class="type-btn" [class.active]="mangaChartType === t"
+              (click)="onChartTypeChange('manga', t)">
+              <span class="material-icons">{{ t === 'line' ? 'show_chart' : t === 'bar' ? 'bar_chart' : 'area_chart' }}</span>
+            </button>
+          </div>
+        </div>
+        <div class="chart-card__body">
+          <canvas baseChart [type]="getChartJsType(mangaChartType)" [data]="newMangaChart"
+            [options]="mangaChartOptions" (chartClick)="onMangaClick($event)"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel" *ngIf="detailPanel.visible">
+      <div class="detail-panel__header">
+        <div class="detail-panel__title">
+          <span class="material-icons" style="color: var(--accent-primary)">
+            {{ detailPanel.chartKey === 'reg' ? 'person_add' : 'auto_stories' }}
+          </span>
+          {{ detailPanel.chartKey === 'reg' ? 'Đăng ký mới' : 'Truyện mới' }}
+          <span class="detail-panel__date">{{ detailPanel.label }}</span>
+        </div>
+        <button class="detail-panel__close" (click)="closeDetail()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="detail-panel__body">
+        <div *ngIf="detailPanel.loading" class="detail-loading">
+          <div class="spinner"></div><span>Đang tải...</span>
+        </div>
+        <ng-container *ngIf="!detailPanel.loading && detailPanel.detail">
+          <div class="detail-panel__count">{{ detailPanel.detail.total }} mục</div>
+          <div class="detail-list">
+            <div class="detail-item" *ngFor="let item of detailPanel.detail.items">
+              <div class="detail-item__avatar">
+                <span class="material-icons">{{ detailPanel.chartKey === 'reg' ? 'person' : 'menu_book' }}</span>
+              </div>
+              <div class="detail-item__content">
+                <div class="detail-item__title">{{ item.title }}</div>
+                <div class="detail-item__subtitle">{{ item.subtitle }}</div>
+                <div class="detail-item__extra" *ngIf="item.extra">{{ item.extra }}</div>
+              </div>
+              <div class="detail-item__time">{{ item.timestamp | date:'HH:mm' }}</div>
+            </div>
+          </div>
+          <div *ngIf="!detailPanel.detail.items.length" class="detail-empty">Không có dữ liệu</div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick links -->
   <div class="quick-links">
     <h3 class="quick-links__title">Truy cập nhanh</h3>
     <div class="quick-links__grid">
-      <a
-        *ngFor="let link of quickLinks"
-        [routerLink]="link.path"
-        class="quick-link"
-        [attr.data-color]="link.color">
+      <a *ngFor="let link of visibleLinks" [routerLink]="link.path" class="quick-link" [attr.data-color]="link.color">
         <span class="material-icons quick-link__icon">{{ link.icon }}</span>
         <span class="quick-link__label">{{ link.label }}</span>
       </a>

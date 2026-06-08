@@ -15,6 +15,7 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   @Input() images: ChapterImage[] = [];
   @Input() initialPage = 0;
   @Input() direction: 'vertical' | 'horizontal' = 'vertical';
+  @Input() horizontalDir: 'rtl' | 'ltr' = 'rtl';
   @Input() imageSize = 100;
   @Input() preloadCount = 3;
   @Output() pageChange = new EventEmitter<number>();
@@ -105,12 +106,13 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   @HostListener('window:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
     if (this.direction !== 'horizontal') return;
+    const isRtl = this.horizontalDir === 'rtl';
     if (event.key === 'ArrowRight') {
       event.preventDefault();
-      this.goToPage('prev');
+      this.goToPage(isRtl ? 'prev' : 'next');
     } else if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      this.goToPage('next');
+      this.goToPage(isRtl ? 'next' : 'prev');
     }
   }
 

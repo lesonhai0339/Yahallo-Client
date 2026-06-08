@@ -1,6 +1,7 @@
-import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, ViewChild, ViewChildren, QueryList, ElementRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { lastValueFrom } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AdminMangaService } from '../../services/admin-manga.service';
@@ -20,11 +21,21 @@ export interface ChapterFormData {
 
 export type Phase = 'idle' | 'creating' | 'signing' | 'uploading' | 'confirming' | 'done';
 
-// 3-step labels for single-file mode
-export interface Step {
-  key: 'signing' | 'uploading' | 'confirming';
-  label: string;
+export interface ImageRow {
+  id: number;
+  pageIndex: number;
+  file: File | null;
+  preview: string;
+  status: FileStatus;
+  uploadPercent: number;
+  fileId?: string;
+  signedUrl?: string;
+  etag?: string;
+  error?: string;
 }
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 @Component({
   selector: 'app-chapter-form-dialog',
@@ -32,27 +43,38 @@ export interface Step {
   styleUrls: ['./chapter-form-dialog.component.scss'],
 })
 export class ChapterFormDialogComponent implements OnInit, OnDestroy {
+  @ViewChildren('rowFileInput') rowFileInputs!: QueryList<ElementRef<HTMLInputElement>>;
+  @ViewChild('multiFileInput') multiFileInput!: ElementRef<HTMLInputElement>;
+
   form!: FormGroup;
   phase: Phase = 'idle';
-  fileStates: FileUploadState[] = [];
+  imageRows: ImageRow[] = [];
+  validationErrors: string[] = [];
+  private nextRowId = 1;
 
-  readonly steps: Step[] = [
-    { key: 'signing',    label: 'Lấy Signed URL' },
-    { key: 'uploading',  label: 'Upload lên Cloud' },
-    { key: 'confirming', label: 'Xác nhận server' },
-  ];
+  get isBusy(): boolean { return this.phase !== 'idle'; }
+  get filledRows(): ImageRow[] { return this.imageRows.filter(r => r.file !== null); }
+  get doneCount(): number { return this.imageRows.filter(r => r.status === 'done').length; }
+  get failedCount(): number { return this.imageRows.filter(r => r.status === 'failed').length; }
 
-  get isBusy(): boolean  { return this.phase !== 'idle'; }
-  get isSingle(): boolean { return this.fileStates.length === 1; }
-
-  get doneCount()   { return this.fileStates.filter(f => f.status === 'done').length; }
-  get failedCount() { return this.fileStates.filter(f => f.status === 'failed').length; }
-
-  /** Overall percent — average of per-file upload percents */
   get overallPercent(): number {
-    if (!this.fileStates.length) return 0;
-    const sum = this.fileStates.reduce((acc, f) => acc + f.uploadPercent, 0);
-    return Math.round(sum / this.fileStates.length);
+    const filled = this.filledRows;
+    if (!filled.length) return 0;
+    return Math.round(filled.reduce((s, r) => s + r.uploadPercent, 0) / filled.length);
+  }
+
+  get duplicateIndices(): Set<number> {
+    const seen = new Map<number, number[]>();
+    this.imageRows.forEach((r, i) => {
+      const key = r.pageIndex;
+      if (!seen.has(key)) seen.set(key, []);
+      seen.get(key)!.push(i);
+    });
+    const dupes = new Set<number>();
+    seen.forEach(indices => {
+      if (indices.length > 1) indices.forEach(i => dupes.add(i));
+    });
+    return dupes;
   }
 
   constructor(
@@ -74,66 +96,202 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.fileStates.forEach(fs => this.imageUpload.revokePreview(fs.preview));
+    this.imageRows.forEach(r => { if (r.preview) this.imageUpload.revokePreview(r.preview); });
   }
 
-  // ── File selection ──────────────────────────────────────────────────────────
+  // ── Row management ─────────────────────────────────────────────────────────
 
-  onFilesSelected(event: Event): void {
+  addEmptyRow(): void {
+    this.imageRows.push({
+      id: this.nextRowId++,
+      pageIndex: this.imageRows.length + 1,
+      file: null,
+      preview: '',
+      status: 'pending',
+      uploadPercent: 0,
+    });
+  }
+
+  removeRow(index: number): void {
+    const row = this.imageRows[index];
+    if (row.preview) this.imageUpload.revokePreview(row.preview);
+    this.imageRows.splice(index, 1);
+    this.reindex();
+  }
+
+  moveUp(index: number): void {
+    if (index === 0) return;
+    [this.imageRows[index - 1], this.imageRows[index]] = [this.imageRows[index], this.imageRows[index - 1]];
+    this.reindex();
+  }
+
+  moveDown(index: number): void {
+    if (index >= this.imageRows.length - 1) return;
+    [this.imageRows[index], this.imageRows[index + 1]] = [this.imageRows[index + 1], this.imageRows[index]];
+    this.reindex();
+  }
+
+  onPageIndexChange(index: number, value: number): void {
+    this.imageRows[index].pageIndex = value;
+  }
+
+  incrementIndex(index: number): void {
+    this.imageRows[index].pageIndex++;
+  }
+
+  decrementIndex(index: number): void {
+    if (this.imageRows[index].pageIndex > 1) {
+      this.imageRows[index].pageIndex--;
+    }
+  }
+
+  private reindex(): void {
+    this.imageRows.forEach((r, i) => r.pageIndex = i + 1);
+  }
+
+  // ── Drag-drop reorder (CDK) ───────────────────────────────────────────────
+
+  onRowReorder(event: CdkDragDrop<ImageRow[]>): void {
+    moveItemInArray(this.imageRows, event.previousIndex, event.currentIndex);
+    this.reindex();
+  }
+
+  // ── File validation ───────────────────────────────────────────────────────
+
+  private validateFile(file: File): string | null {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return `"${file.name}" — định dạng không hỗ trợ (chỉ JPG, PNG, WebP, GIF, AVIF)`;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return `"${file.name}" — vượt quá 10MB`;
+    }
+    return null;
+  }
+
+  private isValidImage(file: File): boolean {
+    return ALLOWED_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE;
+  }
+
+  // ── File selection (per-row) ───────────────────────────────────────────────
+
+  triggerFileSelect(index: number): void {
+    const inputs = this.rowFileInputs?.toArray();
+    if (inputs?.[index]) {
+      inputs[index].nativeElement.click();
+    }
+  }
+
+  onRowFileSelected(event: Event, index: number): void {
     const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
-    this.addFiles(Array.from(input.files).filter(f => f.type.startsWith('image/')));
+    const file = input.files?.[0];
+    if (!file) { input.value = ''; return; }
+
+    const err = this.validateFile(file);
+    if (err) {
+      this.toastr.error(err, 'File không hợp lệ');
+      input.value = '';
+      return;
+    }
+
+    const row = this.imageRows[index];
+    if (row.preview) this.imageUpload.revokePreview(row.preview);
+    row.file = file;
+    row.preview = this.imageUpload.createPreview(file);
     input.value = '';
   }
 
-  onDrop(event: DragEvent): void {
+  onRowDrop(event: DragEvent, index: number): void {
     event.preventDefault();
-    this.addFiles(Array.from(event.dataTransfer?.files ?? []).filter(f => f.type.startsWith('image/')));
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+
+    const err = this.validateFile(file);
+    if (err) {
+      this.toastr.error(err, 'File không hợp lệ');
+      return;
+    }
+
+    const row = this.imageRows[index];
+    if (row.preview) this.imageUpload.revokePreview(row.preview);
+    row.file = file;
+    row.preview = this.imageUpload.createPreview(file);
   }
 
-  onDragOver(event: DragEvent): void { event.preventDefault(); }
+  onRowDragOver(event: DragEvent): void { event.preventDefault(); }
 
-  private addFiles(files: File[]): void {
-    const base = this.fileStates.length;
-    this.fileStates = [
-      ...this.fileStates,
-      ...files.map((file, i) => ({
-        file,
-        pageIndex: base + i + 1,
-        preview: this.imageUpload.createPreview(file),
-        status: 'pending' as FileStatus,
+  // ── Multi-file selection ──────────────────────────────────────────────────
+
+  triggerMultiFileSelect(): void {
+    this.multiFileInput?.nativeElement?.click();
+  }
+
+  onMultiFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    const errors: string[] = [];
+    const validFiles: File[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const err = this.validateFile(f);
+      if (err) {
+        errors.push(err);
+      } else {
+        validFiles.push(f);
+      }
+    }
+
+    if (errors.length > 0) {
+      this.validationErrors = errors;
+      setTimeout(() => this.validationErrors = [], 8000);
+    }
+
+    const emptyIndices: number[] = [];
+    this.imageRows.forEach((r, i) => { if (!r.file) emptyIndices.push(i); });
+
+    let fileIdx = 0;
+    for (const emptyIdx of emptyIndices) {
+      if (fileIdx >= validFiles.length) break;
+      const f = validFiles[fileIdx];
+      const row = this.imageRows[emptyIdx];
+      row.file = f;
+      row.preview = this.imageUpload.createPreview(f);
+      fileIdx++;
+    }
+
+    for (; fileIdx < validFiles.length; fileIdx++) {
+      const f = validFiles[fileIdx];
+      this.imageRows.push({
+        id: this.nextRowId++,
+        pageIndex: this.imageRows.length + 1,
+        file: f,
+        preview: this.imageUpload.createPreview(f),
+        status: 'pending',
         uploadPercent: 0,
-      })),
-    ];
+      });
+    }
+
+    input.value = '';
   }
 
-  removeFile(fs: FileUploadState): void {
-    this.imageUpload.revokePreview(fs.preview);
-    this.fileStates = this.fileStates
-      .filter(f => f !== fs)
-      .map((f, i) => ({ ...f, pageIndex: i + 1 }));
-  }
-
-  moveUp(i: number): void {
-    if (i === 0) return;
-    const a = [...this.fileStates];
-    [a[i - 1], a[i]] = [a[i], a[i - 1]];
-    this.fileStates = a.map((f, idx) => ({ ...f, pageIndex: idx + 1 }));
-  }
-
-  moveDown(i: number): void {
-    if (i >= this.fileStates.length - 1) return;
-    const a = [...this.fileStates];
-    [a[i], a[i + 1]] = [a[i + 1], a[i]];
-    this.fileStates = a.map((f, idx) => ({ ...f, pageIndex: idx + 1 }));
-  }
-
-  // ── Main upload workflow ────────────────────────────────────────────────────
+  // ── Upload workflow ────────────────────────────────────────────────────────
 
   async save(): Promise<void> {
     if (this.form.invalid || this.isBusy) return;
 
-    // Step 0 — Create / update chapter metadata
+    if (this.duplicateIndices.size > 0) {
+      this.toastr.error('Có STT trùng lặp, vui lòng kiểm tra lại');
+      return;
+    }
+
+    const invalidFiles = this.filledRows.filter(r => r.file && !this.isValidImage(r.file!));
+    if (invalidFiles.length > 0) {
+      this.toastr.error(`${invalidFiles.length} file không đúng định dạng hoặc vượt quá kích thước`);
+      return;
+    }
+
     this.phase = 'creating';
     let chapterId: string;
     try {
@@ -155,24 +313,24 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.fileStates.length === 0) {
+    const toUpload = this.filledRows;
+    if (toUpload.length === 0) {
       this.toastr.success(this.data.chapter ? 'Cập nhật thành công' : 'Tạo chương thành công');
       this.dialogRef.close(true);
       return;
     }
 
-    // Step 1 — Get signed URLs (= "signing" phase)
     this.phase = 'signing';
-    this.patchAll({ status: 'signing', uploadPercent: 0 });
+    toUpload.forEach(r => { r.status = 'signing'; r.uploadPercent = 0; });
 
     const userId = this.auth.currentUser?.id ?? '';
-    const metas: ImageUploadMeta[] = this.fileStates.map(fs => ({
+    const metas: ImageUploadMeta[] = toUpload.map(r => ({
       userId,
-      fileName: fs.file.name,
-      contentType: fs.file.type,
-      fileSize: fs.file.size,
+      fileName: r.file!.name,
+      contentType: r.file!.type,
+      fileSize: r.file!.size,
       chapterId,
-      pageIndex: fs.pageIndex,
+      pageIndex: r.pageIndex,
     }));
 
     let signedItems;
@@ -180,35 +338,26 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
       signedItems = await lastValueFrom(this.imageUpload.getSignedUrls(metas));
     } catch {
       this.toastr.error('Không lấy được Signed URL từ server');
-      this.patchAll({ status: 'failed' });
+      toUpload.forEach(r => r.status = 'failed');
       this.phase = 'idle';
       return;
     }
 
     signedItems.forEach((item, i) => {
-      if (this.fileStates[i]) {
-        this.fileStates[i] = {
-          ...this.fileStates[i],
-          fileId: item.fileId,
-          signedUrl: item.signedUrl,
-          status: 'uploading',
-        };
+      if (toUpload[i]) {
+        toUpload[i].fileId = item.fileId;
+        toUpload[i].signedUrl = item.signedUrl;
+        toUpload[i].status = 'uploading';
       }
     });
 
-    // Step 2 — Upload all files to S3 in parallel
     this.phase = 'uploading';
-    await Promise.all(this.fileStates.map((_, i) => this.uploadOne(i)));
+    await Promise.all(toUpload.map((r, i) => this.uploadOneRow(toUpload, i)));
 
-    // Step 3 — Batch confirm with server
     this.phase = 'confirming';
-    const results: FileUploadResult[] = this.fileStates
-      .filter(fs => fs.fileId)
-      .map(fs => ({
-        fileId: fs.fileId!,
-        etag: fs.etag ?? null,
-        status: fs.status === 'done' ? 'uploaded' : 'failed',
-      }));
+    const results: FileUploadResult[] = toUpload
+      .filter(r => r.fileId)
+      .map(r => ({ fileId: r.fileId!, etag: r.etag ?? null, status: r.status === 'done' ? 'uploaded' as const : 'failed' as const }));
 
     try {
       await lastValueFrom(this.imageUpload.confirmBatchUploads(results));
@@ -226,47 +375,28 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
     setTimeout(() => this.dialogRef.close(true), 800);
   }
 
-  private async uploadOne(index: number): Promise<void> {
-    const fs = this.fileStates[index];
-    if (!fs.signedUrl) {
-      this.fileStates[index] = { ...fs, status: 'failed', error: 'Không có Signed URL' };
+  private async uploadOneRow(rows: ImageRow[], index: number): Promise<void> {
+    const r = rows[index];
+    if (!r.signedUrl || !r.file) {
+      r.status = 'failed';
+      r.error = 'Không có Signed URL';
       return;
     }
     try {
       const etag = await lastValueFrom(
-        this.imageUpload.uploadToS3(fs.signedUrl, fs.file, pct => {
-          // Update per-file progress — create new ref for Angular CD
-          this.fileStates[index] = { ...this.fileStates[index], uploadPercent: pct };
-        })
+        this.imageUpload.uploadToS3(r.signedUrl, r.file, pct => { r.uploadPercent = pct; })
       );
-      this.fileStates[index] = {
-        ...this.fileStates[index],
-        etag,
-        status: 'done',
-        uploadPercent: 100,
-      };
+      r.etag = etag;
+      r.status = 'done';
+      r.uploadPercent = 100;
     } catch (err: any) {
-      this.fileStates[index] = {
-        ...this.fileStates[index],
-        status: 'failed',
-        error: err?.message ?? 'Upload thất bại',
-        uploadPercent: 0,
-      };
+      r.status = 'failed';
+      r.error = err?.message ?? 'Upload thất bại';
+      r.uploadPercent = 0;
     }
   }
 
-  private patchAll(patch: Partial<FileUploadState>): void {
-    this.fileStates = this.fileStates.map(f => ({ ...f, ...patch }));
-  }
-
-  // ── Template helpers ────────────────────────────────────────────────────────
-
-  stepActive(key: Step['key']): boolean {
-    const order: Phase[] = ['signing', 'uploading', 'confirming', 'done'];
-    return order.indexOf(this.phase as any) >= order.indexOf(key);
-  }
-
-  stepCurrent(key: Step['key']): boolean { return this.phase === key; }
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   statusIcon(status: FileStatus): string {
     return { pending: 'schedule', signing: 'sync', uploading: 'cloud_upload', done: 'check_circle', failed: 'error' }[status];

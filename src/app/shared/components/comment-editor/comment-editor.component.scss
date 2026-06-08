@@ -1,3 +1,8 @@
+:host {
+  flex: 1;
+  min-width: 0;
+}
+
 .comment-editor {
   display: flex;
   flex-direction: column;

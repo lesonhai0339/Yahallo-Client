@@ -9,6 +9,7 @@ import { ChapterImage } from 'src/app/core/models/chapter.interface';
 
 export interface ReaderSettings {
   direction: 'vertical' | 'horizontal';
+  horizontalDir: 'rtl' | 'ltr';
   mode: 'normal' | 'focus';
   imageSize: number;
   preloadCount: number;
@@ -38,6 +39,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
 
   settings: ReaderSettings = {
     direction: 'vertical',
+    horizontalDir: 'rtl',
     mode: 'normal',
     imageSize: 100,
     preloadCount: 3

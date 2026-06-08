@@ -62,6 +62,8 @@
     "RATE_MANGA": "Rate",
     "RATING_OUT_OF": "/10",
     "CONFIRM_RATING": "Confirm rating",
+    "SHOW_MORE_DESC": "See more",
+    "SHOW_LESS": "Show less",
     "BREADCRUMB_HOME": "Home",
     "NA": "N/A",
     "LATEST_CHAPTER": "Latest chapter",
@@ -82,7 +84,10 @@
     "MODE_FOCUS": "Focus",
     "IMAGE_SIZE": "Image size",
     "PRELOAD_COUNT": "Preload images",
-    "APPLY": "Apply"
+    "APPLY": "Apply",
+    "HORIZONTAL_DIR": "Horizontal direction",
+    "RTL": "Right to Left",
+    "LTR": "Left to Right"
   },
   "SEARCH": {
     "TITLE": "Advanced Search",

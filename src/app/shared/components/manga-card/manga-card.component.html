@@ -12,7 +12,7 @@
   <div class="manga-card__info">
     <div class="manga-card__title" [title]="manga.name">{{ manga.name }}</div>
     <div class="manga-card__tags" *ngIf="sortedTags.length">
-      <button class="tag-chip" *ngFor="let cat of sortedTags" (click)="goToTag($event, cat.id)">{{ cat.name }}</button>
+      <button class="tag-chip" *ngFor="let cat of sortedTags | slice:0:4" (click)="goToTag($event, cat.id)">{{ cat.name }}</button>
     </div>
     <div class="manga-card__meta">
       <span><i class="fa-solid fa-eye me-1"></i>{{ formatViews(manga.totalViews) }}</span>

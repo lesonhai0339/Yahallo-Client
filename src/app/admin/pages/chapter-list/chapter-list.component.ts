@@ -18,7 +18,7 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
   displayedColumns = ['index', 'title', 'chapterDate', 'actions'];
   dataSource = new MatTableDataSource<any>([]);
   mangaId = '';
-  mangaName = '';
+  manga: any = null;
   totalCount = 0;
   pageSize = 50;
   pageIndex = 0;
@@ -38,11 +38,22 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.mangaId = this.route.snapshot.paramMap.get('mangaId') ?? '';
     this.loadChapters();
+    this.loadMangaDetail();
   }
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
+  }
+
+  loadMangaDetail(): void {
+    if (!this.mangaId) return;
+    this.mangaService.getDetail(this.mangaId).subscribe({
+      next: (res: any) => {
+        this.manga = res?.value ?? res;
+      },
+      error: () => {}
+    });
   }
 
   loadChapters(): void {
@@ -72,7 +83,9 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
 
   openAddDialog(): void {
     const ref = this.dialog.open(ChapterFormDialogComponent, {
-      width: '480px',
+      width: '760px',
+      maxWidth: '95vw',
+      panelClass: 'light-dialog',
       data: { mangaId: this.mangaId }
     });
     ref.afterClosed().subscribe(result => { if (result) this.loadChapters(); });
@@ -80,7 +93,9 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
 
   openEditDialog(chapter: any): void {
     const ref = this.dialog.open(ChapterFormDialogComponent, {
-      width: '480px',
+      width: '760px',
+      maxWidth: '95vw',
+      panelClass: 'light-dialog',
       data: { mangaId: this.mangaId, chapter }
     });
     ref.afterClosed().subscribe(result => { if (result) this.loadChapters(); });
@@ -103,6 +118,19 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
         error: () => this.toastr.error('Không thể xóa chương')
       });
     });
+  }
+
+  getThumbnailUrl(path: string): string {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return this.mangaService.imgUrl(path);
+  }
+
+  formatNumber(n: number): string {
+    if (!n) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toString();
   }
 
   goBack(): void {

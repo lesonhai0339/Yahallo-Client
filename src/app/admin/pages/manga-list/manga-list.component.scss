@@ -188,6 +188,7 @@
   &--hide { color: var(--text-muted); &:hover { background: rgba(108, 117, 125, 0.12); } }
   &--show { color: #10b981; &:hover { background: rgba(16, 185, 129, 0.12); } }
   &--delete { color: #ef4444; &:hover { background: rgba(239, 68, 68, 0.12); } }
+  &--analytics { color: #f59e0b; &:hover { background: rgba(245, 158, 11, 0.12); } }
 }
 
 .no-data {

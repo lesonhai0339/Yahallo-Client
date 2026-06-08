@@ -1,0 +1,156 @@
+<div class="analytics-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <button class="back-btn" (click)="goBack()">
+        <span class="material-icons">arrow_back</span>
+      </button>
+      <div>
+        <h1>Thống kê truyện</h1>
+        <p class="manga-title">{{ mangaName }}</p>
+      </div>
+    </div>
+    <div class="range-toggle">
+      <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
+        {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <span>Đang tải dữ liệu...</span>
+  </div>
+
+  <ng-container *ngIf="!loading && analytics">
+    <!-- Summary stats -->
+    <div class="stats-row">
+      <div class="mini-stat">
+        <span class="material-icons mini-stat__icon" style="color: #0ea5e9">visibility</span>
+        <div class="mini-stat__info">
+          <div class="mini-stat__value">{{ analytics.totalViews | number }}</div>
+          <div class="mini-stat__label">Lượt xem</div>
+        </div>
+      </div>
+      <div class="mini-stat">
+        <span class="material-icons mini-stat__icon" style="color: #8b5cf6">chat_bubble</span>
+        <div class="mini-stat__info">
+          <div class="mini-stat__value">{{ analytics.totalComments | number }}</div>
+          <div class="mini-stat__label">Bình luận</div>
+        </div>
+      </div>
+      <div class="mini-stat">
+        <span class="material-icons mini-stat__icon" style="color: #e94560">favorite</span>
+        <div class="mini-stat__info">
+          <div class="mini-stat__value">{{ analytics.totalFollows | number }}</div>
+          <div class="mini-stat__label">Theo dõi</div>
+        </div>
+      </div>
+      <div class="mini-stat">
+        <span class="material-icons mini-stat__icon" style="color: #10b981">library_books</span>
+        <div class="mini-stat__info">
+          <div class="mini-stat__value">{{ analytics.totalChapters | number }}</div>
+          <div class="mini-stat__label">Chương</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Views chart -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <div class="chart-card__title">
+          <span class="material-icons chart-card__icon" style="color: #0ea5e9">trending_up</span>
+          Lượt xem theo thời gian
+        </div>
+        <div class="chart-type-toggle">
+          <button *ngFor="let t of chartTypes" class="type-btn" [class.active]="viewsChartType === t"
+            (click)="onChartTypeChange('views', t)" [title]="t === 'line' ? 'Line' : t === 'bar' ? 'Bar' : 'Area'">
+            <span class="material-icons">{{ t === 'line' ? 'show_chart' : t === 'bar' ? 'bar_chart' : 'area_chart' }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="chart-card__body">
+        <canvas baseChart
+          [type]="getChartJsType(viewsChartType)"
+          [data]="viewsChart"
+          [options]="viewsChartOptions"
+          (chartClick)="onViewsClick($event)">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Comments chart -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <div class="chart-card__title">
+          <span class="material-icons chart-card__icon" style="color: #8b5cf6">forum</span>
+          Bình luận theo thời gian
+        </div>
+        <div class="chart-type-toggle">
+          <button *ngFor="let t of chartTypes" class="type-btn" [class.active]="commentsChartType === t"
+            (click)="onChartTypeChange('comments', t)" [title]="t === 'line' ? 'Line' : t === 'bar' ? 'Bar' : 'Area'">
+            <span class="material-icons">{{ t === 'line' ? 'show_chart' : t === 'bar' ? 'bar_chart' : 'area_chart' }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="chart-card__body">
+        <canvas baseChart
+          [type]="getChartJsType(commentsChartType)"
+          [data]="commentsChart"
+          [options]="commentsChartOptions"
+          (chartClick)="onCommentsClick($event)">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel" *ngIf="detailPanel.visible">
+      <div class="detail-panel__header">
+        <div class="detail-panel__title">
+          <span class="material-icons" style="color: var(--accent-primary)">
+            {{ detailPanel.chartKey === 'views' ? 'visibility' : 'chat_bubble' }}
+          </span>
+          {{ detailPanel.chartKey === 'views' ? 'Chi tiết lượt xem' : 'Chi tiết bình luận' }}
+          <span class="detail-panel__date">{{ detailPanel.label }}</span>
+        </div>
+        <button class="detail-panel__close" (click)="closeDetail()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <div class="detail-panel__body">
+        <div *ngIf="detailPanel.loading" class="detail-loading">
+          <div class="spinner"></div>
+          <span>Đang tải...</span>
+        </div>
+
+        <ng-container *ngIf="!detailPanel.loading && detailPanel.detail">
+          <div class="detail-panel__count">
+            {{ detailPanel.detail.total }} {{ detailPanel.chartKey === 'views' ? 'lượt xem' : 'bình luận' }}
+          </div>
+
+          <div class="detail-list">
+            <div class="detail-item" *ngFor="let item of detailPanel.detail.items">
+              <div class="detail-item__avatar">
+                <span class="material-icons">{{ detailPanel.chartKey === 'views' ? 'person' : 'chat' }}</span>
+              </div>
+              <div class="detail-item__content">
+                <div class="detail-item__title">{{ item.title }}</div>
+                <div class="detail-item__subtitle">{{ item.subtitle }}</div>
+                <div class="detail-item__extra" *ngIf="item.extra">{{ item.extra }}</div>
+              </div>
+              <div class="detail-item__time">
+                {{ item.timestamp | date:'HH:mm' }}
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!detailPanel.detail.items.length" class="detail-empty">
+            Không có dữ liệu cho ngày này
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </ng-container>
+</div>

@@ -3,13 +3,13 @@ import { CanActivate, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
-import { AdminStateService } from '../../admin/services/admin-state.service';
+import { PermissionService } from '../services/permission.service';
 
 @Injectable({ providedIn: 'root' })
 export class AdminGuard implements CanActivate {
   constructor(
     private auth: AuthService,
-    private adminState: AdminStateService,
+    private permissionService: PermissionService,
     private router: Router
   ) {}
 
@@ -18,10 +18,11 @@ export class AdminGuard implements CanActivate {
       this.router.navigate(['/auth/login']);
       return of(false);
     }
-    return this.adminState.isAdmin$.pipe(
-      map(isAdmin => {
-        if (!isAdmin) this.router.navigate(['/']);
-        return isAdmin;
+    return this.permissionService.roles$.pipe(
+      map(() => {
+        const hasAccess = this.permissionService.hasAdminAccess;
+        if (!hasAccess) this.router.navigate(['/']);
+        return hasAccess;
       }),
       catchError(() => {
         this.router.navigate(['/']);

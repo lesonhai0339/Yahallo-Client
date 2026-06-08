@@ -1,0 +1,93 @@
+<div class="messages-dialog">
+  <h2 class="dialog-title">
+    <span class="material-icons">forum</span>
+    {{ data.userName }}
+  </h2>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab" [class.tab--active]="activeTab === 'feedback'" (click)="switchTab('feedback')">
+      <span class="material-icons">feedback</span> Feedback
+      <span class="tab__badge" *ngIf="feedbacks.length">{{ feedbacks.length }}</span>
+    </button>
+    <button class="tab" [class.tab--active]="activeTab === 'conversation'" (click)="switchTab('conversation')">
+      <span class="material-icons">chat</span> Hội thoại
+    </button>
+  </div>
+
+  <!-- ── Feedback tab ───────────────────────────────────────────────────────── -->
+  <div class="tab-content" *ngIf="activeTab === 'feedback'">
+    <div class="loading-row" *ngIf="loadingFeedback">
+      <div class="spinner-sm"></div> Đang tải...
+    </div>
+
+    <div class="empty-msg" *ngIf="!loadingFeedback && feedbacks.length === 0">
+      <span class="material-icons">inbox</span>
+      <p>Chưa có feedback nào từ người dùng này</p>
+    </div>
+
+    <div class="feedback-list" *ngIf="!loadingFeedback && feedbacks.length > 0">
+      <div class="feedback-item" *ngFor="let fb of feedbacks" [class.feedback-item--resolved]="fb.status === 'resolved'">
+        <div class="feedback-item__header">
+          <span class="feedback-status feedback-status--{{ fb.status }}">
+            <span class="material-icons">{{ getFeedbackIcon(fb.status) }}</span>
+            {{ getFeedbackLabel(fb.status) }}
+          </span>
+          <span class="feedback-item__date">{{ fb.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <p class="feedback-item__content">{{ fb.content ?? fb.message }}</p>
+        <div class="feedback-item__actions" *ngIf="fb.status !== 'resolved'">
+          <button class="fb-act" (click)="markFeedback(fb, 'in_progress')" *ngIf="fb.status === 'pending'">
+            <span class="material-icons">autorenew</span> Bắt đầu xử lý
+          </button>
+          <button class="fb-act fb-act--done" (click)="markFeedback(fb, 'resolved')">
+            <span class="material-icons">check</span> Đã xử lý
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Conversation tab ───────────────────────────────────────────────────── -->
+  <div class="tab-content" *ngIf="activeTab === 'conversation'">
+    <div class="loading-row" *ngIf="loadingMessages">
+      <div class="spinner-sm"></div> Đang tải...
+    </div>
+
+    <!-- Message list -->
+    <div class="chat-list" *ngIf="!loadingMessages">
+      <div class="empty-msg" *ngIf="messages.length === 0">
+        <span class="material-icons">chat_bubble_outline</span>
+        <p>Chưa có tin nhắn nào</p>
+      </div>
+
+      <div class="chat-msg" *ngFor="let msg of messages"
+           [class.chat-msg--admin]="isAdminMessage(msg)"
+           [class.chat-msg--user]="!isAdminMessage(msg)">
+        <div class="chat-msg__bubble">
+          <span class="chat-msg__sender">{{ msg.senderName ?? (isAdminMessage(msg) ? 'Admin' : data.userName) }}</span>
+          <span class="chat-msg__role" *ngIf="msg.senderRole">({{ msg.senderRole }})</span>
+          <p class="chat-msg__text">{{ msg.content }}</p>
+          <span class="chat-msg__time">{{ msg.createdAt | date:'dd/MM HH:mm' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compose -->
+    <div class="chat-compose">
+      <input class="chat-compose__input" [(ngModel)]="newMessage"
+             placeholder="Nhập tin nhắn..."
+             (keydown.enter)="sendMessage()"
+             [disabled]="sendingMessage"
+             [ngModelOptions]="{ standalone: true }" />
+      <button class="chat-compose__send" (click)="sendMessage()" [disabled]="!newMessage.trim() || sendingMessage">
+        <span class="material-icons">send</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Close -->
+  <div class="dialog-actions">
+    <button class="btn btn-secondary" (click)="dialogRef.close()">Đóng</button>
+  </div>
+</div>

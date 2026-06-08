@@ -1,78 +1,143 @@
-<div class="chapter-list-page">
+<div class="chapter-page">
+  <!-- Header -->
   <div class="page-header">
     <button class="btn-back" (click)="goBack()">
       <span class="material-icons">arrow_back</span>
     </button>
     <div>
       <h1>Quản lý Chương</h1>
-      <p>Manga ID: {{ mangaId | slice:0:8 }}... | {{ totalCount }} chương</p>
+      <p>{{ manga?.name || 'Manga ID: ' + (mangaId | slice:0:8) + '...' }} · {{ totalCount }} chương</p>
     </div>
     <button class="btn btn-primary" (click)="openAddDialog()">
       <span class="material-icons">add</span> Thêm chương
     </button>
   </div>
 
-  <div class="toolbar">
-    <div class="toolbar__search">
-      <span class="material-icons toolbar__search-icon">search</span>
-      <input class="toolbar__search-input" placeholder="Tìm theo tiêu đề..." (keyup)="applyFilter($event)" />
+  <!-- Two-column layout -->
+  <div class="page-layout">
+    <!-- Column 1: chapter list -->
+    <div class="page-main">
+      <div class="toolbar">
+        <div class="toolbar__search">
+          <span class="material-icons toolbar__search-icon">search</span>
+          <input class="toolbar__search-input" placeholder="Tìm theo tiêu đề..." (keyup)="applyFilter($event)" />
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <div *ngIf="loading" class="table-loading">
+          <div class="spinner"></div><span>Đang tải...</span>
+        </div>
+
+        <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
+
+          <ng-container matColumnDef="index">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>#</th>
+            <td mat-cell *matCellDef="let c">
+              <span class="chapter-index">Ch. {{ c.index }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="title">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Tiêu đề</th>
+            <td mat-cell *matCellDef="let c">{{ c.title || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="chapterDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày đăng</th>
+            <td mat-cell *matCellDef="let c">{{ c.chapterDate ? (c.chapterDate | date:'dd/MM/yyyy') : '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Thao tác</th>
+            <td mat-cell *matCellDef="let c">
+              <div class="action-btns">
+                <button class="action-btn action-btn--edit" (click)="openEditDialog(c)" title="Chỉnh sửa">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button class="action-btn action-btn--delete" (click)="deleteChapter(c)" title="Xóa">
+                  <span class="material-icons">delete</span>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
+              Chưa có chương nào
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="totalCount"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[20, 50, 100]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons>
+      </mat-paginator>
     </div>
-  </div>
 
-  <div class="table-wrapper">
-    <div *ngIf="loading" class="table-loading">
-      <div class="spinner"></div><span>Đang tải...</span>
-    </div>
+    <!-- Column 2: manga info sidebar -->
+    <aside class="page-aside" *ngIf="manga">
+      <div class="manga-card">
+        <!-- Thumbnail -->
+        <img class="manga-card__thumb"
+             [src]="getThumbnailUrl(manga.mangaThumbnail)"
+             [alt]="manga.name"
+             *ngIf="manga.mangaThumbnail" />
+        <div class="manga-card__thumb manga-card__thumb--placeholder" *ngIf="!manga.mangaThumbnail">
+          <span class="material-icons">image</span>
+        </div>
 
-    <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
+        <!-- Name -->
+        <h3 class="manga-card__name">{{ manga.name }}</h3>
 
-      <ng-container matColumnDef="index">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>#</th>
-        <td mat-cell *matCellDef="let c">
-          <span class="chapter-index">Ch. {{ c.index }}</span>
-        </td>
-      </ng-container>
+        <!-- Tags -->
+        <div class="manga-card__tags" *ngIf="manga.tags?.length">
+          <span class="manga-tag" *ngFor="let tag of manga.tags | slice:0:6">{{ $any(tag).name }}</span>
+          <span class="manga-tag manga-tag--more" *ngIf="manga.tags?.length > 6">+{{ manga.tags.length - 6 }}</span>
+        </div>
 
-      <ng-container matColumnDef="title">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tiêu đề</th>
-        <td mat-cell *matCellDef="let c">{{ c.title || '—' }}</td>
-      </ng-container>
+        <!-- Description -->
+        <p class="manga-card__desc" *ngIf="manga.description">{{ manga.description }}</p>
 
-      <ng-container matColumnDef="chapterDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày đăng</th>
-        <td mat-cell *matCellDef="let c">{{ c.chapterDate ? (c.chapterDate | date:'dd/MM/yyyy') : '—' }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Thao tác</th>
-        <td mat-cell *matCellDef="let c">
-          <div class="action-btns">
-            <button class="action-btn action-btn--edit" (click)="openEditDialog(c)" title="Chỉnh sửa">
-              <span class="material-icons">edit</span>
-            </button>
-            <button class="action-btn action-btn--delete" (click)="deleteChapter(c)" title="Xóa">
-              <span class="material-icons">delete</span>
-            </button>
+        <!-- Stats grid -->
+        <div class="manga-card__stats">
+          <div class="stat-item">
+            <span class="material-icons">star</span>
+            <div class="stat-item__body">
+              <span class="stat-item__val">{{ manga.averageRating?.toFixed(1) ?? '—' }}</span>
+              <span class="stat-item__label">Đánh giá</span>
+            </div>
           </div>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
-          Chưa có chương nào
-        </td>
-      </tr>
-    </table>
+          <div class="stat-item">
+            <span class="material-icons">menu_book</span>
+            <div class="stat-item__body">
+              <span class="stat-item__val">{{ totalCount }}</span>
+              <span class="stat-item__label">Chương</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <span class="material-icons">visibility</span>
+            <div class="stat-item__body">
+              <span class="stat-item__val">{{ formatNumber(manga.totalViews ?? 0) }}</span>
+              <span class="stat-item__label">Lượt xem</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <span class="material-icons">chat_bubble_outline</span>
+            <div class="stat-item__body">
+              <span class="stat-item__val">{{ formatNumber(manga.totalCommentCount ?? manga.commentCount ?? 0) }}</span>
+              <span class="stat-item__label">Bình luận</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
   </div>
-
-  <mat-paginator
-    [length]="totalCount"
-    [pageSize]="pageSize"
-    [pageSizeOptions]="[20, 50, 100]"
-    (page)="onPageChange($event)"
-    showFirstLastButtons>
-  </mat-paginator>
 </div>

@@ -62,6 +62,8 @@
     "RATE_MANGA": "Đánh giá",
     "RATING_OUT_OF": "/10",
     "CONFIRM_RATING": "Xác nhận đánh giá",
+    "SHOW_MORE_DESC": "Xem thêm",
+    "SHOW_LESS": "Thu gọn",
     "BREADCRUMB_HOME": "Trang chủ",
     "NA": "N/A",
     "LATEST_CHAPTER": "Chương mới nhất",
@@ -82,7 +84,10 @@
     "MODE_FOCUS": "Tập trung",
     "IMAGE_SIZE": "Kích thước ảnh",
     "PRELOAD_COUNT": "Số ảnh tải trước",
-    "APPLY": "Áp dụng"
+    "APPLY": "Áp dụng",
+    "HORIZONTAL_DIR": "Chiều đọc ngang",
+    "RTL": "Phải sang trái",
+    "LTR": "Trái sang phải"
   },
   "SEARCH": {
     "TITLE": "Tìm kiếm nâng cao",

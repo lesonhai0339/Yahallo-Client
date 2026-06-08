@@ -1,32 +1,64 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
+import { PermissionService } from '../../../core/services/permission.service';
+import { Permission, AppRole } from '../../../core/models/permission.model';
+
+interface NavItem {
+  label: string;
+  path: string;
+  icon: string;
+  permission?: Permission;
+}
 
 @Component({
   selector: 'app-admin-layout',
   templateUrl: './admin-layout.component.html',
   styleUrls: ['./admin-layout.component.scss']
 })
-export class AdminLayoutComponent implements OnInit {
+export class AdminLayoutComponent implements OnInit, OnDestroy {
   sidebarOpen = true;
   currentRoute = '';
+  visibleNavItems: NavItem[] = [];
 
-  navItems = [
-    { label: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard' },
-    { label: 'Quản lý Truyện', path: '/admin/manga', icon: 'menu_book' },
-    { label: 'Quản lý Users', path: '/admin/users', icon: 'people' },
+  private allNavItems: NavItem[] = [
+    { label: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard', permission: Permission.ViewDashboard },
+    { label: 'Quản lý Truyện', path: '/admin/manga', icon: 'menu_book', permission: Permission.ManageManga },
+    { label: 'Quản lý Users', path: '/admin/users', icon: 'people', permission: Permission.ManageUsers },
+    { label: 'Thảo luận', path: '/admin/topics', icon: 'forum' },
   ];
 
-  constructor(public auth: AuthService, private router: Router) {}
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    public auth: AuthService,
+    public perm: PermissionService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.router.events.pipe(
-      filter(e => e instanceof NavigationEnd)
+      filter(e => e instanceof NavigationEnd),
+      takeUntil(this.destroy$)
     ).subscribe((e: any) => {
       this.currentRoute = e.urlAfterRedirects;
     });
     this.currentRoute = this.router.url;
+
+    this.perm.permissions$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.visibleNavItems = this.allNavItems.filter(
+        item => !item.permission || this.perm.hasPermission(item.permission)
+      );
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   isActive(path: string): boolean {
@@ -47,5 +79,22 @@ export class AdminLayoutComponent implements OnInit {
 
   get currentUser() {
     return this.auth.currentUser;
+  }
+
+  viewAsOptions: { label: string; role: AppRole | null }[] = [
+    { label: 'Admin', role: null },
+    { label: 'Moderator', role: AppRole.Moderator },
+    { label: 'Translator', role: AppRole.Trans },
+  ];
+
+  showViewAsSwitcher = false;
+
+  toggleViewAsSwitcher(): void {
+    this.showViewAsSwitcher = !this.showViewAsSwitcher;
+  }
+
+  switchViewAs(role: AppRole | null): void {
+    this.perm.setViewAs(role);
+    this.showViewAsSwitcher = false;
   }
 }

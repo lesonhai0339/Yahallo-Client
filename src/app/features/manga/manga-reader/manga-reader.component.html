@@ -31,6 +31,20 @@
         </div>
       </div>
 
+      <div class="setting-group" *ngIf="pendingSettings.direction === 'horizontal'">
+        <label class="setting-label">{{ 'READER.HORIZONTAL_DIR' | translate }}</label>
+        <div class="setting-options">
+          <button class="option-btn" [class.active]="pendingSettings.horizontalDir === 'rtl'"
+            (click)="pendingSettings.horizontalDir = 'rtl'">
+            <i class="fa-solid fa-arrow-right-to-bracket fa-flip-horizontal me-1"></i>{{ 'READER.RTL' | translate }}
+          </button>
+          <button class="option-btn" [class.active]="pendingSettings.horizontalDir === 'ltr'"
+            (click)="pendingSettings.horizontalDir = 'ltr'">
+            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i>{{ 'READER.LTR' | translate }}
+          </button>
+        </div>
+      </div>
+
       <div class="setting-group">
         <label class="setting-label">{{ 'READER.MODE' | translate }}</label>
         <div class="setting-options">
@@ -87,6 +101,7 @@
     [images]="images"
     [initialPage]="initialPage"
     [direction]="settings.direction"
+    [horizontalDir]="settings.horizontalDir"
     [imageSize]="settings.imageSize"
     [preloadCount]="settings.preloadCount"
     (pageChange)="onPageChange($event)">

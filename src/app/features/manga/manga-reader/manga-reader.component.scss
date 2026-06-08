@@ -28,7 +28,8 @@
   position: fixed;
   bottom: 12px;
   left: 12px;
-  max-width: calc((100vw - 60%) / 2 - 24px);
+  width: fit-content;
+  max-width: calc(100vw - 24px);
   z-index: 100;
   transition: opacity 0.3s ease, transform 0.3s ease;
   opacity: 0;
@@ -178,6 +179,7 @@
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100%;
     max-width: 100%;
     transform: translateY(100%);
 

@@ -1,0 +1,67 @@
+<div class="create-topic-dialog">
+  <h2 class="dialog-title">
+    <span class="material-icons">add_circle_outline</span>
+    Tạo topic mới
+  </h2>
+
+  <!-- Category selector -->
+  <div class="field">
+    <label class="field__label">Danh mục</label>
+    <div class="cat-selector">
+      <button
+        *ngFor="let cat of categories"
+        class="cat-option"
+        [class.cat-option--active]="category === cat.value"
+        (click)="category = cat.value">
+        <span class="material-icons">{{ cat.icon }}</span>
+        {{ cat.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="field">
+    <label class="field__label">Tiêu đề</label>
+    <input
+      class="field__input"
+      [(ngModel)]="title"
+      [ngModelOptions]="{ standalone: true }"
+      placeholder="Nhập tiêu đề topic..."
+      maxlength="200" />
+    <span class="field__count">{{ title.length }}/200</span>
+  </div>
+
+  <!-- Content -->
+  <div class="field">
+    <label class="field__label">Nội dung</label>
+    <textarea
+      class="field__textarea"
+      [(ngModel)]="content"
+      [ngModelOptions]="{ standalone: true }"
+      placeholder="Nhập nội dung chi tiết..."
+      rows="6"
+      maxlength="5000"></textarea>
+    <span class="field__count">{{ content.length }}/5000</span>
+  </div>
+
+  <!-- Pin option -->
+  <div class="pin-option" *ngIf="data.canPin">
+    <label class="pin-toggle">
+      <input type="checkbox" [(ngModel)]="pinned" [ngModelOptions]="{ standalone: true }" />
+      <span class="pin-toggle__label">
+        <span class="material-icons">push_pin</span>
+        Ghim topic lên đầu
+      </span>
+    </label>
+  </div>
+
+  <!-- Actions -->
+  <div class="dialog-actions">
+    <button class="act-btn act-btn--cancel" (click)="cancel()">Hủy</button>
+    <button class="act-btn act-btn--submit" [disabled]="!canSubmit || saving" (click)="submit()">
+      <span class="material-icons" *ngIf="!saving">send</span>
+      <span *ngIf="saving">Đang tạo...</span>
+      <span *ngIf="!saving">Tạo topic</span>
+    </button>
+  </div>
+</div>

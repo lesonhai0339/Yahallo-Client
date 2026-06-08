@@ -1,0 +1,205 @@
+<div class="topic-page">
+  <div class="page-header">
+    <div>
+      <h1>Thảo luận nội bộ</h1>
+      <p>{{ filteredTopics.length }} topic</p>
+    </div>
+    <button class="btn-create" (click)="openCreateDialog()">
+      <span class="material-icons">add</span> Tạo topic mới
+    </button>
+  </div>
+
+  <!-- Category filter -->
+  <div class="category-bar">
+    <button
+      *ngFor="let cat of categories"
+      class="cat-chip"
+      [class.cat-chip--active]="activeCategory === cat.value"
+      (click)="filterByCategory(cat.value)">
+      <span class="material-icons">{{ cat.icon }}</span>
+      {{ cat.label }}
+    </button>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="page-layout" [class.page-layout--has-detail]="selectedTopic">
+
+    <!-- Left: topic list -->
+    <div class="page-main">
+      <div class="toolbar">
+        <div class="toolbar__search">
+          <span class="material-icons toolbar__search-icon">search</span>
+          <input class="toolbar__search-input" placeholder="Tìm theo tiêu đề, tác giả..." (keyup)="onSearch($event)" />
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="loading-state">
+        <div class="spinner"></div><span>Đang tải...</span>
+      </div>
+
+      <!-- Empty -->
+      <div *ngIf="!loading && filteredTopics.length === 0" class="empty-state">
+        <span class="material-icons">forum</span>
+        <p>Chưa có topic nào</p>
+      </div>
+
+      <!-- Topic cards -->
+      <div class="topic-list" *ngIf="!loading">
+        <div
+          *ngFor="let topic of filteredTopics"
+          class="topic-card"
+          [class.topic-card--selected]="selectedTopic?.id === topic.id"
+          [class.topic-card--pinned]="topic.pinned"
+          [class.topic-card--closed]="topic.closed"
+          (click)="selectTopic(topic)">
+
+          <!-- Pinned badge -->
+          <div class="topic-card__pin" *ngIf="topic.pinned">
+            <span class="material-icons">push_pin</span>
+          </div>
+
+          <div class="topic-card__body">
+            <div class="topic-card__top">
+              <span class="topic-cat" [ngClass]="'topic-cat--' + topic.category">
+                <span class="material-icons">{{ getCategoryIcon(topic.category) }}</span>
+                {{ getCategoryLabel(topic.category) }}
+              </span>
+              <span class="topic-card__time">{{ topic.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+
+            <h3 class="topic-card__title">
+              {{ topic.title }}
+              <span class="closed-badge" *ngIf="topic.closed">Đã đóng</span>
+            </h3>
+
+            <p class="topic-card__preview">{{ topic.content }}</p>
+
+            <div class="topic-card__footer">
+              <div class="topic-card__author">
+                <img *ngIf="topic.authorAvatar" [src]="topic.authorAvatar" class="author-avatar" />
+                <div *ngIf="!topic.authorAvatar" class="author-avatar author-avatar--initials">
+                  {{ getInitials(topic.authorName) }}
+                </div>
+                <span class="author-name">{{ topic.authorName }}</span>
+                <span class="author-role" [ngClass]="getRoleBadgeClass(topic.authorRole)">{{ topic.authorRole }}</span>
+              </div>
+              <div class="topic-card__meta">
+                <span class="meta-item">
+                  <span class="material-icons">chat_bubble_outline</span>
+                  {{ topic.replyCount }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: topic detail -->
+    <aside class="page-detail" *ngIf="selectedTopic">
+      <div class="detail-panel">
+        <!-- Header -->
+        <div class="detail-header">
+          <div class="detail-header__top">
+            <span class="topic-cat" [ngClass]="'topic-cat--' + selectedTopic.category">
+              <span class="material-icons">{{ getCategoryIcon(selectedTopic.category) }}</span>
+              {{ getCategoryLabel(selectedTopic.category) }}
+            </span>
+            <button class="detail-close" (click)="selectedTopic = null; replies = []">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+
+          <h2 class="detail-title">{{ selectedTopic.title }}</h2>
+
+          <div class="detail-author">
+            <img *ngIf="selectedTopic.authorAvatar" [src]="selectedTopic.authorAvatar" class="author-avatar" />
+            <div *ngIf="!selectedTopic.authorAvatar" class="author-avatar author-avatar--initials">
+              {{ getInitials(selectedTopic.authorName) }}
+            </div>
+            <div class="detail-author__info">
+              <span class="author-name">{{ selectedTopic.authorName }}</span>
+              <span class="author-role" [ngClass]="getRoleBadgeClass(selectedTopic.authorRole)">{{ selectedTopic.authorRole }}</span>
+            </div>
+            <span class="detail-date">{{ selectedTopic.createdAt | date:'HH:mm - dd/MM/yyyy' }}</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="detail-actions" *ngIf="canManageTopic(selectedTopic)">
+            <button class="d-act" (click)="togglePin(selectedTopic)" *ngIf="perm.isAdmin"
+                    [title]="selectedTopic.pinned ? 'Bỏ ghim' : 'Ghim topic'">
+              <span class="material-icons">{{ selectedTopic.pinned ? 'push_pin' : 'push_pin' }}</span>
+              {{ selectedTopic.pinned ? 'Bỏ ghim' : 'Ghim' }}
+            </button>
+            <button class="d-act" (click)="toggleClose(selectedTopic)"
+                    [title]="selectedTopic.closed ? 'Mở lại' : 'Đóng topic'">
+              <span class="material-icons">{{ selectedTopic.closed ? 'lock_open' : 'lock' }}</span>
+              {{ selectedTopic.closed ? 'Mở lại' : 'Đóng' }}
+            </button>
+            <button class="d-act d-act--danger" (click)="deleteTopic(selectedTopic)" *ngIf="perm.isAdmin || isOwnTopic(selectedTopic)">
+              <span class="material-icons">delete_outline</span> Xóa
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="detail-content">
+          <p>{{ selectedTopic.content }}</p>
+        </div>
+
+        <!-- Divider -->
+        <div class="replies-divider">
+          <span class="material-icons">chat_bubble_outline</span>
+          <span>{{ replies.length }} phản hồi</span>
+        </div>
+
+        <!-- Replies -->
+        <div class="replies-list">
+          <div *ngIf="loadingReplies" class="loading-state loading-state--sm">
+            <div class="spinner"></div><span>Đang tải...</span>
+          </div>
+
+          <div *ngIf="!loadingReplies && replies.length === 0" class="empty-replies">
+            Chưa có phản hồi nào
+          </div>
+
+          <div *ngFor="let reply of replies" class="reply-item">
+            <div class="reply-item__avatar">
+              <img *ngIf="reply.authorAvatar" [src]="reply.authorAvatar" class="author-avatar" />
+              <div *ngIf="!reply.authorAvatar" class="author-avatar author-avatar--initials">
+                {{ getInitials(reply.authorName) }}
+              </div>
+            </div>
+            <div class="reply-item__body">
+              <div class="reply-item__header">
+                <span class="author-name">{{ reply.authorName }}</span>
+                <span class="author-role" [ngClass]="getRoleBadgeClass(reply.authorRole)">{{ reply.authorRole }}</span>
+                <span class="reply-item__time">{{ reply.createdAt | date:'HH:mm dd/MM' }}</span>
+              </div>
+              <p class="reply-item__text">{{ reply.content }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compose -->
+        <div class="reply-compose" *ngIf="!selectedTopic.closed">
+          <textarea
+            class="reply-compose__input"
+            [(ngModel)]="replyText"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Viết phản hồi... (Enter để gửi, Shift+Enter xuống dòng)"
+            rows="2"
+            (keydown)="onReplyKeydown($event)"></textarea>
+          <button class="reply-compose__send" [disabled]="!replyText.trim() || sendingReply" (click)="sendReply()">
+            <span class="material-icons">send</span>
+          </button>
+        </div>
+        <div class="topic-closed-notice" *ngIf="selectedTopic.closed">
+          <span class="material-icons">lock</span>
+          Topic đã đóng, không thể phản hồi
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

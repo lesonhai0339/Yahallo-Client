@@ -176,6 +176,7 @@ a {
   height: 100%;
   display: flex;
   flex-direction: column;
+  text-decoration: none;
 
   &:hover {
     transform: translateY(-4px);
@@ -259,8 +260,8 @@ a {
   &__info {
     padding: 10px;
     flex: 1;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 2fr 1fr;
     min-width: 0;
   }
 
@@ -273,11 +274,10 @@ a {
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.4;
-    margin-bottom: 6px;
+    align-self: start;
   }
 
   &__meta {
-    margin-top: auto;
     padding-top: 6px;
     display: flex;
     align-items: center;
@@ -288,9 +288,9 @@ a {
 
   &__tags {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 4px;
-    height: 20px;
+    align-self: end;
     overflow: hidden;
 
     .tag-chip {
@@ -434,6 +434,11 @@ a {
 .mat-mdc-dialog-container .mdc-dialog__surface {
   background: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
+}
+
+.light-dialog .mat-mdc-dialog-container .mdc-dialog__surface {
+  background: #ffffff !important;
+  color: #1a1d23 !important;
 }
 
 // Table

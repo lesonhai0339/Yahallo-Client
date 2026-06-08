@@ -9,7 +9,7 @@
 
     <nav class="admin-sidebar__nav">
       <a
-        *ngFor="let item of navItems"
+        *ngFor="let item of visibleNavItems"
         class="admin-sidebar__nav-item"
         [class.active]="isActive(item.path)"
         [routerLink]="item.path">
@@ -39,7 +39,32 @@
       </button>
 
       <div class="admin-header__right">
+        <!-- View-as switcher (Admin only) -->
+        <div class="view-as" *ngIf="perm.isRealAdmin">
+          <button class="view-as__trigger" (click)="toggleViewAsSwitcher()"
+            [class.view-as__trigger--active]="perm.isViewingAs">
+            <span class="material-icons">swap_horiz</span>
+            <span class="view-as__label">
+              {{ perm.isViewingAs ? 'Xem như: ' + perm.getRoleLabel() : 'Chuyển view' }}
+            </span>
+          </button>
+          <div class="view-as__dropdown" *ngIf="showViewAsSwitcher">
+            <button
+              *ngFor="let opt of viewAsOptions"
+              class="view-as__option"
+              [class.active]="(!perm.isViewingAs && !opt.role) || (perm.viewingAsRole === opt.role)"
+              (mousedown)="switchViewAs(opt.role)">
+              {{ opt.label }}
+              <span class="material-icons view-as__check" *ngIf="(!perm.isViewingAs && !opt.role) || (perm.viewingAsRole === opt.role)">check</span>
+            </button>
+          </div>
+        </div>
+
         <div class="admin-header__user" *ngIf="currentUser">
+          <span class="role-badge" [ngClass]="perm.getRoleBadgeClass()">
+            {{ perm.getRoleLabel() }}
+            <span *ngIf="perm.isViewingAs" class="role-badge__preview">(preview)</span>
+          </span>
           <img
             *ngIf="currentUser.avatar"
             [src]="currentUser.avatar"
@@ -49,6 +74,15 @@
         </div>
       </div>
     </header>
+
+    <!-- View-as banner -->
+    <div class="view-as-banner" *ngIf="perm.isViewingAs">
+      <span class="material-icons">info</span>
+      Đang xem như <strong>{{ perm.getRoleLabel() }}</strong> — giao diện và quyền hiển thị theo role này
+      <button class="view-as-banner__reset" (click)="switchViewAs(null)">
+        <span class="material-icons">close</span> Tắt
+      </button>
+    </div>
 
     <!-- Page content -->
     <div class="admin-content">

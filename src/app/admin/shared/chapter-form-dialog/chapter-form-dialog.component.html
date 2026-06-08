@@ -3,119 +3,158 @@
   <!-- ── Header ─────────────────────────────────────────────────────────────── -->
   <h2 class="dialog-title">{{ data.chapter ? 'Chỉnh sửa chương' : 'Thêm chương mới' }}</h2>
 
-  <!-- ── Form ───────────────────────────────────────────────────────────────── -->
-  <form [formGroup]="form">
-    <div class="field-row">
-      <div class="field-group">
-        <label>Tiêu đề *</label>
-        <input class="form-control" formControlName="title" placeholder="Chapter 1: Khởi đầu" [class.disabled]="isBusy" />
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       SECTION 1 — Chapter Info
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section__label"><span class="material-icons">info</span> Thông tin chương</div>
+    <form [formGroup]="form" class="chapter-form">
+      <div class="field-row">
+        <div class="field-group">
+          <label>Tiêu đề *</label>
+          <input class="form-control" formControlName="title" placeholder="Chapter 1: Khởi đầu" [class.disabled]="isBusy" />
+        </div>
+        <div class="field-group field-group--sm">
+          <label>STT *</label>
+          <input class="form-control" type="number" formControlName="index" min="0" step="0.1" [class.disabled]="isBusy" />
+        </div>
       </div>
-      <div class="field-group field-group--sm">
-        <label>STT *</label>
-        <input class="form-control" type="number" formControlName="index" min="0" step="0.1" [class.disabled]="isBusy" />
-      </div>
-    </div>
-  </form>
-
-  <!-- ── 3-step indicator (single file mode) ────────────────────────────────── -->
-  <div class="steps" *ngIf="isBusy && isSingle">
-    <div class="step" *ngFor="let s of steps"
-         [class.step--active]="stepActive(s.key)"
-         [class.step--current]="stepCurrent(s.key)">
-      <div class="step__dot">
-        <span class="material-icons step__icon" [class.spin]="stepCurrent(s.key)">
-          {{ stepActive(s.key) ? 'check_circle' : 'radio_button_unchecked' }}
-        </span>
-      </div>
-      <span class="step__label">{{ s.label }}</span>
-      <div class="step__line" *ngIf="s.key !== 'confirming'"></div>
-    </div>
+    </form>
   </div>
 
-  <!-- ── Drop zone ──────────────────────────────────────────────────────────── -->
-  <div class="drop-zone" [class.drop-zone--busy]="isBusy"
-       (dragover)="onDragOver($event)" (drop)="onDrop($event)"
-       (click)="!isBusy && fileInput.click()">
-    <span class="material-icons">add_photo_alternate</span>
-    <span>Kéo thả hoặc click chọn ảnh</span>
-    <span class="drop-zone__hint">JPG · PNG · WebP — nhiều trang cùng lúc</span>
-  </div>
-  <input #fileInput type="file" multiple accept="image/*" class="hidden-input" (change)="onFilesSelected($event)" />
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       SECTION 2 — Image List
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section__label">
+      <span class="material-icons">collections</span> Danh sách ảnh
+      <span class="section__count" *ngIf="filledRows.length">{{ filledRows.length }} trang</span>
+    </div>
 
-  <!-- ── File list ──────────────────────────────────────────────────────────── -->
-  <ng-container *ngIf="fileStates.length > 0">
+    <!-- Toolbar: multi-file + add empty -->
+    <div class="image-toolbar" *ngIf="!isBusy">
+      <button class="toolbar-btn toolbar-btn--primary" (click)="triggerMultiFileSelect()">
+        <span class="material-icons">photo_library</span> Chọn nhiều ảnh
+      </button>
+      <button class="toolbar-btn" (click)="addEmptyRow()">
+        <span class="material-icons">add</span> Thêm trang trống
+      </button>
+      <span class="toolbar-hint">JPG, PNG, WebP, GIF, AVIF · tối đa 10MB</span>
+      <input #multiFileInput type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple class="hidden-input"
+             (change)="onMultiFilesSelected($event)" />
+    </div>
 
-    <!-- Overall progress bar (multi-file) -->
-    <div class="overall-progress" *ngIf="isBusy && !isSingle">
+    <!-- Validation errors -->
+    <div class="validation-errors" *ngIf="validationErrors.length > 0">
+      <div class="validation-errors__item" *ngFor="let err of validationErrors">
+        <span class="material-icons">warning</span> {{ err }}
+      </div>
+    </div>
+
+    <!-- Duplicate order warning -->
+    <div class="duplicate-warn" *ngIf="duplicateIndices.size > 0">
+      <span class="material-icons">error_outline</span>
+      Có STT trùng lặp — vui lòng kiểm tra các trang được đánh dấu
+    </div>
+
+    <!-- Overall progress -->
+    <div class="overall-progress" *ngIf="isBusy && filledRows.length > 1">
       <div class="overall-progress__bar">
         <div class="overall-progress__fill" [style.width.%]="overallPercent"></div>
       </div>
       <span class="overall-progress__label">
-        {{ overallPercent }}% &nbsp;·&nbsp;
-        {{ doneCount }}/{{ fileStates.length }} trang
-        <span *ngIf="failedCount" class="text-danger">&nbsp;({{ failedCount }} lỗi)</span>
+        {{ overallPercent }}% · {{ doneCount }}/{{ filledRows.length }} trang
+        <span *ngIf="failedCount" class="text-danger">({{ failedCount }} lỗi)</span>
       </span>
     </div>
 
-    <!-- File list header -->
-    <div class="file-list-header">
-      <span>{{ fileStates.length }} trang đã chọn</span>
-      <span *ngIf="!isBusy" class="add-more" (click)="fileInput.click()">+ Thêm</span>
-    </div>
+    <!-- Image rows (CDK drag-drop list) -->
+    <div class="image-list" cdkDropList [cdkDropListData]="imageRows"
+         (cdkDropListDropped)="onRowReorder($event)" [cdkDropListDisabled]="isBusy">
 
-    <!-- File items -->
-    <div class="file-list">
-      <div class="file-item" *ngFor="let fs of fileStates; let i = index"
-           [attr.data-status]="fs.status">
-        <!-- Thumbnail -->
-        <img [src]="fs.preview" [alt]="fs.file.name" class="file-thumb" />
+      <div class="image-row" *ngFor="let row of imageRows; let i = index"
+           cdkDrag [cdkDragDisabled]="isBusy"
+           [class.image-row--filled]="row.file"
+           [class.image-row--uploading]="row.status === 'uploading'"
+           [class.image-row--done]="row.status === 'done'"
+           [class.image-row--failed]="row.status === 'failed'"
+           [class.image-row--duplicate]="duplicateIndices.has(i)">
 
-        <!-- Info column -->
-        <div class="file-info">
-          <span class="file-name">{{ fs.file.name }}</span>
-          <span class="file-meta">Trang {{ fs.pageIndex }} · {{ formatSize(fs.file.size) }}</span>
-
-          <!-- Per-file upload progress bar -->
-          <div class="file-progress" *ngIf="fs.status === 'uploading'">
-            <div class="file-progress__bar">
-              <div class="file-progress__fill" [style.width.%]="fs.uploadPercent"></div>
-            </div>
-            <span class="file-progress__pct">{{ fs.uploadPercent }}%</span>
-          </div>
-
-          <!-- ETag (success) -->
-          <span class="file-etag" *ngIf="fs.status === 'done' && fs.etag" title="ETag từ S3">
-            <span class="material-icons">verified</span> {{ fs.etag | slice:0:16 }}...
-          </span>
-
-          <!-- Error (fail) -->
-          <span class="file-error" *ngIf="fs.status === 'failed'">
-            <span class="material-icons">error</span> {{ fs.error || 'Upload thất bại' }}
-          </span>
+        <!-- Drag handle with tooltip -->
+        <div class="image-row__handle" cdkDragHandle *ngIf="!isBusy">
+          <span class="material-icons">drag_indicator</span>
+          <span class="handle-tooltip">Kéo đến vị trí mong muốn và thả</span>
         </div>
 
-        <!-- Status icon -->
-        <span class="status-icon" [attr.data-status]="fs.status">
-          <span class="material-icons" [class.spin]="fs.status === 'uploading' || fs.status === 'signing'">
-            {{ statusIcon(fs.status) }}
-          </span>
-        </span>
+        <!-- STT input -->
+        <div class="image-row__index">
+          <input class="idx-input" type="number" [value]="row.pageIndex" min="1"
+                 [class.idx-input--error]="duplicateIndices.has(i)"
+                 (change)="onPageIndexChange(i, $any($event.target).valueAsNumber)"
+                 [disabled]="isBusy" />
+        </div>
 
-        <!-- Reorder / remove (idle only) -->
-        <div class="file-actions" *ngIf="!isBusy">
-          <button class="ia" (click)="moveUp(i)" [disabled]="i === 0">
-            <span class="material-icons">arrow_upward</span>
+        <!-- Image content: filled or empty drop zone -->
+        <ng-container *ngIf="row.file; else emptySlot">
+          <!-- Thumbnail -->
+          <img [src]="row.preview" [alt]="row.file.name" class="image-row__thumb" />
+
+          <!-- Info -->
+          <div class="image-row__info">
+            <span class="image-row__name">{{ row.file.name }}</span>
+            <span class="image-row__meta">{{ formatSize(row.file.size) }}</span>
+            <!-- Per-file progress -->
+            <div class="row-progress" *ngIf="row.status === 'uploading'">
+              <div class="row-progress__bar">
+                <div class="row-progress__fill" [style.width.%]="row.uploadPercent"></div>
+              </div>
+              <span class="row-progress__pct">{{ row.uploadPercent }}%</span>
+            </div>
+            <span class="row-status row-status--done" *ngIf="row.status === 'done'">
+              <span class="material-icons">check_circle</span> Hoàn tất
+            </span>
+            <span class="row-status row-status--failed" *ngIf="row.status === 'failed'">
+              <span class="material-icons">error</span> {{ row.error || 'Thất bại' }}
+            </span>
+          </div>
+        </ng-container>
+
+        <!-- Empty slot — drop zone -->
+        <ng-template #emptySlot>
+          <div class="image-row__dropzone"
+               (click)="!isBusy && triggerFileSelect(i)"
+               (dragover)="onRowDragOver($event)"
+               (drop)="onRowDrop($event, i)">
+            <span class="material-icons">add_photo_alternate</span>
+            <span>Kéo thả hoặc click chọn ảnh</span>
+          </div>
+        </ng-template>
+
+        <!-- Hidden file input per row -->
+        <input #rowFileInput type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" class="hidden-input"
+               (change)="onRowFileSelected($event, i)" />
+
+        <!-- Row controls: up, down, delete -->
+        <div class="image-row__actions" *ngIf="!isBusy">
+          <button class="row-act row-act--move" (click)="moveUp(i)" [disabled]="i === 0" title="Di chuyển lên">
+            <span class="material-icons">keyboard_arrow_up</span>
           </button>
-          <button class="ia" (click)="moveDown(i)" [disabled]="i === fileStates.length - 1">
-            <span class="material-icons">arrow_downward</span>
+          <button class="row-act row-act--move" (click)="moveDown(i)" [disabled]="i === imageRows.length - 1" title="Di chuyển xuống">
+            <span class="material-icons">keyboard_arrow_down</span>
           </button>
-          <button class="ia ia--del" (click)="removeFile(fs)">
+          <button class="row-act row-act--del" (click)="removeRow(i)" title="Xóa">
             <span class="material-icons">close</span>
           </button>
         </div>
       </div>
     </div>
-  </ng-container>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="imageRows.length === 0 && !isBusy">
+      <span class="material-icons">image</span>
+      <p>Chưa có ảnh nào. Nhấn "Chọn nhiều ảnh" hoặc "Thêm trang trống" để bắt đầu.</p>
+    </div>
+  </div>
 
   <!-- ── Mock notice ────────────────────────────────────────────────────────── -->
   <div class="mock-notice">
@@ -126,10 +165,10 @@
   <!-- ── Actions ────────────────────────────────────────────────────────────── -->
   <div class="dialog-actions">
     <button class="btn btn-secondary" (click)="cancel()" [disabled]="isBusy">Hủy</button>
-    <button class="btn btn-primary" (click)="save()" [disabled]="form.invalid || isBusy">
+    <button class="btn btn-primary" (click)="save()" [disabled]="form.invalid || isBusy || duplicateIndices.size > 0">
       <span class="material-icons spin" *ngIf="isBusy">sync</span>
       <span class="material-icons" *ngIf="!isBusy">cloud_upload</span>
-      {{ isBusy ? 'Đang xử lý...' : (fileStates.length ? 'Upload & Lưu' : 'Lưu chương') }}
+      {{ isBusy ? 'Đang xử lý...' : (filledRows.length ? 'Upload & Lưu' : 'Lưu chương') }}
     </button>
   </div>
 

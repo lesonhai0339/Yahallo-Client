@@ -3,9 +3,15 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AdminService } from '../../services/admin.service';
 import { UserRoleDialogComponent } from '../../shared/user-role-dialog/user-role-dialog.component';
+import { SendNotificationDialogComponent } from '../../shared/send-notification-dialog/send-notification-dialog.component';
+import { UserMessagesDialogComponent } from '../../shared/user-messages-dialog/user-messages-dialog.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ResetPasswordDialogComponent } from '../../shared/reset-password-dialog/reset-password-dialog.component';
+import { PermissionService } from '../../../core/services/permission.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -20,6 +26,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
   pageSize = 20;
   pageIndex = 0;
   loading = false;
+  selectedUser: any = null;
   readonly imgBase = environment.serviceApi;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -28,7 +35,9 @@ export class UserListComponent implements OnInit, AfterViewInit {
   constructor(
     private adminService: AdminService,
     private dialog: MatDialog,
-    private toastr: ToastrService
+    private router: Router,
+    private toastr: ToastrService,
+    public perm: PermissionService
   ) {}
 
   ngOnInit(): void {
@@ -67,15 +76,59 @@ export class UserListComponent implements OnInit, AfterViewInit {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
   }
 
+  selectUser(user: any): void {
+    this.selectedUser = this.selectedUser?.id === user.id ? null : user;
+  }
+
   openRoleDialog(user: any): void {
+    if (!this.perm.canManageRoles()) {
+      this.toastr.warning('Bạn không có quyền quản lý role');
+      return;
+    }
     this.dialog.open(UserRoleDialogComponent, {
       width: '480px',
+      panelClass: 'light-dialog',
       data: { userId: user.id, userName: user.name ?? user.userName }
     });
+  }
+
+  goAnalytics(user: any): void {
+    this.router.navigate(['/admin/users', user.id, 'analytics']);
   }
 
   getInitials(name: string): string {
     if (!name) return '?';
     return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  getRoleBadge(role: string): string {
+    const map: Record<string, string> = { Admin: 'admin', Moderator: 'mod', User: 'user' };
+    return map[role] ?? 'user';
+  }
+
+  openSendNotification(user: any): void {
+    this.dialog.open(SendNotificationDialogComponent, {
+      width: '540px',
+      panelClass: 'light-dialog',
+      data: { userId: user.id, userName: user.name ?? user.userName }
+    });
+  }
+
+  openMessages(user: any, tab: 'feedback' | 'conversation' = 'feedback'): void {
+    this.dialog.open(UserMessagesDialogComponent, {
+      width: '620px',
+      maxWidth: '95vw',
+      panelClass: 'light-dialog',
+      data: { userId: user.id, userName: user.name ?? user.userName, initialTab: tab }
+    });
+  }
+
+  resetPassword(user: any): void {
+    this.dialog.open(ResetPasswordDialogComponent, {
+      width: '440px',
+      panelClass: 'light-dialog',
+      disableClose: true,
+      data: { userId: user.id, userName: user.name ?? user.userName }
+    });
   }
 }

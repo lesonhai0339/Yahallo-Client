@@ -7,6 +7,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { ToastrService } from 'ngx-toastr';
 import { AdminMangaService } from '../../services/admin-manga.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { PermissionService } from '../../../core/services/permission.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-manga-list',
@@ -29,7 +31,9 @@ export class MangaListComponent implements OnInit, AfterViewInit {
     private mangaService: AdminMangaService,
     private dialog: MatDialog,
     private router: Router,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    public perm: PermissionService,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -45,8 +49,14 @@ export class MangaListComponent implements OnInit, AfterViewInit {
     this.mangaService.getAll(this.pageIndex + 1, this.pageSize).subscribe({
       next: (res: any) => {
         const d = res?.value ?? res;
-        const items = d?.data ?? d?.items ?? [];
-        this.totalCount = d?.totalCount ?? 0;
+        let items = d?.data ?? d?.items ?? [];
+
+        if (this.perm.isOwnMangaOnly()) {
+          const userId = this.auth.currentUser?.id;
+          items = items.filter((m: any) => m.userId === userId);
+        }
+
+        this.totalCount = this.perm.isOwnMangaOnly() ? items.length : (d?.totalCount ?? 0);
         this.dataSource.data = items.map((m: any) => ({
           ...m,
           thumbnail: m.mangaThumbnail ?? null
@@ -73,11 +83,23 @@ export class MangaListComponent implements OnInit, AfterViewInit {
   }
 
   goEdit(manga: any): void {
+    if (!this.perm.canEditManga(manga)) {
+      this.toastr.warning('Bạn không có quyền chỉnh sửa truyện này');
+      return;
+    }
     this.router.navigate(['/admin/manga/edit', manga.id]);
   }
 
   goChapters(manga: any): void {
+    if (!this.perm.canEditManga(manga)) {
+      this.toastr.warning('Bạn không có quyền quản lý chương này');
+      return;
+    }
     this.router.navigate(['/admin/manga', manga.id, 'chapters']);
+  }
+
+  goAnalytics(manga: any): void {
+    this.router.navigate(['/admin/manga', manga.id, 'analytics']);
   }
 
   toggleStatus(manga: any): void {
@@ -132,5 +154,10 @@ export class MangaListComponent implements OnInit, AfterViewInit {
       'Hidden': 'Đã ẩn',
     };
     return map[status] ?? status;
+  }
+
+  get pageTitle(): string {
+    if (this.perm.isOwnMangaOnly()) return 'Truyện của tôi';
+    return 'Quản lý Truyện';
   }
 }
