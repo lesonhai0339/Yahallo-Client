@@ -146,6 +146,7 @@ $header-height: 60px;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .icon-btn {
@@ -831,7 +832,6 @@ $header-height: 60px;
 
   .header-actions {
     gap: 4px;
-    margin-left: auto;
   }
 
   .search-wrapper .search-dropdown {
