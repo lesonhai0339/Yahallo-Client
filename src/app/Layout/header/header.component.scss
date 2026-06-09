@@ -60,11 +60,14 @@ $header-height: 60px;
   }
 
   .logo-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--accent-primary);
-    border-radius: 50%;
-    margin-bottom: 14px;
+    align-self: flex-start;
+    margin-top: 2px;
+
+    img {
+      height: 12px;
+      width: auto;
+      object-fit: contain;
+    }
   }
 }
 
