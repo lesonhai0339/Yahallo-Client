@@ -869,4 +869,22 @@ $header-height: 60px;
     border-right: none;
     border-top: none;
   }
+
+  .search-input-wrap {
+    flex-wrap: wrap;
+
+    .header-prefix-badge {
+      flex: 0 0 100%;
+      order: -1;
+      justify-content: center;
+      margin-bottom: 4px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e7f1;
+    }
+
+    input {
+      min-width: 0;
+      font-size: 0.85rem;
+    }
+  }
 }

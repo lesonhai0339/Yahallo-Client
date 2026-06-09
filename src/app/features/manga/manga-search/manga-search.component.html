@@ -70,54 +70,12 @@
 
   <!-- Category Filter -->
   <div class="filter-section" *ngIf="categories.length > 0">
-    <h3 class="filter-title">{{ 'SEARCH.FILTER_BY_GENRE' | translate }}</h3>
+    <h3 class="filter-title" (click)="isFilterExpanded = !isFilterExpanded">
+      {{ 'SEARCH.FILTER_BY_GENRE' | translate }}
+      <i class="fa-solid ms-2" [class.fa-chevron-down]="!isFilterExpanded" [class.fa-chevron-up]="isFilterExpanded"></i>
+    </h3>
 
-    <!-- Tag selector input (Advanced mode) -->
-    <div class="tag-selector-wrap mb-3" *ngIf="isAdvanced">
-      <div class="tag-selector-box" [class.tag-selector-box--open]="showTagDropdown" [class.tag-selector-box--has-selected]="selectedCategories.length > 0" (click)="focusTagInput()">
-        <button class="tag-selector-indicator" type="button"
-          (mousedown)="toggleTagDropdown(); $event.preventDefault(); $event.stopPropagation()">
-          <i class="fa-solid" [class.fa-chevron-down]="!showTagDropdown" [class.fa-chevron-up]="showTagDropdown"></i>
-        </button>
-
-        <div class="tag-selector-field">
-          <span class="tag-chip" *ngFor="let cat of selectedCategoryItems" (click)="$event.stopPropagation()">
-            {{ cat.genresIdName }}
-            <button class="tag-chip__x" (mousedown)="removeCategory(cat.genreId); $event.preventDefault()" tabindex="-1">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
-          </span>
-
-          <input #tagInput class="tag-selector-input" autocomplete="off"
-            [(ngModel)]="tagSearchText"
-            (input)="onTagInput()" (focus)="onTagFocus()"
-            (keydown)="onTagKeyDown($event)"
-            [placeholder]="selectedCategories.length === 0 ? ('SEARCH.SELECT_GENRE' | translate) : ''">
-        </div>
-
-        <div class="tag-selector-footer" *ngIf="selectedCategories.length > 0" (click)="$event.stopPropagation()">
-          <button class="tag-clear-btn" (mousedown)="clearAllCategories(); $event.preventDefault()" tabindex="-1">
-            <i class="fa-solid fa-xmark"></i> {{ 'SEARCH.CLEAR_ALL' | translate }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Tag dropdown -->
-      <div class="tag-dropdown" *ngIf="showTagDropdown" #tagDropdownEl>
-        <div class="tag-dropdown-item" *ngFor="let cat of filteredCategories; let i = index"
-          [class.tag-dropdown-item--hl]="i === tagHighlightedIndex"
-          (mouseenter)="tagHighlightedIndex = i"
-          (mousedown)="selectCategory(cat); $event.preventDefault()">
-          {{ cat.genresIdName }}
-        </div>
-
-        <div class="tag-dropdown-empty" *ngIf="filteredCategories.length === 0">
-          <i class="fa-solid fa-magnifying-glass-minus"></i>
-          {{ tagSearchText ? 'Không tìm thấy "' + tagSearchText + '"' : 'Tất cả đã được chọn' }}
-        </div>
-      </div>
-    </div>
-
+    <ng-container *ngIf="isFilterExpanded">
     <!-- Author list (collapsible) -->
     <div class="tag-grid-toggle-wrap">
       <button class="tag-grid-toggle" type="button" (click)="showAuthorGrid = !showAuthorGrid">
@@ -126,7 +84,14 @@
       </button>
     </div>
     <div class="tag-filter-grid" *ngIf="showAuthorGrid">
-      <div class="tag-group" *ngFor="let group of groupedAuthors">
+      <div class="tag-grid-filter-input">
+        <input type="text" [(ngModel)]="authorFilter" [ngModelOptions]="{ standalone: true }"
+               [placeholder]="'SEARCH.FILTER_AUTHOR_PLACEHOLDER' | translate">
+        <span class="filter-invalid-label" *ngIf="isAuthorFilterInvalid">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
+        </span>
+      </div>
+      <div class="tag-group" *ngFor="let group of filteredGroupedAuthors">
         <span class="tag-group__letter">{{ group.letter }}</span>
         <div class="tag-group__items">
           <button class="tag-chip-filter" *ngFor="let item of group.items"
@@ -144,7 +109,14 @@
       </button>
     </div>
     <div class="tag-filter-grid" *ngIf="showArtistGrid">
-      <div class="tag-group" *ngFor="let group of groupedArtists">
+      <div class="tag-grid-filter-input">
+        <input type="text" [(ngModel)]="artistFilter" [ngModelOptions]="{ standalone: true }"
+               [placeholder]="'SEARCH.FILTER_ARTIST_PLACEHOLDER' | translate">
+        <span class="filter-invalid-label" *ngIf="isArtistFilterInvalid">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
+        </span>
+      </div>
+      <div class="tag-group" *ngFor="let group of filteredGroupedArtists">
         <span class="tag-group__letter">{{ group.letter }}</span>
         <div class="tag-group__items">
           <button class="tag-chip-filter" *ngFor="let item of group.items"
@@ -162,7 +134,14 @@
       </button>
     </div>
     <div class="tag-filter-grid" *ngIf="showCategoryGrid">
-      <div class="tag-group" *ngFor="let group of groupedCategories">
+      <div class="tag-grid-filter-input">
+        <input type="text" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }"
+               [placeholder]="'SEARCH.FILTER_CATEGORY_PLACEHOLDER' | translate">
+        <span class="filter-invalid-label" *ngIf="isCategoryFilterInvalid">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
+        </span>
+      </div>
+      <div class="tag-group" *ngFor="let group of filteredGroupedCategories">
         <span class="tag-group__letter">{{ group.letter }}</span>
         <div class="tag-group__items">
           <button class="tag-chip-filter" *ngFor="let cat of group.items"
@@ -171,6 +150,7 @@
         </div>
       </div>
     </div>
+    </ng-container>
   </div>
 
   <!-- Results -->
@@ -198,24 +178,6 @@
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- Pagination -->
-    <div class="pagination-wrapper" *ngIf="!isLoading && hasSearched && totalPages > 1">
-      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
-        <i class="fa-solid fa-backward-step"></i>
-      </button>
-      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
-        <i class="fa-solid fa-chevron-left"></i>
-      </button>
-      <button class="page-btn" *ngFor="let page of paginationPages"
-        [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
-      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
-      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
-        <i class="fa-solid fa-forward-step"></i>
-      </button>
     </div>
 
     <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
@@ -248,6 +210,24 @@
     <!-- Grid View -->
     <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid' && results.length > 0">
       <app-manga-card *ngFor="let m of results" [manga]="m" [showTags]="true"></app-manga-card>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper" *ngIf="!isLoading && hasSearched && totalPages > 1">
+      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-backward-step"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button class="page-btn" *ngFor="let page of paginationPages"
+        [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-forward-step"></i>
+      </button>
     </div>
 
     <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">

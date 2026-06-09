@@ -29,6 +29,11 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   private visiblePages = new Set<number>();
   private hasScrolledToInitial = false;
   private destroy$ = new Subject<void>();
+  private touchStartX = 0;
+  private touchStartY = 0;
+  private touchStartTime = 0;
+  private readonly SWIPE_THRESHOLD = 50;
+  private readonly SWIPE_TIME_LIMIT = 300;
 
   ngAfterViewInit(): void {
     this.pageRefs.changes.subscribe(() => {
@@ -105,7 +110,6 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
 
   @HostListener('window:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
-    if (this.direction !== 'horizontal') return;
     const isRtl = this.horizontalDir === 'rtl';
     if (event.key === 'ArrowRight') {
       event.preventDefault();
@@ -113,6 +117,31 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     } else if (event.key === 'ArrowLeft') {
       event.preventDefault();
       this.goToPage(isRtl ? 'next' : 'prev');
+    }
+  }
+
+  onTouchStart(event: TouchEvent): void {
+    if (event.touches.length !== 1) return;
+    this.touchStartX = event.touches[0].clientX;
+    this.touchStartY = event.touches[0].clientY;
+    this.touchStartTime = Date.now();
+  }
+
+  onTouchEnd(event: TouchEvent): void {
+    if (event.changedTouches.length !== 1) return;
+    const dx = event.changedTouches[0].clientX - this.touchStartX;
+    const dy = event.changedTouches[0].clientY - this.touchStartY;
+    const dt = Date.now() - this.touchStartTime;
+
+    if (Math.abs(dx) < this.SWIPE_THRESHOLD) return;
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    if (dt > this.SWIPE_TIME_LIMIT) return;
+
+    const isRtl = this.horizontalDir === 'rtl';
+    if (dx > 0) {
+      this.goToPage(isRtl ? 'next' : 'prev');
+    } else {
+      this.goToPage(isRtl ? 'prev' : 'next');
     }
   }
 

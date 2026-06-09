@@ -62,37 +62,58 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-section">
-          <h3 class="sidebar-title"><i class="fa-solid fa-tags me-2"></i>{{ 'HOME.CATEGORIES' | translate }}</h3>
-          <div class="category-grid">
+          <h3 class="sidebar-title sidebar-title--collapsible"
+              (click)="isCategoriesCollapsed = !isCategoriesCollapsed">
+            <span><i class="fa-solid fa-tags me-2"></i>{{ 'HOME.CATEGORIES' | translate }}</span>
+            <i class="fa-solid sidebar-collapse-icon"
+               [class.fa-chevron-down]="isCategoriesCollapsed"
+               [class.fa-chevron-up]="!isCategoriesCollapsed"
+               *ngIf="isMobile"></i>
+          </h3>
+          <div class="category-grid" *ngIf="!isCategoriesCollapsed || !isMobile">
             <a class="category-chip" *ngFor="let cat of randomCategories"
                [routerLink]="['/search/advanced']" [queryParams]="{ tagId: cat.genreId }">{{ cat.genresIdName }}</a>
           </div>
         </div>
 
         <div class="sidebar-section mt-4">
-          <div class="sidebar-title-row">
-            <h3 class="sidebar-title"><i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_LIST' | translate }}</h3>
-            <a routerLink="/top-manga/views" class="see-more-link">{{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i></a>
+          <div class="sidebar-title-row sidebar-title-row--collapsible"
+               (click)="isTopListCollapsed = !isTopListCollapsed">
+            <h3 class="sidebar-title">
+              <i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_LIST' | translate }}
+            </h3>
+            <div class="sidebar-title-row__right">
+              <a routerLink="/top-manga/views" class="see-more-link"
+                 (click)="$event.stopPropagation()">
+                {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+              </a>
+              <i class="fa-solid sidebar-collapse-icon"
+                 [class.fa-chevron-down]="isTopListCollapsed"
+                 [class.fa-chevron-up]="!isTopListCollapsed"
+                 *ngIf="isMobile"></i>
+            </div>
           </div>
-          <div class="top-period-tabs">
-            <button class="top-period-tab" [class.active]="topListPeriod === 'day'"
-              (click)="onTopListPeriodChange('day')">{{ 'HOME.TOP_DAY' | translate }}</button>
-            <button class="top-period-tab" [class.active]="topListPeriod === 'month'"
-              (click)="onTopListPeriodChange('month')">{{ 'HOME.TOP_MONTH' | translate }}</button>
-            <button class="top-period-tab" [class.active]="topListPeriod === 'year'"
-              (click)="onTopListPeriodChange('year')">{{ 'HOME.TOP_YEAR' | translate }}</button>
-          </div>
-          <div class="top-list">
-            <a class="top-item" *ngFor="let m of trendingManga | slice:0:5; let i = index"
-               [routerLink]="['/manga', m.mangaId]">
-              <span class="top-rank" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{ i+1 }}</span>
-              <img [src]="m.mangaImage" [alt]="m.mangaName" appImageFallback>
-              <div class="top-info">
-                <span class="top-name">{{ m.mangaName }}</span>
-                <span class="top-views"><i class="fa-solid fa-eye me-1"></i>{{ m.totalViews ?? m.view }}</span>
-              </div>
-            </a>
-          </div>
+          <ng-container *ngIf="!isTopListCollapsed || !isMobile">
+            <div class="top-period-tabs">
+              <button class="top-period-tab" [class.active]="topListPeriod === 'day'"
+                (click)="onTopListPeriodChange('day')">{{ 'HOME.TOP_DAY' | translate }}</button>
+              <button class="top-period-tab" [class.active]="topListPeriod === 'month'"
+                (click)="onTopListPeriodChange('month')">{{ 'HOME.TOP_MONTH' | translate }}</button>
+              <button class="top-period-tab" [class.active]="topListPeriod === 'year'"
+                (click)="onTopListPeriodChange('year')">{{ 'HOME.TOP_YEAR' | translate }}</button>
+            </div>
+            <div class="top-list">
+              <a class="top-item" *ngFor="let m of trendingManga | slice:0:5; let i = index"
+                 [routerLink]="['/manga', m.mangaId]">
+                <span class="top-rank" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{ i+1 }}</span>
+                <img [src]="m.mangaImage" [alt]="m.mangaName" appImageFallback>
+                <div class="top-info">
+                  <span class="top-name">{{ m.mangaName }}</span>
+                  <span class="top-views"><i class="fa-solid fa-eye me-1"></i>{{ m.totalViews ?? m.view }}</span>
+                </div>
+              </a>
+            </div>
+          </ng-container>
         </div>
       </aside>
     </div>

@@ -44,11 +44,11 @@
             </div>
             <div class="manga-actions">
               <a class="btn btn-primary btn-lg" *ngIf="chapters.length > 0"
-                 [routerLink]="readChapterLink(chapters[0])">
+                 [routerLink]="readChapterLink(chapters[chapters.length - 1])">
                 <i class="fa-solid fa-book-open me-2"></i>{{ 'MANGA.READ_FROM_START' | translate }}
               </a>
               <a class="btn btn-secondary btn-lg" *ngIf="chapters.length > 0"
-                 [routerLink]="readChapterLink(chapters[chapters.length-1])">
+                 [routerLink]="readChapterLink(chapters[0])">
                 <i class="fa-solid fa-forward me-2"></i>{{ 'MANGA.READ_LATEST' | translate }}
               </a>
               <button class="btn btn-lg"
@@ -174,11 +174,11 @@
                 <span class="chapter-date">{{ formatDate(ch.chapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
               </a>
             </div>
-            <div class="chapter-toggle" *ngIf="chapters.length > 10">
+            <div class="chapter-toggle" *ngIf="chapters.length > 5">
               <button class="btn btn-secondary btn-sm" (click)="showAllChapters = !showAllChapters">
                 <i [class]="showAllChapters ? 'fa-solid fa-chevron-up me-1' : 'fa-solid fa-chevron-down me-1'"></i>
                 <ng-container *ngIf="!showAllChapters">
-                  {{ 'MANGA.SEE_MORE' | translate }} {{ chapters.length - 10 }} {{ 'MANGA.SHOW_MORE_CHAPTERS' | translate }}
+                  {{ 'MANGA.SEE_MORE' | translate }} {{ chapters.length - 5 }} {{ 'MANGA.SHOW_MORE_CHAPTERS' | translate }}
                 </ng-container>
                 <ng-container *ngIf="showAllChapters">{{ 'MANGA.HIDE' | translate }}</ng-container>
               </button>

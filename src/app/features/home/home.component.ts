@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { MangaService } from '../../core/services/manga.service';
 import { MasterDataService } from '../../core/services/master-data.service';
@@ -20,12 +20,26 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   topListPeriod: 'day' | 'month' | 'year' = 'month';
 
+  isMobile = false;
+  isCategoriesCollapsed = false;
+  isTopListCollapsed = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(private mangaService: MangaService, private masterData: MasterDataService) {}
 
   ngOnInit(): void {
+    this.isMobile = window.innerWidth <= 992;
+    if (this.isMobile) {
+      this.isCategoriesCollapsed = true;
+      this.isTopListCollapsed = true;
+    }
     this.loadData();
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.isMobile = window.innerWidth <= 992;
   }
 
   ngOnDestroy(): void {

@@ -114,10 +114,22 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.notifService.unreadCount.pipe(takeUntil(this.destroy$)).subscribe(c => this.unreadCount = c);
     this.notifService.notifications.pipe(takeUntil(this.destroy$)).subscribe(n => this.notifications = n.slice(0, 8));
 
-    this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => this.categories = c);
-    this.masterData.tags$.pipe(takeUntil(this.destroy$)).subscribe(t => this.tags = t);
-    this.masterData.authors$.pipe(takeUntil(this.destroy$)).subscribe(a => this.authors = a);
-    this.masterData.artists$.pipe(takeUntil(this.destroy$)).subscribe(a => this.artists = a);
+    this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => {
+      this.categories = c;
+      this.refreshRecommendIfActive();
+    });
+    this.masterData.tags$.pipe(takeUntil(this.destroy$)).subscribe(t => {
+      this.tags = t;
+      this.refreshRecommendIfActive();
+    });
+    this.masterData.authors$.pipe(takeUntil(this.destroy$)).subscribe(a => {
+      this.authors = a;
+      this.refreshRecommendIfActive();
+    });
+    this.masterData.artists$.pipe(takeUntil(this.destroy$)).subscribe(a => {
+      this.artists = a;
+      this.refreshRecommendIfActive();
+    });
 
     this.searchSubject.pipe(
       debounceTime(200),
@@ -448,10 +460,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private get recommendSource(): RecommendItem[] {
     switch (this.selectedPrefix?.prefix) {
-      case 'tag:': return this.tags;
+      case 'tag:':
+        const catItems: RecommendItem[] = this.categories.map((c: any) => ({ id: c.genreId, name: c.genresIdName }));
+        return [...this.tags, ...catItems];
       case 'author:': return this.authors;
       case 'artist:': return this.artists;
       default: return [];
+    }
+  }
+
+  private refreshRecommendIfActive(): void {
+    if (this.showRecommend && this.hasRecommendSource) {
+      this.updateRecommend(this.searchQuery.trim().toLowerCase());
     }
   }
 

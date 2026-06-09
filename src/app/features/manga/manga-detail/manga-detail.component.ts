@@ -29,7 +29,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   sameArtistManga: MangaSumaryDto[] = [];
 
   get visibleChapters(): Chapter[] {
-    return this.showAllChapters ? this.chapters : this.chapters.slice(0, 10);
+    return this.showAllChapters ? this.chapters : this.chapters.slice(0, 5);
   }
 
   get authorNames(): string {
@@ -95,7 +95,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
 
   loadChapters(): void {
     this.mangaService.getChapters(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(c => {
-      this.chapters = (c || []).sort((a, b) => a.index - b.index);
+      this.chapters = (c || []).sort((a, b) => b.index - a.index);
     });
   }
 

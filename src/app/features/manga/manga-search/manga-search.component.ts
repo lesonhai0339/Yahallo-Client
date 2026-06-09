@@ -30,7 +30,6 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   searchQuery = '';
   isLoading = false;
   hasSearched = false;
-  isAdvanced = false;
 
   currentPage = 1;
   totalPages = 1;
@@ -42,10 +41,6 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   showPrefixHints = false;
   highlightedPrefixIndex = -1;
   selectedPrefix: SearchPrefix | null = null;
-  showTagDropdown = false;
-  tagSearchText = '';
-  tagHighlightedIndex = -1;
-
   showAuthorGrid = false;
   showArtistGrid = false;
   showCategoryGrid = false;
@@ -58,6 +53,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   authors: RecommendItem[] = [];
   artists: RecommendItem[] = [];
 
+  isFilterExpanded = true;
+  authorFilter = '';
+  artistFilter = '';
+  categoryFilter = '';
+
   readonly prefixOptions: SearchPrefix[] = [
     { prefix: 'tag:',    label: 'SEARCH.PREFIX_TAG',    icon: 'fa-solid fa-tags',    hint: 'SEARCH.PREFIX_TAG_HINT' },
     { prefix: 'name:',   label: 'SEARCH.PREFIX_NAME',   icon: 'fa-solid fa-book',    hint: 'SEARCH.PREFIX_NAME_HINT' },
@@ -67,8 +67,6 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   filteredPrefixOptions: SearchPrefix[] = [];
 
   @ViewChild('searchInput') searchInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('tagInput') tagInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('tagDropdownEl') tagDropdownEl?: ElementRef<HTMLElement>;
 
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
@@ -84,15 +82,27 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.isAdvanced = this.router.url.includes('advanced');
+    if (window.innerWidth <= 992) {
+      this.isFilterExpanded = false;
+    }
 
     this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => {
       this.categories = c;
       this.applyPendingParams();
+      this.refreshRecommendIfActive();
     });
-    this.masterData.tags$.pipe(takeUntil(this.destroy$)).subscribe(t => this.tags = t);
-    this.masterData.authors$.pipe(takeUntil(this.destroy$)).subscribe(a => this.authors = a);
-    this.masterData.artists$.pipe(takeUntil(this.destroy$)).subscribe(a => this.artists = a);
+    this.masterData.tags$.pipe(takeUntil(this.destroy$)).subscribe(t => {
+      this.tags = t;
+      this.refreshRecommendIfActive();
+    });
+    this.masterData.authors$.pipe(takeUntil(this.destroy$)).subscribe(a => {
+      this.authors = a;
+      this.refreshRecommendIfActive();
+    });
+    this.masterData.artists$.pipe(takeUntil(this.destroy$)).subscribe(a => {
+      this.artists = a;
+      this.refreshRecommendIfActive();
+    });
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       if (params['tagId'] || (params['prefix'] && params['q'])) {
@@ -173,7 +183,6 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   onDocumentClick(e: MouseEvent): void {
     if (!this.host.nativeElement.contains(e.target as Node)) {
       this.showPrefixHints = false;
-      this.showTagDropdown = false;
       this.showRecommend = false;
     }
   }
@@ -471,10 +480,18 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   private get recommendSource(): RecommendItem[] {
     switch (this.selectedPrefix?.prefix) {
-      case 'tag:': return this.tags;
+      case 'tag:':
+        const catItems: RecommendItem[] = this.categories.map((c: any) => ({ id: c.genreId, name: c.genresIdName }));
+        return [...this.tags, ...catItems];
       case 'author:': return this.authors;
       case 'artist:': return this.artists;
       default: return [];
+    }
+  }
+
+  private refreshRecommendIfActive(): void {
+    if (this.showRecommend && this.hasRecommendSource) {
+      this.updateRecommend(this.searchQuery.trim().toLowerCase());
     }
   }
 
@@ -501,87 +518,6 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.searchQuery = item.name;
     this.hideRecommend();
     setTimeout(() => this.doSearch());
-  }
-
-  // ── Category multi-tag selector (Advanced) ────────────────────────────────
-
-  get selectedCategoryItems(): any[] {
-    return this.categories.filter(c => this.selectedCategories.includes(c.genreId));
-  }
-
-  get filteredCategories(): any[] {
-    const q = this.tagSearchText.toLowerCase().trim();
-    return this.categories
-      .filter(c =>
-        !this.selectedCategories.includes(c.genreId) &&
-        (!q || c.genresIdName.toLowerCase().includes(q))
-      )
-      .slice(0, 15);
-  }
-
-  focusTagInput(): void {
-    this.tagInputRef?.nativeElement.focus();
-  }
-
-  toggleTagDropdown(): void {
-    this.showTagDropdown = !this.showTagDropdown;
-    if (this.showTagDropdown) {
-      this.tagHighlightedIndex = this.filteredCategories.length ? 0 : -1;
-      setTimeout(() => this.tagInputRef?.nativeElement.focus(), 0);
-    }
-  }
-
-  onTagFocus(): void {
-    this.showTagDropdown = true;
-    this.tagHighlightedIndex = this.filteredCategories.length ? 0 : -1;
-  }
-
-  onTagInput(): void {
-    this.showTagDropdown = true;
-    this.tagHighlightedIndex = this.filteredCategories.length ? 0 : -1;
-  }
-
-  onTagKeyDown(event: KeyboardEvent): void {
-    const items = this.filteredCategories;
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        this.showTagDropdown = true;
-        this.tagHighlightedIndex = Math.min(this.tagHighlightedIndex + 1, items.length - 1);
-        this.scrollToTagHighlighted();
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        this.tagHighlightedIndex = Math.max(this.tagHighlightedIndex - 1, 0);
-        this.scrollToTagHighlighted();
-        break;
-      case 'Enter':
-        event.preventDefault();
-        if (this.tagHighlightedIndex >= 0 && items[this.tagHighlightedIndex]) {
-          this.selectCategory(items[this.tagHighlightedIndex]);
-        }
-        break;
-      case 'Escape':
-        this.showTagDropdown = false;
-        break;
-      case 'Backspace':
-        if (!this.tagSearchText && this.selectedCategories.length) {
-          this.removeLastCategory();
-        }
-        break;
-    }
-  }
-
-  selectCategory(cat: any): void {
-    if (!this.selectedCategories.includes(cat.genreId)) {
-      this.selectedCategories = [...this.selectedCategories, cat.genreId];
-      this.currentPage = 1;
-      this.searchByCategories();
-    }
-    this.tagSearchText = '';
-    this.showTagDropdown = false;
-    this.tagHighlightedIndex = -1;
-    setTimeout(() => this.tagInputRef?.nativeElement.focus(), 0);
   }
 
   removeCategory(id: string): void {
@@ -635,6 +571,40 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   get groupedCategories(): { letter: string; items: any[] }[] {
     const mapped = this.categories.map((c: any) => ({ ...c, name: c.genresIdName }));
     return this.groupByLetter(mapped);
+  }
+
+  get filteredGroupedAuthors(): { letter: string; items: RecommendItem[] }[] {
+    const q = this.authorFilter.trim().toLowerCase();
+    const filtered = q ? this.authors.filter(a => a.name.toLowerCase().includes(q)) : this.authors;
+    return this.groupByLetter(filtered);
+  }
+
+  get filteredGroupedArtists(): { letter: string; items: RecommendItem[] }[] {
+    const q = this.artistFilter.trim().toLowerCase();
+    const filtered = q ? this.artists.filter(a => a.name.toLowerCase().includes(q)) : this.artists;
+    return this.groupByLetter(filtered);
+  }
+
+  get filteredGroupedCategories(): { letter: string; items: any[] }[] {
+    const mapped = this.categories.map((c: any) => ({ ...c, name: c.genresIdName }));
+    const q = this.categoryFilter.trim().toLowerCase();
+    const filtered = q ? mapped.filter(c => c.name.toLowerCase().includes(q)) : mapped;
+    return this.groupByLetter(filtered);
+  }
+
+  get isAuthorFilterInvalid(): boolean {
+    const q = this.authorFilter.trim().toLowerCase();
+    return !!q && !this.authors.some(a => a.name.toLowerCase().includes(q));
+  }
+
+  get isArtistFilterInvalid(): boolean {
+    const q = this.artistFilter.trim().toLowerCase();
+    return !!q && !this.artists.some(a => a.name.toLowerCase().includes(q));
+  }
+
+  get isCategoryFilterInvalid(): boolean {
+    const q = this.categoryFilter.trim().toLowerCase();
+    return !!q && !this.categories.some((c: any) => c.genresIdName.toLowerCase().includes(q));
   }
 
   selectAuthorChip(author: RecommendItem): void {
@@ -708,10 +678,4 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     });
   }
 
-  private scrollToTagHighlighted(): void {
-    if (!this.tagDropdownEl) return;
-    const el = this.tagDropdownEl.nativeElement;
-    const item = el.querySelectorAll('.tag-dropdown-item')[this.tagHighlightedIndex] as HTMLElement;
-    item?.scrollIntoView({ block: 'nearest' });
-  }
 }

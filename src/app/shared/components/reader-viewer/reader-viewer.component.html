@@ -1,4 +1,5 @@
-<div class="reader-content" [class.horizontal]="direction === 'horizontal'">
+<div class="reader-content" [class.horizontal]="direction === 'horizontal'"
+     (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
   <!-- Vertical mode -->
   <ng-container *ngIf="direction === 'vertical'">
     <div class="reader-page-wrapper" *ngFor="let img of images; let i = index"

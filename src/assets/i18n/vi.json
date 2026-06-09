@@ -116,7 +116,11 @@
     "NO_RECOMMEND_MATCH": "Không tìm thấy kết quả phù hợp",
     "TAG_LIST": "Danh sách thể loại",
     "AUTHOR_LIST": "Danh sách tác giả",
-    "ARTIST_LIST": "Danh sách họa sĩ"
+    "ARTIST_LIST": "Danh sách họa sĩ",
+    "FILTER_AUTHOR_PLACEHOLDER": "Lọc tác giả...",
+    "FILTER_ARTIST_PLACEHOLDER": "Lọc họa sĩ...",
+    "FILTER_CATEGORY_PLACEHOLDER": "Lọc thể loại...",
+    "FILTER_NO_MATCH": "Không tìm thấy"
   },
   "AUTH": {
     "LOGIN_TITLE": "Chào mừng trở lại",

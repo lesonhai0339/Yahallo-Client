@@ -116,7 +116,11 @@
     "NO_RECOMMEND_MATCH": "No matches found",
     "TAG_LIST": "Genre list",
     "AUTHOR_LIST": "Author list",
-    "ARTIST_LIST": "Artist list"
+    "ARTIST_LIST": "Artist list",
+    "FILTER_AUTHOR_PLACEHOLDER": "Filter authors...",
+    "FILTER_ARTIST_PLACEHOLDER": "Filter artists...",
+    "FILTER_CATEGORY_PLACEHOLDER": "Filter categories...",
+    "FILTER_NO_MATCH": "No match"
   },
   "AUTH": {
     "LOGIN_TITLE": "Welcome back",
