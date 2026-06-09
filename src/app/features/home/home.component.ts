@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { MangaService } from '../../core/services/manga.service';
 import { MasterDataService } from '../../core/services/master-data.service';
-import { MangaSumaryDto } from 'src/app/core/models/manga.interface';
+import { MangaSumaryDto } from '../../core/models/manga.interface';
 
 @Component({
   selector: 'app-home',

@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Manga } from '../../../core/models/interfaces';
-import { MangaSumaryDto, TagDto } from 'src/app/core/models/manga.interface';
+import { MangaSumaryDto, TagDto } from '../../../core/models/manga.interface';
 
 @Component({
   selector: 'app-manga-sumary-card',

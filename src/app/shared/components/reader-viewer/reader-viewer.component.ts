@@ -4,7 +4,7 @@ import {
   AfterViewInit, OnDestroy, OnChanges, SimpleChanges, HostListener
 } from '@angular/core';
 import { Subject } from 'rxjs';
-import { ChapterImage } from 'src/app/core/models/chapter.interface';
+import { ChapterImage } from '../../../core/models/chapter.interface';
 
 @Component({
   selector: 'app-reader-viewer',

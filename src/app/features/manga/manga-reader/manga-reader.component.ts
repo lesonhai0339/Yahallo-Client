@@ -5,7 +5,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
-import { ChapterImage } from 'src/app/core/models/chapter.interface';
+import { ChapterImage } from '../../../core/models/chapter.interface';
 
 export interface ReaderSettings {
   direction: 'vertical' | 'horizontal';
