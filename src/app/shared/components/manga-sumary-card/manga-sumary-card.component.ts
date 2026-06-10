@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, Renderer2 } from '@angular/core';
 import { Router } from '@angular/router';
 import { Manga } from '../../../core/models/interfaces';
 import { MangaSumaryDto, TagDto } from '../../../core/models/manga.interface';
@@ -8,21 +8,59 @@ import { MangaSumaryDto, TagDto } from '../../../core/models/manga.interface';
   templateUrl: './manga-sumary-card.component.html',
   styleUrls: ['./manga-sumary-card.component.scss']
 })
-export class MangaSumaryCardComponent implements OnInit {
-  @Input() manga!: MangaSumaryDto;
-  @Input() showTags = false;
-  @Output() clicked = new EventEmitter<MangaSumaryDto>();
+export class MangaSumaryCardComponent implements OnInit, AfterViewInit, OnDestroy {
+  @Input() manga!: MangaSumaryDto | Manga | any;
+  @Input() showTags = true;
+  @Output() clicked = new EventEmitter<any>();
+  @ViewChild('tagsContainer') tagsContainer!: ElementRef<HTMLElement>;
 
   sortedTags: TagDto[] = [];
+  private resizeObserver?: ResizeObserver;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private renderer: Renderer2) {}
 
-  // TODO: remove mock tags when API returns tags
   ngOnInit(): void {
-    const tags = this.manga.tags;
+    const tags = this.manga.tags ?? [];
     this.sortedTags = [...tags]
-      .sort((a, b) => a.name.length - b.name.length)
+      .sort((a: any, b: any) => a.name.length - b.name.length)
       .slice(0, 6);
+  }
+
+  ngAfterViewInit(): void {
+    requestAnimationFrame(() => this.trimTags());
+    if (this.tagsContainer) {
+      this.resizeObserver = new ResizeObserver(() => this.trimTags());
+      this.resizeObserver.observe(this.tagsContainer.nativeElement);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+  }
+
+  private trimTags(): void {
+    if (!this.tagsContainer) return;
+    const container = this.tagsContainer.nativeElement;
+    const chips = Array.from(container.children) as HTMLElement[];
+    const maxWidth = container.clientWidth;
+
+    chips.forEach(c => this.renderer.setStyle(c, 'display', 'inline-flex'));
+
+    if (maxWidth <= 0) return;
+
+    let usedWidth = 0;
+    const gap = 4;
+    for (let i = 0; i < chips.length; i++) {
+      const chipWidth = chips[i].offsetWidth;
+      const needed = i === 0 ? chipWidth : gap + chipWidth;
+      if (usedWidth + needed > maxWidth) {
+        for (let j = i; j < chips.length; j++) {
+          this.renderer.setStyle(chips[j], 'display', 'none');
+        }
+        return;
+      }
+      usedWidth += needed;
+    }
   }
 
   goToTag(event: Event, tagId: string): void {
@@ -34,7 +72,7 @@ export class MangaSumaryCardComponent implements OnInit {
   goToChapter(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    const chapterId = this.manga.lastChapterId;
+    const chapterId = this.manga.lastChapterId ?? this.manga.lastestChapter?.id;
     if (chapterId) {
       this.router.navigate(['/manga', this.manga.id, 'chapter', chapterId, 0]);
     }
@@ -52,7 +90,12 @@ export class MangaSumaryCardComponent implements OnInit {
   }
 
   getLatestChapter(): string {
-    return `Chương ${this.manga.lastChapterIndex ?? 'N/A'}`;
+    const idx = this.manga.lastChapterIndex ?? this.manga.lastestChapter?.index;
+    return `Chương ${idx ?? 'N/A'}`;
+  }
+
+  getLastChapterUpdate(): string | null {
+    return this.manga.lastChapterUpdate ?? this.manga.lastestChapter?.createDate ?? null;
   }
 
   getTimeAgo(date: string): string {

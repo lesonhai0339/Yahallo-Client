@@ -5,6 +5,7 @@ import { ToastrService } from 'ngx-toastr';
 import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserInteractionService } from '../../../core/services/user-interaction.service';
+import { SeoService } from '../../../core/services/seo.service';
 import { MangaDetail, Chapter, Manga } from '../../../core/models/interfaces';
 import { MangaSumaryDto } from '../../../core/models/manga.interface';
 
@@ -56,7 +57,8 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     private mangaService: MangaService,
     private authService: AuthService,
     private userInteraction: UserInteractionService,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private seo: SeoService
   ) {}
 
   ngOnInit(): void {
@@ -68,6 +70,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.seo.resetToDefault();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -79,6 +82,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.manga = m;
         this.manga.description = 'Trong một thế giới nơi con người sống chung với yêu quái và ma thuật, chàng trai trẻ Takeshi vô tình phát hiện mình sở hữu sức mạnh cổ đại bị phong ấn hàng ngàn năm. Khi các thế lực bóng tối bắt đầu trỗi dậy và đe dọa hủy diệt cả thế giới, Takeshi buộc phải rời bỏ cuộc sống bình yên tại ngôi làng nhỏ để bắt đầu hành trình tìm kiếm sự thật về nguồn gốc sức mạnh của mình. Trên đường đi, anh gặp gỡ những người đồng hành đáng tin cậy — một nữ kiếm sĩ lạnh lùng với quá khứ bí ẩn, một pháp sư trẻ tuổi nhưng tài năng xuất chúng, và một tên trộm ranh mãnh nhưng tốt bụng. Cùng nhau, họ đối mặt với vô số thử thách, từ những trận chiến khốc liệt với quân đoàn bóng tối cho đến những âm mưu chính trị phức tạp trong triều đình. Liệu Takeshi có thể kiểm soát được sức mạnh đang ngày càng bùng phát trong mình, hay nó sẽ nuốt chửng anh trước khi anh kịp cứu thế giới?';
         this.isLoading = false;
+        this.seo.setMangaDetail(this.manga);
         this.addView();
         this.loadRelatedManga();
         this.loadUserRating();

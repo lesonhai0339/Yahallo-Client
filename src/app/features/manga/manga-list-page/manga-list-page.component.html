@@ -41,7 +41,8 @@
         <div class="manga-row__info">
           <div class="manga-row__name">{{ manga.name }}</div>
           <div class="manga-row__tags" *ngIf="manga.tags?.length">
-            <span class="row-tag" *ngFor="let t of manga.tags | slice:0:3">{{ t.name }}</span>
+            <button class="row-tag row-tag--link" *ngFor="let t of manga.tags | slice:0:3"
+              (click)="goToTag($event, t.id)">{{ t.name }}</button>
           </div>
         </div>
 

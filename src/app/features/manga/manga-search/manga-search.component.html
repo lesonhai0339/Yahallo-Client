@@ -209,7 +209,7 @@
 
     <!-- Grid View -->
     <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid' && results.length > 0">
-      <app-manga-card *ngFor="let m of results" [manga]="m" [showTags]="true"></app-manga-card>
+      <app-manga-sumary-card *ngFor="let m of results" [manga]="m" [showTags]="false"></app-manga-sumary-card>
     </div>
 
     <!-- Pagination -->

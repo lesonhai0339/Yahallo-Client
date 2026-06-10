@@ -198,6 +198,12 @@ export class TopMangaComponent implements OnInit, OnDestroy {
     return (this.currentPage - 1) * this.pageSize + index + 1;
   }
 
+  goToTag(event: Event, tagId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.router.navigate(['/search/advanced'], { queryParams: { tagId } });
+  }
+
   formatViews(views: number): string {
     if (!views) return '0';
     if (views >= 1_000_000) return (views / 1_000_000).toFixed(1) + 'M';

@@ -301,6 +301,17 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
+
+  &--link {
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+    &:hover {
+      background: rgba(233,69,96,0.12);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+  }
 }
 
 .stat {

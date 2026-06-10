@@ -148,8 +148,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
         );
       }),
       takeUntil(this.destroy$)
-    ).subscribe(results => {
-      this.searchResults = (results as any[]).slice(0, 6);
+    ).subscribe((results: any) => {
+      if (Array.isArray(results)) {
+        this.searchResults = results;
+      } else {
+        this.searchResults = (results.data ?? []).slice(0, 6);
+        this.searchTotalCount = results.totalCount || 0;
+      }
       this.hasSearched = true;
     });
   }
@@ -477,7 +482,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private updateRecommend(query: string): void {
     const source = this.recommendSource;
-    this.recommendList = (!query ? source : source.filter(item => item.name.toLowerCase().includes(query))).slice(0, 12);
+    this.recommendList = !query ? source : source.filter(item => item.name.toLowerCase().includes(query));
     this.showRecommend = true;
     this.recommendIndex = this.recommendList.length > 0 ? 0 : -1;
   }

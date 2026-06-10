@@ -5,6 +5,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
+import { SeoService } from '../../../core/services/seo.service';
 import { ChapterImage } from '../../../core/models/chapter.interface';
 
 export interface ReaderSettings {
@@ -54,7 +55,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     private location: Location,
     private mangaService: MangaService,
     private authService: AuthService,
-    private readingProgress: ReadingProgressService
+    private readingProgress: ReadingProgressService,
+    private seo: SeoService
   ) {}
 
   ngOnInit(): void {
@@ -70,6 +72,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.seo.resetToDefault();
     document.body.classList.remove('header-hidden');
     this.destroy$.next();
     this.destroy$.complete();
@@ -93,6 +96,14 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
       .subscribe(chapters => {
         this.chapters = chapters.sort((a, b) => a.index - b.index) || [];
         this.currentChapterIndex = this.chapters.findIndex(c => c.id === this.chapterId);
+        const ch = this.currentChapter;
+        this.seo.setChapterReader({
+          mangaName: this.mangaName || 'Manga',
+          mangaId: this.mangaId,
+          chapterId: this.chapterId,
+          chapterIndex: ch?.index,
+          chapterTitle: ch?.title,
+        });
       });
   }
 

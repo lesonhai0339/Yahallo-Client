@@ -509,7 +509,7 @@
   ::ng-deep .manga-card__tags { gap: 2px;
     .tag-chip { font-size: 0.55rem; padding: 1px 3px; }
   }
-  ::ng-deep .manga-card__meta { display: none; }
+  ::ng-deep .manga-card__meta { font-size: 0.65rem; padding-top: 4px; }
 
   @media (max-width: 1200px) { grid-template-columns: repeat(4, 1fr); }
   @media (max-width: 992px) { grid-template-columns: repeat(3, 1fr); }

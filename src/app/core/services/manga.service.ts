@@ -55,6 +55,30 @@ export class MangaService {
     );
   }
 
+  getNewestMangaPaginated(page: number, pageSize = 20): Observable<{ data: MangaSumaryDto[]; totalPages: number; totalCount: number }> {
+    return this.getNewestUpdatePaginated(page, pageSize).pipe(
+      map((res: any) => {
+        const raw = res?.value ?? res;
+        const data = (raw?.data ?? []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          mangaThumbnail: t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
+          totalViews: t.totalViews ?? 0,
+          averageRating: t.averageRating ?? 0,
+          tags: t.tags ?? [],
+          lastChapterId: t.lastestChapter?.id ?? t.lastChapterId,
+          lastChapterIndex: t.lastestChapter?.index ?? t.lastChapterIndex,
+          lastChapterUpdate: t.lastestChapter?.createDate ?? t.lastChapterUpdate ?? t.updateDate,
+        } as MangaSumaryDto));
+        const totalCount = raw?.totalCount ?? raw?.total ?? 0;
+        const totalPages = raw?.totalPages ?? raw?.pageCount
+          ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        return { data, totalPages, totalCount };
+      })
+    );
+  }
+
   /** @deprecated Pagination metadata comes from getPaginated() */
   getPageCount(): Observable<number> {
     return this.getPaginated(1, 1).pipe(
@@ -67,13 +91,16 @@ export class MangaService {
   }
 
   getTopMangaPaginated(page = 1, pageSize = 20): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
-    return this.getPaginated(page, pageSize).pipe(
+    const params = new HttpParams()
+      .set('pageNumber', page)
+      .set('pageSize', pageSize);
+    return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
       map((res: any) => {
         const raw = res?.value ?? res;
         const items = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
           name: t.name,
-          mangaThumbnail: t.mangaThumbnail,
+          mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           status: t.status,
           totalViews: t.totalViews ?? 0,
@@ -101,6 +128,32 @@ export class MangaService {
   // TODO: replace with dedicated popular API when available
   getPopular(page = 1, pageSize = 12): Observable<MangaSumaryDto[]> {
     return this.getNewestManga(page, pageSize);
+  }
+
+  getPopularPaginated(page = 1, pageSize = 20): Observable<{ data: MangaSumaryDto[]; totalPages: number; totalCount: number }> {
+    const params = new HttpParams()
+      .set('pageNumber', page)
+      .set('pageSize', pageSize);
+    return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
+      map((res: any) => {
+        const raw = res?.value ?? res;
+        const data = (raw?.data ?? []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
+          totalViews: t.totalViews ?? 0,
+          averageRating: t.averageRating ?? 0,
+          tags: t.tags ?? [],
+          lastChapterId: t.lastestChapter?.id ?? t.lastChapterId,
+          lastChapterIndex: t.lastestChapter?.index ?? t.lastChapterIndex,
+          lastChapterUpdate: t.lastestChapter?.createDate ?? t.lastChapterUpdate ?? t.updateDate,
+        } as MangaSumaryDto));
+        const totalCount = raw?.totalCount ?? 0;
+        const totalPages = raw?.totalPages ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        return { data, totalPages, totalCount };
+      })
+    );
   }
 
   getRecommended(page = 1, pageSize = 12): Observable<Manga[]> {

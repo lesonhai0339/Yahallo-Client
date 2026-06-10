@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/sitemap.xml", "destination": "https://api.yahallo.online/sitemap.xml" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}

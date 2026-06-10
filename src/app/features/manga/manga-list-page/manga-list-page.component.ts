@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { MangaSumaryDto } from '../../../core/models/manga.interface';
@@ -28,7 +28,8 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
 
   constructor(
     private mangaService: MangaService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -45,13 +46,15 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
 
   loadPage(): void {
     this.isLoading = true;
-    this.mangaService.getNewestManga(this.currentPage, this.pageSize)
-      .pipe(takeUntil(this.destroy$))
+    const api$ = this.mode === 'popular'
+      ? this.mangaService.getPopularPaginated(this.currentPage, this.pageSize)
+      : this.mangaService.getNewestMangaPaginated(this.currentPage, this.pageSize);
+    api$.pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => {
-          this.mangaList = data || [];
-          this.totalPages = Math.max(1, Math.ceil(this.mangaList.length / this.pageSize));
-          this.totalCount = this.mangaList.length;
+        next: (result) => {
+          this.mangaList = result.data;
+          this.totalPages = result.totalPages;
+          this.totalCount = result.totalCount;
           this.displayList = [...this.mangaList];
           this.isLoading = false;
         },
@@ -67,13 +70,7 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
     if (size === this.pageSize) return;
     this.pageSize = size;
     this.currentPage = 1;
-    this.totalPages = Math.max(1, Math.ceil(this.totalCount / size));
-
-    if (size <= this.mangaList.length) {
-      this.displayList = this.mangaList.slice(0, size);
-    } else {
-      this.loadPage();
-    }
+    this.loadPage();
   }
 
   goToPage(page: number): void {
@@ -90,6 +87,12 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
     const to = Math.min(this.totalPages, this.currentPage + delta);
     for (let i = from; i <= to; i++) pages.push(i);
     return pages;
+  }
+
+  goToTag(event: Event, tagId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.router.navigate(['/search/advanced'], { queryParams: { tagId } });
   }
 
   formatViews(views: number): string {

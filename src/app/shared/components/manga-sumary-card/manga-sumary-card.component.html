@@ -2,8 +2,8 @@
   <div class="manga-card__image">
     <img [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback loading="lazy">
     <div class="manga-card__overlay"></div>
-    <span class="manga-card__update-time" *ngIf="manga.lastChapterUpdate">
-      <i class="fa-regular fa-clock me-1"></i>{{ getTimeAgo(manga.lastChapterUpdate) }}
+    <span class="manga-card__update-time" *ngIf="getLastChapterUpdate()">
+      <i class="fa-regular fa-clock me-1"></i>{{ getTimeAgo(getLastChapterUpdate()!) }}
     </span>
     <button class="manga-card__chapter" (click)="goToChapter($event)" *ngIf="manga">
       <i class="fa-solid fa-book-open me-1" style="font-size:0.7rem"></i>{{ getLatestChapter() }}
@@ -11,7 +11,7 @@
   </div>
   <div class="manga-card__info">
     <div class="manga-card__title" [title]="manga.name">{{ manga.name }}</div>
-    <div class="manga-card__tags">
+    <div class="manga-card__tags" #tagsContainer *ngIf="showTags">
       <button class="tag-chip" *ngFor="let cat of sortedTags" (click)="goToTag($event, cat.id)">{{ cat.name }}</button>
     </div>
     <div class="manga-card__meta">

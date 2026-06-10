@@ -63,7 +63,7 @@
     <!-- Following -->
     <div *ngSwitchCase="'following'">
       <div class="manga-grid" *ngIf="following.length > 0">
-        <app-manga-card *ngFor="let m of following" [manga]="m"></app-manga-card>
+        <app-manga-sumary-card *ngFor="let m of following" [manga]="m"></app-manga-sumary-card>
       </div>
       <div class="empty-state" *ngIf="following.length === 0">
         <i class="fa-regular fa-heart-broken"></i>
