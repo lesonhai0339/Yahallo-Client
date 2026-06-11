@@ -18,3 +18,21 @@ export interface TagDto{
     name: string,
     description: string,
 }
+
+export interface TopMangaDto {
+    id: string;
+    name: string;
+    mangaThumbnail: string;
+    view: number;
+}
+
+export interface HomepageDto {
+    lastUpdate: MangaSumaryDto[];
+    popular: MangaSumaryDto[];
+    tags: TagDto[];
+    authors: { id: string; name: string; depscription: string; countries: number }[];
+    artists: { id: string; name: string; depscription: string; countries: number }[];
+    topMangaByDate: TopMangaDto[];
+    topMangaByMonth: TopMangaDto[];
+    topMangaByYear: TopMangaDto[];
+}

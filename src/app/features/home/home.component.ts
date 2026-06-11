@@ -1,8 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
-import { Subject, forkJoin, takeUntil } from 'rxjs';
-import { MangaService } from '../../core/services/manga.service';
+import { Subject, takeUntil } from 'rxjs';
 import { MasterDataService } from '../../core/services/master-data.service';
-import { MangaSumaryDto } from '../../core/models/manga.interface';
+import { MangaSumaryDto, TopMangaDto } from '../../core/models/manga.interface';
 
 @Component({
   selector: 'app-home',
@@ -12,12 +11,13 @@ import { MangaSumaryDto } from '../../core/models/manga.interface';
 export class HomeComponent implements OnInit, OnDestroy {
   latestManga: MangaSumaryDto[] = [];
   popularManga: MangaSumaryDto[] = [];
-  recommendedManga: MangaSumaryDto[] = [];
-  trendingManga: any[] = [];
   categories: any[] = [];
   randomCategories: any[] = [];
   isLoading = true;
 
+  topByDay: TopMangaDto[] = [];
+  topByMonth: TopMangaDto[] = [];
+  topByYear: TopMangaDto[] = [];
   topListPeriod: 'day' | 'month' | 'year' = 'month';
 
   isMobile = false;
@@ -26,7 +26,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private mangaService: MangaService, private masterData: MasterDataService) {}
+  constructor(private masterData: MasterDataService) {}
 
   ngOnInit(): void {
     this.isMobile = window.innerWidth <= 992;
@@ -49,36 +49,36 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   loadData(): void {
     this.isLoading = true;
+
     this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => {
       this.categories = c;
       this.randomCategories = [...c].sort(() => Math.random() - 0.5).slice(0, 20);
     });
 
-    forkJoin({
-      latest: this.mangaService.getNewestManga(1, 12),
-      popular: this.mangaService.getPopular(1, 6),
-      recommended: this.mangaService.getNewestManga(2, 6)
-    }).pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: ({ latest, popular, recommended }) => {
-          this.latestManga = latest || [];
-          this.trendingManga = (latest || []).slice(0, 5).map((m: any) => ({
-            mangaId: m.id, mangaName: m.name, mangaImage: m.mangaThumbnail,
-            totalViews: m.totalViews, averageRating: m.averageRating
-          }));
-          this.popularManga = popular || [];
-          this.recommendedManga = recommended || [];
-          this.isLoading = false;
-        },
-        error: () => {
-          this.isLoading = false;
-        }
-      });
+    this.masterData.homepage$.pipe(takeUntil(this.destroy$)).subscribe({
+      next: (homepage) => {
+        this.latestManga = homepage.lastUpdate || [];
+        this.popularManga = homepage.popular || [];
+        this.topByDay = homepage.topMangaByDate || [];
+        this.topByMonth = homepage.topMangaByMonth || [];
+        this.topByYear = homepage.topMangaByYear || [];
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  get currentTopList(): TopMangaDto[] {
+    switch (this.topListPeriod) {
+      case 'day': return this.topByDay;
+      case 'month': return this.topByMonth;
+      case 'year': return this.topByYear;
+    }
   }
 
   onTopListPeriodChange(period: 'day' | 'month' | 'year'): void {
     this.topListPeriod = period;
-    // TODO: call period-specific API when available
-    // e.g. this.mangaService.getTrending(10, period)
   }
 }

@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Chapter, Manga, MangaPagination, PagedResult } from '../models/interfaces';
 import { ChapterImage } from '../models/chapter.interface';
-import { MangaSumaryDto } from '../models/manga.interface';
+import { HomepageDto, MangaSumaryDto } from '../models/manga.interface';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
@@ -14,6 +14,12 @@ export class MangaService {
   private readonly tagBase = environment.tagApi;
 
   constructor(private http: HttpClient) {}
+
+  getHomepage(): Observable<HomepageDto> {
+    return this.http.get<any>(`${this.base}/homepage`).pipe(
+      map((res: any) => res?.value ?? res)
+    );
+  }
 
   getPaginated(page: number, pageSize = 20): Observable<any> {
     const params = new HttpParams()

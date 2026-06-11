@@ -42,21 +42,6 @@
           </div>
         </section>
 
-        <!-- Recommended -->
-        <section class="manga-section">
-          <div class="section-header">
-            <h2 class="section-header__title">
-              <i class="fa-solid fa-wand-magic-sparkles"></i>{{ 'HOME.RECOMMENDED' | translate }}
-            </h2>
-          </div>
-
-          <app-loading-skeleton *ngIf="isLoading" [count]="6" [cols]="6"></app-loading-skeleton>
-
-          <div class="manga-grid" *ngIf="!isLoading">
-            <app-manga-sumary-card *ngFor="let manga of recommendedManga" [manga]="manga"></app-manga-sumary-card>
-          </div>
-        </section>
-
       </main>
 
       <!-- Sidebar -->
@@ -103,13 +88,13 @@
                 (click)="onTopListPeriodChange('year')">{{ 'HOME.TOP_YEAR' | translate }}</button>
             </div>
             <div class="top-list">
-              <a class="top-item" *ngFor="let m of trendingManga | slice:0:5; let i = index"
-                 [routerLink]="['/manga', m.mangaId]">
+              <a class="top-item" *ngFor="let m of currentTopList; let i = index"
+                 [routerLink]="['/manga', m.id]">
                 <span class="top-rank" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{ i+1 }}</span>
-                <img [src]="m.mangaImage" [alt]="m.mangaName" appImageFallback>
+                <img [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
                 <div class="top-info">
-                  <span class="top-name">{{ m.mangaName }}</span>
-                  <span class="top-views"><i class="fa-solid fa-eye me-1"></i>{{ m.totalViews ?? m.view }}</span>
+                  <span class="top-name">{{ m.name }}</span>
+                  <span class="top-views"><i class="fa-solid fa-eye me-1"></i>{{ m.view }}</span>
                 </div>
               </a>
             </div>
