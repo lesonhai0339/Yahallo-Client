@@ -6,8 +6,8 @@ import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserInteractionService } from '../../../core/services/user-interaction.service';
 import { SeoService } from '../../../core/services/seo.service';
-import { MangaDetail, Chapter, Manga } from '../../../core/models/interfaces';
-import { MangaSumaryDto } from '../../../core/models/manga.interface';
+import { Chapter, Manga, MangaDetailDto, MangaStatsDto } from '../../../core/models/interfaces';
+import { ChapterSortBy } from '../../../core/models/chapter.interface';
 
 @Component({
   selector: 'app-manga-detail',
@@ -15,8 +15,9 @@ import { MangaSumaryDto } from '../../../core/models/manga.interface';
   styleUrls: ['./manga-detail.component.scss']
 })
 export class MangaDetailComponent implements OnInit, OnDestroy {
-  manga: Manga | null = null;
+  manga: MangaDetailDto | null = null;
   chapters: Chapter[] = [];
+  stats: MangaStatsDto = { totalViews: 0, averageRating: 0, totalFollows: 0, totalChapters: 0 };
   isLoading = true;
   isFollowing = false;
   showAllChapters = false;
@@ -26,8 +27,8 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   existingRating = 0;
   showReratePanel = false;
   synopsisExpanded = false;
-  sameAuthorManga: MangaSumaryDto[] = [];
-  sameArtistManga: MangaSumaryDto[] = [];
+  sameAuthorManga: Manga[] = [];
+  sameArtistManga: Manga[] = [];
 
   get visibleChapters(): Chapter[] {
     return this.showAllChapters ? this.chapters : this.chapters.slice(0, 5);
@@ -42,7 +43,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   }
 
   get latestChapterDate(): string {
-    if (!this.chapters.length) return this.manga?.updateDate || '';
+    if (!this.chapters.length) return '';
     return [...this.chapters].sort((a, b) =>
       new Date(b.chapterDate).getTime() - new Date(a.chapterDate).getTime()
     )[0].chapterDate;
@@ -84,6 +85,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.seo.setMangaDetail(this.manga);
         this.addView();
+        this.loadStats();
         this.loadRelatedManga();
         this.loadUserRating();
       },
@@ -92,15 +94,25 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
           this.manga = m as any;
           this.isLoading = false;
           this.addView();
+          this.loadStats();
         });
       }
     });
   }
 
-  loadChapters(): void {
-    this.mangaService.getChapters(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(c => {
-      this.chapters = (c || []).sort((a, b) => b.index - a.index);
+  /** Dynamic counters are loaded separately from the (static) manga detail. */
+  loadStats(): void {
+    this.mangaService.getMangaStats(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(s => {
+      this.stats = { ...s, totalChapters: this.chapters.length || s.totalChapters };
     });
+  }
+
+  loadChapters(): void {
+    this.mangaService.getChapters(this.mangaId, ChapterSortBy.Index, true)
+      .pipe(takeUntil(this.destroy$)).subscribe(c => {
+        this.chapters = c || [];
+        this.stats.totalChapters = this.chapters.length;
+      });
   }
 
   addView(): void {
@@ -163,14 +175,25 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  // TODO: replace with dedicated API when available
   loadRelatedManga(): void {
     if (!this.manga) return;
-    this.mangaService.getNewestManga(1, 6).pipe(takeUntil(this.destroy$)).subscribe(list => {
-      const filtered = (list || []).filter(m => m.id !== this.mangaId);
-      this.sameAuthorManga = filtered.slice(0, 4);
-      this.sameArtistManga = filtered.slice(2, 6);
-    });
+    const authorId = this.manga.authors?.[0]?.id;
+    const artistId = this.manga.artists?.[0]?.id;
+
+    if (authorId) {
+      this.mangaService.filterPaginated({ authorId, pageSize: 6 })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(r => {
+          this.sameAuthorManga = (r.data || []).filter(m => m.id !== this.mangaId).slice(0, 4);
+        });
+    }
+    if (artistId) {
+      this.mangaService.filterPaginated({ artistId, pageSize: 6 })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(r => {
+          this.sameArtistManga = (r.data || []).filter(m => m.id !== this.mangaId).slice(0, 4);
+        });
+    }
   }
 
   readChapterLink(chapter: Chapter): string[] {

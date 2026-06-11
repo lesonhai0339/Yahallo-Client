@@ -258,6 +258,11 @@
 }
 
 @media (max-width: 480px) {
+  // Mobile (2 items/row): cho grid tràn full width thay vì bị bó trong max-width 80%
+  .list-page > .container-fluid {
+    max-width: 100%;
+  }
+
   .manga-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;

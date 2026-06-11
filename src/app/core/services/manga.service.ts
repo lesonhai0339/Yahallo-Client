@@ -1,10 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Chapter, Manga, MangaPagination, PagedResult } from '../models/interfaces';
-import { ChapterImage } from '../models/chapter.interface';
+import { Chapter, Manga, MangaDetailDto, MangaStatsDto, MangaPagination, PagedResult } from '../models/interfaces';
+import { ChapterImage, ChapterSortBy } from '../models/chapter.interface';
 import { HomepageDto, MangaSumaryDto } from '../models/manga.interface';
 
 @Injectable({ providedIn: 'root' })
@@ -201,8 +201,12 @@ export class MangaService {
     return this.http.get(`${this.base}/detail/${mangaId}`);
   }
 
-  /** Same as getDetail — both now hit the aggregated detail endpoint */
-  getDetailAggregated(mangaId: string): Observable<Manga> {
+  /**
+   * Aggregated manga detail — STATIC fields only.
+   * Backend no longer returns dynamic counters (views/rating/follows/chapters)
+   * here; load those with getMangaStats() and getChapters().
+   */
+  getDetailAggregated(mangaId: string): Observable<MangaDetailDto> {
     return this.http.get(`${this.base}/detail/${mangaId}`)
     .pipe(map((res: any) => {
       const t = res?.value ?? res;
@@ -218,29 +222,45 @@ export class MangaService {
           mangaThumbnail: t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           userId: t.userId,
-          averageRating: t.averageRating,
-          totalFollows: t.totalFollows,
-          totalViews: t.totalViews,
-          totalChapters: t.totalChapters,
           tags: t.tags ?? [],
           authors: t.authors ?? [],
           artists: t.artists ?? [],
-          chapters: t.chapters ?? [],
-          comments: t.comments ?? [],
-          updateDate: t.updateDate ?? "", 
-        } as Manga;
+        } as MangaDetailDto;
       }));
   }
 
-  getChapters(mangaId: string): Observable<any[]> {
+  /**
+   * Dynamic stats for a manga (views / rating / follows / chapters).
+   * TODO: replace with the real backend endpoint(s) when available —
+   * e.g. GET `${this.base}/{mangaId}/stats`. Mocked for now.
+   */
+  getMangaStats(mangaId: string): Observable<MangaStatsDto> {
+    // Deterministic pseudo-random mock so a manga keeps stable numbers across reloads.
+    const seed = Array.from(mangaId).reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const mock: MangaStatsDto = {
+      totalViews: 10_000 + (seed * 137) % 990_000,
+      averageRating: Math.round((5 + (seed % 50) / 10) * 10) / 10, // 5.0 – 9.9
+      totalFollows: 100 + (seed * 53) % 50_000,
+      totalChapters: 0, // real value comes from getChapters().length
+    };
+    return of(mock);
+  }
+
+  getChapters(
+    mangaId: string,
+    sortBy: ChapterSortBy = ChapterSortBy.Index,
+    reverseSort = true,
+  ): Observable<Chapter[]> {
     const params = new HttpParams()
     .set('PageNumber', 1)
     .set('PageSize', 1000)
-    .set('MangaId', mangaId);
+    .set('MangaId', mangaId)
+    .set('SortBy', sortBy)
+    .set('ReverseSort', reverseSort);
     return this.http.get(`${this.chapterBase}/filter-chapter`, { params }).pipe(
       map((res: any) => {
         const t = res?.value ?? res;
-        return t?.data?.map((chapter : any) => 
+        return t?.data?.map((chapter : any) =>
           (
             {
                id: chapter.id,

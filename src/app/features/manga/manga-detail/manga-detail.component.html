@@ -23,22 +23,22 @@
             <div class="manga-stats-row">
               <div class="stat-box">
                 <i class="fa-solid fa-eye"></i>
-                <span>{{ formatNumber(manga.totalViews ?? manga.totalViews) }}</span>
+                <span>{{ formatNumber(stats.totalViews) }}</span>
                 <small>{{ 'MANGA.VIEWS' | translate }}</small>
               </div>
               <div class="stat-box">
                 <i class="fa-solid fa-star" style="color:#ffd700"></i>
-                <span>{{ (manga.averageRating ?? manga.averageRating)?.toFixed?.(1) ?? '—' }}</span>
+                <span>{{ stats.averageRating ? stats.averageRating.toFixed(1) : '—' }}</span>
                 <small>{{ 'MANGA.RATING' | translate }}</small>
               </div>
               <div class="stat-box">
                 <i class="fa-regular fa-heart" style="color:var(--accent-primary)"></i>
-                <span>{{ formatNumber(manga.totalFollows ?? 0) }}</span>
+                <span>{{ formatNumber(stats.totalFollows) }}</span>
                 <small>{{ 'MANGA.FOLLOWS' | translate }}</small>
               </div>
               <div class="stat-box">
                 <i class="fa-solid fa-book-open"></i>
-                <span>{{ manga.chapters?.length ?? 0 }}</span>
+                <span>{{ chapters.length || stats.totalChapters }}</span>
                 <small>{{ 'MANGA.CHAPTERS' | translate }}</small>
               </div>
             </div>

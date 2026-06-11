@@ -110,6 +110,36 @@ export interface MangaDetail extends Manga {
   tags: Tag[];
 }
 
+/**
+ * Static part of a manga's detail (getDetailAggregated).
+ * Dynamic counters (views/rating/follows/chapters) are NOT here — fetch them
+ * separately via MangaService.getMangaStats() and getChapters().
+ */
+export interface MangaDetailDto {
+  id: string;
+  name: string;
+  description: string;
+  level: string;
+  status: string;
+  type: string;
+  countries: string;
+  season: number;
+  mangaThumbnail: string;
+  mangaBackground: string;
+  userId: string;
+  tags: Tag[];
+  authors: Author[];
+  artists: Artist[];
+}
+
+/** Dynamic stats for a manga, loaded on demand (separate from detail). */
+export interface MangaStatsDto {
+  totalViews: number;
+  averageRating: number;
+  totalFollows: number;
+  totalChapters: number;
+}
+
 export interface Tag {
   id: string;
   name: string;

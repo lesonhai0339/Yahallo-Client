@@ -355,6 +355,24 @@
   }
 }
 
+@media (max-width: 370px) {
+  // Loại bỏ cột "nội dung" (chapter-title) để chữ không bị xuống dòng
+  .chapter-header-row,
+  .chapter-item {
+    grid-template-columns: 1fr auto;
+  }
+  .chapter-header-row span:nth-child(2),
+  .chapter-item .chapter-title {
+    display: none;
+  }
+
+  // Breadcrumb: tăng size thẻ a, giảm span (span wrap nên tự xuống dòng)
+  .breadcrumb-nav {
+    a { font-size: 0.92rem; }
+    span { font-size: 0.7rem; }
+  }
+}
+
 .chapter-toggle { margin-top: 12px; display: flex; justify-content: center; }
 
 // Comments
