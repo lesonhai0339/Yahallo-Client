@@ -17,6 +17,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
   activeTab = 'info';
   isLoading = true;
 
+  // Temp profile cover until a per-user background field exists on the backend.
+  readonly defaultCover = 'https://cdn.yahallo.online/public/user_backgrounds/1.jpg';
+  get coverImage(): string {
+    return this.user?.background || this.user?.coverImage || this.defaultCover;
+  }
+
   private destroy$ = new Subject<void>();
 
   constructor(

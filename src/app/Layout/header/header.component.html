@@ -203,6 +203,9 @@
             <a [routerLink]="['/user', user?.id, user?.name, 'history']" (click)="isUserMenuOpen=false">
               <i class="fa-solid fa-history me-2"></i>{{ 'NAV.HISTORY' | translate }}
             </a>
+            <a routerLink="/settings" (click)="isUserMenuOpen=false">
+              <i class="fa-solid fa-gear me-2"></i>Cấu hình
+            </a>
             <a *ngIf="isAdmin" routerLink="/admin" (click)="isUserMenuOpen=false" class="admin-link">
               <i class="fa-solid fa-shield-halved me-2"></i>Admin Panel
             </a>

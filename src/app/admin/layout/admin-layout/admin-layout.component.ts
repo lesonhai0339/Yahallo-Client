@@ -27,6 +27,8 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard', permission: Permission.ViewDashboard },
     { label: 'Quản lý Truyện', path: '/admin/manga', icon: 'menu_book', permission: Permission.ManageManga },
     { label: 'Quản lý Users', path: '/admin/users', icon: 'people', permission: Permission.ManageUsers },
+    { label: 'Tag / Tác giả', path: '/admin/taxonomy', icon: 'sell' },
+    { label: 'Yêu cầu Taxonomy', path: '/admin/taxonomy-requests', icon: 'inbox', permission: Permission.ManageTaxonomy },
     { label: 'Thảo luận', path: '/admin/topics', icon: 'forum' },
   ];
 
@@ -39,6 +41,11 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Mobile: start with the sidebar hidden so the header toggle is reachable.
+    if (window.innerWidth <= 768) {
+      this.sidebarOpen = false;
+    }
+
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
       takeUntil(this.destroy$)
@@ -70,6 +77,17 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
   toggleSidebar(): void {
     this.sidebarOpen = !this.sidebarOpen;
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen = false;
+  }
+
+  /** On mobile, close the overlay sidebar after navigating. */
+  onNavClick(): void {
+    if (window.innerWidth <= 768) {
+      this.sidebarOpen = false;
+    }
   }
 
   logout(): void {

@@ -1,5 +1,18 @@
 <div class="reader-page" [class.focus-mode]="settings.mode === 'focus'">
 
+  <!-- Resume reading prompt (read-progress mode = 'ask') -->
+  <div class="resume-overlay" *ngIf="showResumePrompt" (click)="dismissResume()">
+    <div class="resume-dialog" (click)="$event.stopPropagation()">
+      <i class="fa-solid fa-bookmark resume-dialog__icon"></i>
+      <h3>Tiếp tục đọc?</h3>
+      <p>Bạn đang đọc dở bộ này ở trang {{ (resumeTarget?.imageIndex ?? 0) + 1 }}. Tiếp tục từ đó?</p>
+      <div class="resume-dialog__actions">
+        <button class="resume-btn resume-btn--ghost" (click)="startFromBeginning()">Đọc từ đầu</button>
+        <button class="resume-btn resume-btn--primary" (click)="resumeReading()">Đọc tiếp</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Sidebar -->
   <div class="reader-sidebar-overlay" *ngIf="isSidebarOpen" (click)="closeSidebar()"></div>
   <div class="reader-sidebar" [class.open]="isSidebarOpen">

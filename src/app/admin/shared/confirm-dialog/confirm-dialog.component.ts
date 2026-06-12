@@ -32,9 +32,9 @@ export interface ConfirmDialogData {
   styles: [`
     .confirm-dialog {
       padding: 8px 4px;
-      color: #1a1d23;
-      &__title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: #1a1d23; }
-      &__message { color: #4b5563; margin-bottom: 20px; font-size: 0.9rem; }
+      color: var(--text-primary);
+      &__title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); }
+      &__message { color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem; }
       &__actions { display: flex; gap: 10px; justify-content: flex-end; }
     }
     .btn-danger { background: #dc3545; border-color: #dc3545; color: white; }

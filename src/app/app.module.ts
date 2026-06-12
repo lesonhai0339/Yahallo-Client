@@ -19,6 +19,7 @@ import { FooterComponent } from './Layout/footer/footer.component';
 import { MangaCardComponent } from './shared/components/manga-card/manga-card.component';
 import { MangaSumaryCardComponent } from './shared/components/manga-sumary-card/manga-sumary-card.component';
 import { LoadingSkeletonComponent } from './shared/components/loading-skeleton/loading-skeleton.component';
+import { PaginationComponent } from './shared/components/pagination/pagination.component';
 import { ImageFallbackDirective } from './shared/directives/image-fallback.directive';
 import { TranslatePipe } from './shared/pipes/translate.pipe';
 import { FormatTextPipe } from './shared/pipes/format-text.pipe';
@@ -37,6 +38,7 @@ import { RegisterComponent } from './features/auth/register/register.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
 import { ProfileComponent } from './features/user/profile/profile.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
+import { SettingsComponent } from './features/user/settings/settings.component';
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { ServerErrorComponent } from './features/error/server-error.component';
@@ -63,6 +65,7 @@ export function initTranslations(translation: TranslationService) {
     MangaCardComponent,
     MangaSumaryCardComponent,
     LoadingSkeletonComponent,
+    PaginationComponent,
     ImageFallbackDirective,
     TranslatePipe,
     FormatTextPipe,
@@ -78,6 +81,7 @@ export function initTranslations(translation: TranslationService) {
     RegisterComponent,
     ForgotPasswordComponent,
     ProfileComponent,
+    SettingsComponent,
     NotificationsComponent,
     TopMangaComponent,
     MangaListPageComponent,

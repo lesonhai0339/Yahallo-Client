@@ -1,0 +1,44 @@
+<div class="req-page">
+  <header class="req-page__head">
+    <div>
+      <h1 class="req-page__title">Yêu cầu thêm Tag / Tác giả / Họa sĩ</h1>
+      <p class="req-page__sub">Duyệt các yêu cầu do Moderator / Translator gửi lên. <em>(mock — chưa có API)</em></p>
+    </div>
+    <div class="req-filter">
+      <button [class.active]="filter === 'pending'" (click)="filter = 'pending'">Chờ duyệt</button>
+      <button [class.active]="filter === 'all'" (click)="filter = 'all'">Tất cả</button>
+    </div>
+  </header>
+
+  <ng-container *ngIf="requests$ | async as all">
+    <div class="req-empty" *ngIf="visible(all).length === 0">
+      <span class="material-icons">inbox</span>
+      <p>Không có yêu cầu nào</p>
+    </div>
+
+    <div class="req-card" *ngFor="let r of visible(all)" [class.req-card--done]="r.status !== 'pending'">
+      <div class="req-card__main">
+        <span class="req-type req-type--{{ r.type }}">{{ typeLabel(r.type) }}</span>
+        <div class="req-card__info">
+          <div class="req-card__summary">{{ summary(r) }}</div>
+          <div class="req-card__meta">
+            bởi <strong>{{ r.requestedBy }}</strong> · {{ r.requestedAt | date:'dd/MM/yyyy HH:mm' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="req-card__actions" *ngIf="r.status === 'pending'">
+        <button class="r-btn r-btn--approve" [disabled]="processing[r.id]" (click)="approve(r)">
+          <span class="material-icons">check</span> Duyệt
+        </button>
+        <button class="r-btn r-btn--reject" [disabled]="processing[r.id]" (click)="reject(r)">
+          <span class="material-icons">close</span> Từ chối
+        </button>
+      </div>
+
+      <span class="req-status req-status--{{ r.status }}" *ngIf="r.status !== 'pending'">
+        {{ r.status === 'approved' ? 'Đã duyệt' : 'Đã từ chối' }}
+      </span>
+    </div>
+  </ng-container>
+</div>

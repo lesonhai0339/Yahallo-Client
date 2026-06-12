@@ -39,6 +39,26 @@
   &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 }
 
+// Mobile: drop the fixed-height / independent-scroll-pane model. With limited
+// viewport height the filter-section and results fight over space, so let the
+// whole page flow and scroll naturally instead.
+@media (max-width: 992px) {
+  .search-page {
+    // Fill at least the viewport so a short result set doesn't leave a blank
+    // app-background strip below the card, but still grow + scroll naturally.
+    height: auto;
+    min-height: calc(100vh - 76px);
+    max-width: 100%;
+    overflow: visible;
+  }
+  .search-layout {
+    overflow: visible;
+    // Let the layout (and results) take the remaining height so the card fills.
+    flex: 1 0 auto;
+  }
+  .results-section { overflow: visible; }
+}
+
 // ── Search Input ─────────────────────────────────────────────────────────────
 .search-input-group {
   position: relative;
@@ -281,10 +301,19 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 12px;
-  overflow-y: auto;
+  // `visible` so the year dropdown can overlay outside the section (its own
+  // panel scrolls); inner tag/author/artist grids scroll on their own.
+  overflow: visible;
+  // Always hug content height instead of being stretched to the results
+  // column: collapsed = title only, expanded = down to the 3 buttons, and it
+  // only grows further when a tag/author/artist grid is opened.
+  align-self: start;
 
   &::-webkit-scrollbar { width: 3px; }
   &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  // Collapsed: card hugs the title only, no leftover gap below.
+  &--collapsed .filter-title { margin-bottom: 0; }
 }
 
 .filter-title {
@@ -306,20 +335,90 @@
 }
 
 // ── Simple category chips ────────────────────────────────────────────────────
+.filter-year-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  min-width: 0;
+
+  label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+}
+
+.year-dd {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+
+  &__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    i { font-size: 0.7rem; color: var(--text-muted); transition: transform 0.15s; }
+  }
+  &--open &__trigger { border-color: var(--accent-primary); i { transform: rotate(180deg); } }
+
+  // Compact scrollable panel — its own scrollbar, never the filter-section's.
+  &__panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    max-height: 168px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-dropdown);
+    padding: 4px;
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+  }
+
+  &__item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    cursor: pointer;
+
+    &:hover { background: var(--overlay-light); color: var(--text-primary); }
+    &.active { background: rgba(233, 69, 96, 0.12); color: var(--accent-primary); font-weight: 600; }
+  }
+}
+
 .tag-grid-toggle-wrap {
   display: flex;
-  justify-content: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .tag-grid-toggle {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   align-items: center;
-  gap: 6px;
-  background: none;
+  gap: 8px;
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
   font-size: 0.8rem;
   color: var(--text-secondary);
   cursor: pointer;
@@ -330,19 +429,43 @@
     color: var(--accent-primary);
   }
 
+  // chevron pushed to the far right, leading icon + label stay left
+  i:last-child { margin-left: auto; }
+
   i { font-size: 0.7rem; }
+
+  // When its grid is open, flatten the bottom so the filter input below reads
+  // as an attached extra row of the same block.
+  &--open {
+    border-bottom-color: transparent;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 }
 
 .tag-grid-filter-input {
+  // Pin to the top of the scrollable grid so it stays visible while the
+  // tag/author/artist list scrolls underneath.
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
-  padding: 0 4px;
+  // Negative right margin reclaims the grid's scrollbar gutter so this row's
+  // borders line up with the toggle button above.
+  margin: 0 -4px 12px 0;
+  // Attached extra row of the toggle button above: same surface, only side +
+  // bottom borders, flat top so it joins the (now flat-bottomed) button.
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 
   input {
     flex: 1;
-    background: var(--bg-secondary);
+    background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
@@ -373,6 +496,9 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  // Pull the open grid up against its toggle button — cancels the wrap's
+  // bottom margin (which only needs to space buttons apart when closed).
+  margin-top: -6px;
   max-height: 320px;
   overflow-y: auto;
   padding-right: 4px;

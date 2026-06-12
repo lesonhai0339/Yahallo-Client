@@ -52,6 +52,115 @@
   --reader-bg: #fff;
 }
 
+// === Sample themes ===
+[data-theme="midnight"] {
+  --bg-primary: #070a14;
+  --bg-secondary: #0e1222;
+  --bg-card: #131a2e;
+  --bg-card-hover: #1b2340;
+  --bg-surface: #05070f;
+  --accent-primary: #7c5cff;
+  --accent-secondary: #2dd4bf;
+  --accent-gradient: linear-gradient(135deg, #7c5cff, #2dd4bf);
+  --text-primary: #e6e8f5;
+  --text-secondary: #9aa0c0;
+  --text-muted: #5f6688;
+  --border-color: #232a45;
+  --border-light: #333b5c;
+  --header-bg: rgba(7, 10, 20, 0.95);
+  --reader-bg: #000;
+}
+
+[data-theme="sepia"] {
+  --bg-primary: #efe3cf;
+  --bg-secondary: #e7d8bf;
+  --bg-card: #f6ecda;
+  --bg-card-hover: #efe0c6;
+  --bg-surface: #f3e9d6;
+  --accent-primary: #b4622f;
+  --accent-secondary: #8a5a2b;
+  --accent-gradient: linear-gradient(135deg, #b4622f, #8a5a2b);
+  --text-primary: #3b2f22;
+  --text-secondary: #5c4a37;
+  --text-muted: #8a7456;
+  --border-color: #d8c4a3;
+  --border-light: #e6d6ba;
+  --header-bg: rgba(239, 227, 207, 0.95);
+  --icon-btn-bg: rgba(0, 0, 0, 0.05);
+  --icon-btn-bg-hover: rgba(180, 98, 47, 0.15);
+  --overlay-light: rgba(0, 0, 0, 0.04);
+  --reader-bg: #efe3cf;
+}
+
+[data-theme="ocean"] {
+  --bg-primary: #06212b;
+  --bg-secondary: #0a2c38;
+  --bg-card: #0d3543;
+  --bg-card-hover: #134353;
+  --bg-surface: #04161d;
+  --accent-primary: #1ab5b0;
+  --accent-secondary: #2563eb;
+  --accent-gradient: linear-gradient(135deg, #1ab5b0, #2563eb);
+  --text-primary: #dff3f2;
+  --text-secondary: #93b6b8;
+  --text-muted: #5d8084;
+  --border-color: #14414e;
+  --border-light: #1d5765;
+  --header-bg: rgba(6, 33, 43, 0.95);
+  --reader-bg: #000;
+}
+
+// === Custom user background image (set in Settings) ===
+// Fills the whole viewport behind everything; content containers paint their
+// own background on top. Two fixed layers: the (blurrable) image + a theme tint
+// whose strength is user-adjustable.
+body.has-bg-image {
+  background-color: transparent; // let the image layer show through the body
+}
+body.has-bg-image::before {     // image layer (blur bleeds off-screen via overscan)
+  content: '';
+  position: fixed;
+  inset: -40px;
+  background-image: var(--app-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(var(--app-bg-blur, 0px));
+  z-index: -2;
+  pointer-events: none;
+}
+body.has-bg-image::after {      // theme-tint overlay for readability
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  opacity: var(--app-bg-overlay, 0.82);
+  z-index: -1;
+  pointer-events: none;
+}
+
+// Each page's MAIN content container. KEEP mode (default): they hold a solid
+// theme background so the image only shows around them (header / gutters).
+// COVER mode: they go transparent so the image bleeds through the content.
+// (manga-detail is excluded — it has its own backdrop.)
+body.has-bg-image:not(.bg-cover-main) {
+  .home-page .main-layout,
+  .top-manga-page > .container-fluid,
+  .list-page > .container-fluid {
+    background-color: var(--bg-primary);
+    // Render as a rounded, padded panel floating on the image rather than a
+    // flush full-bleed block. (Don't touch horizontal margins — pages like
+    // /latest, /popular and top-manga center via their own `margin: 0 auto`.)
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+  // .search-page already paints var(--bg-card); leave it as the solid panel.
+}
+body.has-bg-image.bg-cover-main {
+  .search-page { background-color: transparent; }
+  // The others have no default background, so they're already transparent.
+}
+
 // === Reset & Base ===
 * {
   margin: 0;
@@ -438,13 +547,50 @@ a {
 
 // === Angular Material Overrides ===
 .mat-mdc-dialog-container .mdc-dialog__surface {
-  background: var(--bg-secondary) !important;
+  // Match the "add manga" form surface: bg-card (dark in dark theme, white in
+  // light theme). Follows [data-theme] automatically.
+  background: var(--bg-card) !important;
   color: var(--text-primary) !important;
 }
+// NOTE: admin dialogs now follow the active theme via CSS variables. The old
+// `.light-dialog` white override was removed so every dialog respects
+// [data-theme="light|dark"]. The panelClass is now a harmless no-op.
 
-.light-dialog .mat-mdc-dialog-container .mdc-dialog__surface {
-  background: #ffffff !important;
-  color: #1a1d23 !important;
+// Mobile: dialog content wrappers hardcode large min-widths (480–760px) that
+// overflow the pane. The min-width lives a couple levels below the surface
+// (host element > wrapper), so neutralise it on ALL descendants. Also widen the
+// pane to 95vw and let long text / flex rows wrap.
+@media (max-width: 600px) {
+  .cdk-overlay-pane:has(> .mat-mdc-dialog-container) {
+    max-width: 95vw !important;
+  }
+  .mat-mdc-dialog-surface,
+  .mdc-dialog__surface {
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+  }
+  .mat-mdc-dialog-surface * {
+    min-width: 0 !important;
+  }
+  .mat-mdc-dialog-surface .field-row,
+  .mat-mdc-dialog-surface .add-role-row,
+  .mat-mdc-dialog-surface .lock-row {
+    flex-wrap: wrap;
+  }
+  .mat-mdc-dialog-content { max-height: 68vh; }
+
+  // mat-paginator's controls (range + page-size select + first/prev/next/last)
+  // are wider than a phone, forcing horizontal page scroll that then stretches
+  // width:100% cards. Let it wrap and shrink.
+  .mat-mdc-paginator-container {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    row-gap: 6px;
+    padding: 4px !important;
+    min-height: 0 !important;
+  }
+  .mat-mdc-paginator { font-size: 0.78rem; }
+  .mat-mdc-paginator .mat-mdc-paginator-page-size { margin-right: 0; }
 }
 
 // Table

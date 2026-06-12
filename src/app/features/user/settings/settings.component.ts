@@ -1,0 +1,183 @@
+import { Component, OnInit } from '@angular/core';
+import { ToastrService } from 'ngx-toastr';
+import {
+  UserPreferencesService, UserPreferences, ReadProgressMode, ListView,
+} from '../../../core/services/user-preferences.service';
+import { ReadingProgressService } from '../../../core/services/reading-progress.service';
+import { ThemeService, Theme, ThemeMeta } from '../../../core/services/theme.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { TranslationService } from '../../../core/services/translation.service';
+
+@Component({
+  selector: 'app-settings',
+  templateUrl: './settings.component.html',
+  styleUrls: ['./settings.component.scss'],
+})
+export class SettingsComponent implements OnInit {
+  prefs!: UserPreferences;
+  themes: ThemeMeta[] = [];
+  currentTheme: Theme = 'dark';
+  bgImageInput = '';
+  bgImage: string | null = null;
+  bgOpacity = 0.82;
+  bgBlur = 0;
+  bgCoverMain = false;
+  syncing = false;
+  localCount = 0;
+
+  readonly modeOptions: { value: ReadProgressMode; labelKey: string; descKey: string; icon: string }[] = [
+    { value: 'off',    labelKey: 'SETTINGS.MODE_OFF',    descKey: 'SETTINGS.MODE_OFF_DESC',    icon: 'block' },
+    { value: 'ask',    labelKey: 'SETTINGS.MODE_ASK',    descKey: 'SETTINGS.MODE_ASK_DESC',    icon: 'help_outline' },
+    { value: 'always', labelKey: 'SETTINGS.MODE_ALWAYS', descKey: 'SETTINGS.MODE_ALWAYS_DESC', icon: 'bolt' },
+  ];
+
+  constructor(
+    private prefsService: UserPreferencesService,
+    private readingProgress: ReadingProgressService,
+    private themeService: ThemeService,
+    private auth: AuthService,
+    private toastr: ToastrService,
+    private i18n: TranslationService,
+  ) {}
+
+  private t(key: string, params?: Record<string, string>): string {
+    return this.i18n.get(key, params);
+  }
+
+  ngOnInit(): void {
+    this.prefs = { ...this.prefsService.current };
+    this.themes = this.themeService.themes;
+    this.currentTheme = this.themeService.currentTheme;
+    this.bgImage = this.themeService.backgroundImage;
+    this.bgImageInput = this.bgImage ?? '';
+    this.bgOpacity = this.themeService.backgroundOpacity;
+    this.bgBlur = this.themeService.backgroundBlur;
+    this.bgCoverMain = this.themeService.backgroundCoverMain;
+    this.localCount = this.readingProgress.getAllLocal().length;
+  }
+
+  // ── Read progress ────────────────────────────────────────────────────────────
+  setMode(mode: ReadProgressMode): void {
+    const prev = this.prefs.readProgressMode;
+    this.prefs.readProgressMode = mode;
+    this.prefsService.update({ readProgressMode: mode });
+
+    if (mode === 'off') {
+      // Turn off → wipe ALL local progress (server snapshot is kept).
+      this.readingProgress.clearLocal();
+      this.localCount = 0;
+    } else if (prev === 'off') {
+      // Re-enable → pull progress back from the server (if logged in).
+      const uid = this.auth.currentUser?.id;
+      if (uid) this.readingProgress.sync(uid).subscribe(() => {
+        this.localCount = this.readingProgress.getAllLocal().length;
+      });
+    }
+  }
+
+  saveLimits(): void {
+    const retentionDays = Math.max(0, Math.floor(this.prefs.retentionDays || 0));
+    const maxEntries = Math.max(0, Math.floor(this.prefs.maxEntries || 0));
+    this.prefs.retentionDays = retentionDays;
+    this.prefs.maxEntries = maxEntries;
+    this.prefsService.update({ retentionDays, maxEntries });
+    this.localCount = this.readingProgress.getAllLocal().length;
+    this.toastr.success(this.t('SETTINGS.T_SAVED_LIMITS'));
+  }
+
+  syncNow(): void {
+    const userId = this.auth.currentUser?.id;
+    if (!userId) { this.toastr.warning(this.t('SETTINGS.T_NEED_LOGIN')); return; }
+    this.syncing = true;
+    this.readingProgress.sync(userId).subscribe(result => {
+      this.syncing = false;
+      this.localCount = this.readingProgress.getAllLocal().length;
+      const msg: Record<string, string> = {
+        pushed: this.t('SETTINGS.T_SYNC_PUSHED'),
+        pulled: this.t('SETTINGS.T_SYNC_PULLED'),
+        'in-sync': this.t('SETTINGS.T_SYNC_INSYNC'),
+        skipped: this.t('SETTINGS.T_SYNC_SKIPPED'),
+      };
+      this.toastr.info(msg[result] ?? '');
+    });
+  }
+
+  clearLocal(): void {
+    this.readingProgress.clearLocal();
+    this.localCount = 0;
+    this.toastr.info(this.t('SETTINGS.T_CLEARED_LOCAL'));
+  }
+
+  // ── List & pagination defaults ───────────────────────────────────────────────
+  readonly pageSizeChoices = [10, 20, 50];
+
+  setDefaultPageSize(size: number): void {
+    this.prefs.defaultPageSize = size;
+    this.prefsService.update({ defaultPageSize: size });
+  }
+
+  setDefaultView(view: ListView): void {
+    this.prefs.defaultView = view;
+    this.prefsService.update({ defaultView: view });
+  }
+
+  // ── Theme ────────────────────────────────────────────────────────────────────
+  selectTheme(theme: Theme): void {
+    this.currentTheme = theme;
+    this.themeService.setTheme(theme);
+  }
+
+  get activeThemeMeta(): ThemeMeta | undefined {
+    return this.themes.find(t => t.id === this.currentTheme);
+  }
+
+  applyBackground(): void {
+    this.themeService.setBackgroundImage(this.bgImageInput);
+    this.bgImage = this.themeService.backgroundImage;
+    this.toastr.success(this.t(this.bgImage ? 'SETTINGS.T_BG_SET' : 'SETTINGS.T_BG_CLEARED'));
+  }
+
+  /** Browse a local image file and use it as the background (stored as data URL). */
+  onPickFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // allow re-picking the same file
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.toastr.error(this.t('SETTINGS.T_IMG_ONLY'));
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      this.toastr.warning(this.t('SETTINGS.T_IMG_LARGE'));
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const ok = this.themeService.setBackgroundImage(dataUrl);
+      this.bgImage = this.themeService.backgroundImage;
+      this.bgImageInput = '';
+      if (ok) this.toastr.success(this.t('SETTINGS.T_BG_SET_FILE'));
+      else this.toastr.error(this.t('SETTINGS.T_IMG_TOO_LARGE'));
+    };
+    reader.onerror = () => this.toastr.error(this.t('SETTINGS.T_IMG_READ_ERR'));
+    reader.readAsDataURL(file);
+  }
+
+  clearBackground(): void {
+    this.bgImageInput = '';
+    this.themeService.setBackgroundImage(null);
+    this.bgImage = null;
+  }
+
+  onOpacityChange(): void {
+    this.themeService.setBackgroundOpacity(this.bgOpacity);
+  }
+
+  onBlurChange(): void {
+    this.themeService.setBackgroundBlur(this.bgBlur);
+  }
+
+  onCoverMainChange(): void {
+    this.themeService.setBackgroundCoverMain(this.bgCoverMain);
+  }
+}

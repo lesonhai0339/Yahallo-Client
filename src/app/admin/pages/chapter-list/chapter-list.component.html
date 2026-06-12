@@ -32,9 +32,9 @@
         <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
 
           <ng-container matColumnDef="index">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>#</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Index</th>
             <td mat-cell *matCellDef="let c">
-              <span class="chapter-index">Ch. {{ c.index }}</span>
+              <span class="chapter-index">{{ c.index }}</span>
             </td>
           </ng-container>
 

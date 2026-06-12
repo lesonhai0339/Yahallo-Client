@@ -6,8 +6,11 @@
   gap: 14px;
   margin-bottom: 24px;
 
+  // Let the title block shrink so a long manga name wraps instead of forcing
+  // horizontal page scroll.
+  > div { min-width: 0; flex: 1; }
   h1 { font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--text-primary); }
-  p { color: var(--text-muted); font-size: 0.82rem; margin: 0; }
+  p { color: var(--text-muted); font-size: 0.82rem; margin: 0; overflow-wrap: anywhere; }
 
   .btn-primary { display: flex; align-items: center; gap: 6px; margin-left: auto; white-space: nowrap; }
   .material-icons { font-size: 1rem !important; }
@@ -73,7 +76,7 @@
   tr.mat-row:hover td.mat-cell { background: var(--overlay-light) !important; }
 }
 
-.chapter-index { background: rgba(83, 52, 131, 0.25); border: 1px solid var(--accent-secondary); color: #c5b5e8; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.chapter-index { display: inline-block; background: rgba(83, 52, 131, 0.25); border: 1px solid var(--accent-secondary); color: #c5b5e8; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
 
 .action-btns { display: flex; gap: 4px; }
 .action-btn { width: 32px; height: 32px; border: none; border-radius: var(--radius-sm); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); .material-icons { font-size: 1rem !important; } }
@@ -88,6 +91,24 @@
 .page-aside {
   position: sticky;
   top: 20px;
+}
+
+// ── Mobile: 2 columns → 2 rows (manga info on top, chapters below) ────────────
+@media (max-width: 768px) {
+  .page-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .page-aside {
+    position: static;
+    order: -1; // manga info row first
+  }
+  .table-wrapper { overflow-x: auto; }
+  // Let long chapter titles wrap so the table fits the screen width.
+  .admin-table { width: 100%; }
+  .admin-table td, .admin-table th { white-space: normal; overflow-wrap: anywhere; padding-left: 8px; padding-right: 8px; }
+  .page-header { flex-wrap: wrap; }
+  .page-header .btn-primary { margin-left: 0; }
 }
 
 .manga-card {

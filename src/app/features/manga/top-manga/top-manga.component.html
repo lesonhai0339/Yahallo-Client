@@ -124,22 +124,9 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-wrapper" *ngIf="!isLoading && totalPages > 1">
-      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
-        <i class="fa-solid fa-backward-step"></i>
-      </button>
-      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
-        <i class="fa-solid fa-chevron-left"></i>
-      </button>
-      <button class="page-btn" *ngFor="let page of paginationPages"
-        [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
-      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
-      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
-        <i class="fa-solid fa-forward-step"></i>
-      </button>
-    </div>
+    <app-pagination *ngIf="!isLoading"
+      [currentPage]="currentPage" [totalCount]="totalCount" [pageSize]="pageSize"
+      (pageChange)="goToPage($event)"></app-pagination>
 
   </div>
 </div>

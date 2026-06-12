@@ -17,6 +17,9 @@ export enum Permission {
   LockUsers = 'lock_users',
   ViewAnalytics = 'view_analytics',
   ViewOwnMangaOnly = 'view_own_manga_only',
+  // Tag / Author / Artist library
+  ManageTaxonomy = 'manage_taxonomy',   // admin: create/edit/delete + approve requests
+  RequestTaxonomy = 'request_taxonomy', // mod/trans: submit add requests for admin review
 }
 
 export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
@@ -31,6 +34,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     Permission.ManageRoles,
     Permission.LockUsers,
     Permission.ViewAnalytics,
+    Permission.ManageTaxonomy,
   ],
   [AppRole.Moderator]: [
     Permission.ViewDashboard,
@@ -40,6 +44,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     Permission.ManageChapters,
     Permission.ManageUsers,
     Permission.ViewAnalytics,
+    Permission.RequestTaxonomy,
   ],
   [AppRole.Trans]: [
     Permission.ViewDashboard,
@@ -49,6 +54,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     Permission.ManageChapters,
     Permission.ViewAnalytics,
     Permission.ViewOwnMangaOnly,
+    Permission.RequestTaxonomy,
   ],
   [AppRole.User]: [],
 };

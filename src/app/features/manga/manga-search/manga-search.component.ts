@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, Observable, of, debounceTime, distinctUntilChanged, switchMap, takeUntil, finalize } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { MasterDataService } from '../../../core/services/master-data.service';
+import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { Manga, Tag } from '../../../core/models/interfaces';
 
 export interface RecommendItem {
@@ -27,6 +28,12 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   categories: any[] = [];
   tags: Tag[] = [];
   selectedCategories: string[] = [];
+  selectedYear: number | null = null;
+  yearOpen = false;
+  readonly years: number[] = Array.from(
+    { length: new Date().getFullYear() - 1989 },
+    (_, i) => new Date().getFullYear() - i
+  );
   searchQuery = '';
   isLoading = false;
   hasSearched = false;
@@ -78,10 +85,13 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     private router: Router,
     private mangaService: MangaService,
     private masterData: MasterDataService,
-    private host: ElementRef
+    private host: ElementRef,
+    private prefs: UserPreferencesService
   ) {}
 
   ngOnInit(): void {
+    this.pageSize = this.prefs.current.defaultPageSize;
+    this.viewMode = this.prefs.current.defaultView;
     if (window.innerWidth <= 992) {
       this.isFilterExpanded = false;
     }
@@ -184,7 +194,15 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     if (!this.host.nativeElement.contains(e.target as Node)) {
       this.showPrefixHints = false;
       this.showRecommend = false;
+      this.yearOpen = false;
     }
+  }
+
+  selectYear(y: number | null): void {
+    this.yearOpen = false;
+    if (this.selectedYear === y) return;
+    this.selectedYear = y;
+    this.onYearChange();
   }
 
   // ── Prefix hints ──────────────────────────────────────────────────────────
@@ -442,7 +460,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   private reloadCurrentSearch(): void {
-    if (this.selectedCategories.length > 0) {
+    if (this.hasActiveFilter) {
       this.searchByCategories();
     } else if (this.searchQuery.trim()) {
       this.isLoading = true;
@@ -666,7 +684,12 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   searchByCategories(): void {
     this.isLoading = true;
     this.results = [];
-    this.mangaService.filterPaginated({ tagIds: this.selectedCategories, pageNo: this.currentPage, pageSize: this.pageSize }).pipe(
+    this.mangaService.filterPaginated({
+      tagIds: this.selectedCategories.length ? this.selectedCategories : undefined,
+      season: this.selectedYear ?? undefined,
+      pageNo: this.currentPage,
+      pageSize: this.pageSize,
+    }).pipe(
       takeUntil(this.destroy$),
       finalize(() => this.isLoading = false)
     ).subscribe(r => {
@@ -676,6 +699,21 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       this.hasSearched = true;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+  }
+
+  /** Has any structured filter (category or year) been applied? */
+  get hasActiveFilter(): boolean {
+    return this.selectedCategories.length > 0 || this.selectedYear != null;
+  }
+
+  onYearChange(): void {
+    this.currentPage = 1;
+    if (this.hasActiveFilter) {
+      this.searchByCategories();
+    } else {
+      this.results = [];
+      this.hasSearched = false;
+    }
   }
 
 }

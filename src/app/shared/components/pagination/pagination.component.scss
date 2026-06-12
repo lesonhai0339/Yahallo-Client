@@ -1,0 +1,63 @@
+// Let the host be transparent to layout so .pagination-wrapper sits in the
+// parent exactly like the old inline markup did. Global .pagination-wrapper /
+// .page-btn styles (styles.scss) provide the base look.
+:host { display: contents; }
+
+// Pinned to the bottom of a scrolling container so it stays visible while the
+// items above scroll underneath.
+.pagination-wrapper--sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 10px 0 4px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+}
+
+// On mobile the search page flows normally (no internal scroll pane), so a
+// sticky bar would stick to the viewport and overlap content — make it inline.
+@media (max-width: 992px) {
+  .pagination-wrapper--sticky {
+    position: static;
+    background: transparent;
+    border-top: none;
+    margin: 16px 0;
+    padding: 0;
+  }
+}
+
+.page-btn--jump {
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.page-jump-input {
+  width: 48px;
+  text-align: center;
+  outline: none;
+  background: var(--bg-card);
+  color: var(--text-primary);
+
+  &::placeholder { color: var(--text-muted); }
+  &:focus { border-color: var(--accent-primary); }
+}
+
+// Mobile: fewer page numbers already (delta 1), shrink buttons and allow wrap
+// so the bar never pushes the page wider than the screen. These selectors are
+// view-encapsulated (extra attribute specificity) so they beat the global
+// .pagination-wrapper / .page-btn rules without !important.
+@media (max-width: 768px) {
+  .pagination-wrapper {
+    gap: 5px;
+    flex-wrap: wrap;
+
+    .page-btn {
+      width: 32px;
+      height: 32px;
+      font-size: 0.8rem;
+    }
+  }
+
+  .page-jump-input { width: 40px; }
+}

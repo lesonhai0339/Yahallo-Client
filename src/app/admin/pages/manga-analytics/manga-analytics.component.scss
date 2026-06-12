@@ -194,4 +194,11 @@
 
 @media (max-width: 768px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
+
+  .chart-card__header { flex-wrap: wrap; gap: 8px; }
+  .chart-card__body { height: 220px; padding: 12px; }
+}
+
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr; }
 }

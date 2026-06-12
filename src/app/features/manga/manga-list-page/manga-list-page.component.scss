@@ -68,6 +68,41 @@
   }
 }
 
+.sort-toggle {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sort-btn {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--border-color);
+  }
+
+  &:hover {
+    color: var(--accent-primary);
+  }
+
+  &.active {
+    background: rgba(233,69,96,0.15);
+    color: var(--accent-primary);
+  }
+}
+
 .page-size-select {
   select {
     padding: 5px 10px;

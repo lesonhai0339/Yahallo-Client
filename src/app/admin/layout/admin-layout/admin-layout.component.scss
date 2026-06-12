@@ -49,6 +49,22 @@ $header-h: 56px;
     font-size: 1.05rem;
   }
 
+  // Close button — only on mobile (overlay sidebar)
+  &__close {
+    display: none;
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    align-items: center;
+
+    .material-icons { font-size: 1.3rem; }
+    &:hover { color: var(--text-primary); background: var(--icon-btn-bg-hover); }
+  }
+
   &__nav {
     flex: 1;
     padding: 12px 0;
@@ -312,6 +328,9 @@ $header-h: 56px;
   overflow-y: auto;
 }
 
+// Backdrop behind the overlay sidebar (mobile only)
+.admin-backdrop { display: none; }
+
 // ── Collapsed sidebar ─────────────────────────────────────────────────────────
 .sidebar-closed {
   .admin-sidebar {
@@ -331,9 +350,20 @@ $header-h: 56px;
     width: $sidebar-w;
   }
 
+  .admin-sidebar__close { display: flex; }
+
   .admin-wrapper:not(.sidebar-closed) .admin-sidebar {
     transform: translateX(0);
     box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+  }
+
+  // Show the backdrop only while the overlay sidebar is open.
+  .admin-wrapper:not(.sidebar-closed) .admin-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(0, 0, 0, 0.5);
   }
 
   .admin-main { margin-left: 0 !important; }

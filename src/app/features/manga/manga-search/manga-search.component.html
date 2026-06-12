@@ -69,16 +69,34 @@
   <div class="search-layout">
 
   <!-- Category Filter -->
-  <div class="filter-section" *ngIf="categories.length > 0">
+  <div class="filter-section" [class.filter-section--collapsed]="!isFilterExpanded" *ngIf="categories.length > 0">
     <h3 class="filter-title" (click)="isFilterExpanded = !isFilterExpanded">
       {{ 'SEARCH.FILTER_BY_GENRE' | translate }}
       <i class="fa-solid ms-2" [class.fa-chevron-down]="!isFilterExpanded" [class.fa-chevron-up]="isFilterExpanded"></i>
     </h3>
 
     <ng-container *ngIf="isFilterExpanded">
+    <!-- Year filter (custom dropdown — scrollable, never overflows the screen) -->
+    <div class="filter-year-row">
+      <label>{{ 'SEARCH.FILTER_YEAR' | translate }}</label>
+      <div class="year-dd" [class.year-dd--open]="yearOpen">
+        <button type="button" class="year-dd__trigger" (click)="yearOpen = !yearOpen">
+          <span>{{ selectedYear ?? ('SEARCH.YEAR_ALL' | translate) }}</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="year-dd__panel" *ngIf="yearOpen">
+          <button type="button" class="year-dd__item" [class.active]="selectedYear === null"
+                  (click)="selectYear(null)">{{ 'SEARCH.YEAR_ALL' | translate }}</button>
+          <button type="button" class="year-dd__item" *ngFor="let y of years"
+                  [class.active]="selectedYear === y" (click)="selectYear(y)">{{ y }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Author list (collapsible) -->
     <div class="tag-grid-toggle-wrap">
-      <button class="tag-grid-toggle" type="button" (click)="showAuthorGrid = !showAuthorGrid">
+      <button class="tag-grid-toggle" type="button" [class.tag-grid-toggle--open]="showAuthorGrid"
+        (click)="showAuthorGrid = !showAuthorGrid">
         <i class="fa-solid fa-user-pen me-1"></i>{{ 'SEARCH.AUTHOR_LIST' | translate }}
         <i class="fa-solid" [class.fa-angles-down]="!showAuthorGrid" [class.fa-angles-up]="showAuthorGrid"></i>
       </button>
@@ -103,7 +121,8 @@
 
     <!-- Artist list (collapsible) -->
     <div class="tag-grid-toggle-wrap">
-      <button class="tag-grid-toggle" type="button" (click)="showArtistGrid = !showArtistGrid">
+      <button class="tag-grid-toggle" type="button" [class.tag-grid-toggle--open]="showArtistGrid"
+        (click)="showArtistGrid = !showArtistGrid">
         <i class="fa-solid fa-pen-nib me-1"></i>{{ 'SEARCH.ARTIST_LIST' | translate }}
         <i class="fa-solid" [class.fa-angles-down]="!showArtistGrid" [class.fa-angles-up]="showArtistGrid"></i>
       </button>
@@ -128,7 +147,8 @@
 
     <!-- Category chips grid (collapsible) -->
     <div class="tag-grid-toggle-wrap">
-      <button class="tag-grid-toggle" type="button" (click)="showCategoryGrid = !showCategoryGrid">
+      <button class="tag-grid-toggle" type="button" [class.tag-grid-toggle--open]="showCategoryGrid"
+        (click)="showCategoryGrid = !showCategoryGrid">
         <i class="fa-solid fa-tags me-1"></i>{{ 'SEARCH.TAG_LIST' | translate }}
         <i class="fa-solid" [class.fa-angles-down]="!showCategoryGrid" [class.fa-angles-up]="showCategoryGrid"></i>
       </button>
@@ -213,22 +233,9 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-wrapper" *ngIf="!isLoading && hasSearched && totalPages > 1">
-      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
-        <i class="fa-solid fa-backward-step"></i>
-      </button>
-      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
-        <i class="fa-solid fa-chevron-left"></i>
-      </button>
-      <button class="page-btn" *ngFor="let page of paginationPages"
-        [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
-      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
-      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">
-        <i class="fa-solid fa-forward-step"></i>
-      </button>
-    </div>
+    <app-pagination *ngIf="!isLoading && hasSearched"
+      [currentPage]="currentPage" [totalCount]="totalCount" [pageSize]="pageSize"
+      [sticky]="true" (pageChange)="goToPage($event)"></app-pagination>
 
     <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">
       <i class="fa-regular fa-face-sad-tear"></i>

@@ -1,0 +1,25 @@
+<div class="pagination-wrapper" [class.pagination-wrapper--sticky]="sticky" *ngIf="pageCount > 1">
+  <button class="page-btn" (click)="go(1)" [disabled]="currentPage === 1">
+    <i class="fa-solid fa-backward-step"></i>
+  </button>
+  <button class="page-btn" (click)="go(currentPage - 1)" [disabled]="currentPage === 1">
+    <i class="fa-solid fa-chevron-left"></i>
+  </button>
+
+  <button class="page-btn" *ngFor="let p of pages"
+    [class.active]="p === currentPage" (click)="go(p)">{{ p }}</button>
+
+  <!-- Jump to a specific page -->
+  <button class="page-btn page-btn--jump" *ngIf="!jumping" (click)="openJump()"
+    title="Go to page">…</button>
+  <input #jumpInput *ngIf="jumping" class="page-btn page-jump-input" type="text"
+    inputmode="numeric" [ngModel]="jumpValue" (ngModelChange)="onJumpInput($event)"
+    (blur)="closeJump()" placeholder="#">
+
+  <button class="page-btn" (click)="go(currentPage + 1)" [disabled]="currentPage === pageCount">
+    <i class="fa-solid fa-chevron-right"></i>
+  </button>
+  <button class="page-btn" (click)="go(pageCount)" [disabled]="currentPage === pageCount">
+    <i class="fa-solid fa-forward-step"></i>
+  </button>
+</div>

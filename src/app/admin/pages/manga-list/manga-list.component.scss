@@ -202,3 +202,126 @@
   background: transparent !important;
   color: var(--text-secondary) !important;
 }
+
+// ── Responsive: desktop table vs mobile cards ────────────────────────────────
+.mobile-only { display: none; }
+
+.mcard-list { display: flex; flex-direction: column; gap: 10px; }
+
+.mcard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+
+  &--open { border-color: var(--accent-primary); }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+  }                                  // col1 thumb · col2 title/sub · col3 toggle
+
+  &__thumb {
+    width: 42px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+
+    &--ph {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+    }
+  }
+
+  &__title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  // Title may wrap to a max of 2 lines, then ellipsis.
+  &__name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
+  }
+  // Sub stays on a single line with ellipsis.
+  &__sub {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__toggle {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    .material-icons { font-size: 1.2rem; }
+  }
+
+  &__details {
+    border-top: 1px solid var(--border-color);
+    padding: 10px 12px;
+  }
+
+  &__info { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+  &__row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 0.82rem;
+  }
+  &__k { flex: 3; min-width: 0; color: var(--text-muted); }
+  &__v {
+    flex: 7;
+    min-width: 0;
+    text-align: left;          // values align left
+    overflow-wrap: anywhere;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .action-btn {
+      width: 38px;
+      height: 38px;
+      background: var(--bg-secondary);
+    }
+  }
+}
+
+.mcard-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block; }
+
+  .manga-list-page { max-width: 100%; overflow-x: hidden; }
+  .page-header { flex-wrap: wrap; }
+  .toolbar__search { max-width: 100%; }
+  .mcard, .mcard-list { max-width: 100%; }
+}

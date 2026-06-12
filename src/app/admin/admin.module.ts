@@ -46,6 +46,9 @@ import { UserMessagesDialogComponent } from './shared/user-messages-dialog/user-
 import { TopicListComponent } from './pages/topic-list/topic-list.component';
 import { CreateTopicDialogComponent } from './shared/create-topic-dialog/create-topic-dialog.component';
 import { ResetPasswordDialogComponent } from './shared/reset-password-dialog/reset-password-dialog.component';
+import { TaxonomyListComponent } from './pages/taxonomy-list/taxonomy-list.component';
+import { TaxonomyRequestsComponent } from './pages/taxonomy-requests/taxonomy-requests.component';
+import { TaxonomyFormDialogComponent } from './shared/taxonomy-form-dialog/taxonomy-form-dialog.component';
 
 const MAT_MODULES = [
   MatTableModule,
@@ -86,6 +89,9 @@ const MAT_MODULES = [
     TopicListComponent,
     CreateTopicDialogComponent,
     ResetPasswordDialogComponent,
+    TaxonomyListComponent,
+    TaxonomyRequestsComponent,
+    TaxonomyFormDialogComponent,
   ],
   imports: [
     CommonModule,

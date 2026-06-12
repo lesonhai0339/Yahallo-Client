@@ -89,6 +89,17 @@
   }
 }
 
+// Off-screen image cache for adjacent pages — fetched but never shown.
+.horizontal-preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .horizontal-nav {
   position: fixed;
   top: 0;

@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Chapter, Manga, MangaDetailDto, MangaStatsDto, MangaPagination, PagedResult } from '../models/interfaces';
 import { ChapterImage, ChapterSortBy } from '../models/chapter.interface';
-import { HomepageDto, MangaSumaryDto } from '../models/manga.interface';
+import { HomepageDto, MangaSumaryDto, MangaSortBy } from '../models/manga.interface';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
@@ -119,8 +119,7 @@ export class MangaService {
           lastestChapter: t.lastestChapter,
         } as Manga));
         const totalCount = raw?.totalCount ?? 0;
-        const totalPages = raw?.totalPages
-          ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : (raw?.totalPages ?? 1);
         return { data: items, totalPages, totalCount };
       })
     );
@@ -156,9 +155,69 @@ export class MangaService {
           lastChapterUpdate: t.lastestChapter?.createDate ?? t.lastChapterUpdate ?? t.updateDate,
         } as MangaSumaryDto));
         const totalCount = raw?.totalCount ?? 0;
-        const totalPages = raw?.totalPages ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        // Derive from the reliable totalCount + requested pageSize so the page
+        // count always matches this template's items-per-page.
+        const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : (raw?.totalPages ?? 1);
         return { data, totalPages, totalCount };
       })
+    );
+  }
+
+  /**
+   * Paginated manga list backed by `filter-manga` with server-side sorting.
+   * Replaces the removed `lastest-updated` endpoint — use SortBy.LastUpdate
+   * for "newest" and SortBy.ViewCount for "popular".
+   *
+   * NOTE: reverseSort = true → OrderByDescending on the backend, i.e. newest
+   * date / highest views first — which is what both "latest" and "popular"
+   * want. Pass false for ascending (oldest / lowest first).
+   */
+  getSortedPaginated(
+    page = 1,
+    pageSize = 20,
+    sortBy: MangaSortBy = MangaSortBy.LastUpdate,
+    reverseSort = true,
+  ): Observable<{ data: MangaSumaryDto[]; totalPages: number; totalCount: number }> {
+    const params = new HttpParams()
+      .set('pageNumber', page)
+      .set('pageSize', pageSize)
+      .set('SortBy', sortBy)
+      .set('ReverserSort', reverseSort);
+    return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
+      map((res: any) => {
+        const raw = res?.value ?? res;
+        const data = (raw?.data ?? []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
+          mangaBackground: t.mangaBackground,
+          totalViews: t.totalViews ?? 0,
+          averageRating: t.averageRating ?? 0,
+          tags: t.tags ?? [],
+          lastChapterId: t.lastestChapter?.id ?? t.lastChapterId,
+          lastChapterIndex: t.lastestChapter?.index ?? t.lastChapterIndex,
+          lastChapterUpdate: t.lastestChapter?.createDate ?? t.lastChapterUpdate ?? t.updateDate,
+        } as MangaSumaryDto));
+        const totalCount = raw?.totalCount ?? 0;
+        // Derive from the reliable totalCount + requested pageSize so the page
+        // count always matches this template's items-per-page.
+        const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : (raw?.totalPages ?? 1);
+        return { data, totalPages, totalCount };
+      })
+    );
+  }
+
+  /**
+   * Per-user recommendations — a SEPARATE call, intentionally not bundled into
+   * the shared homepage payload because each user gets a different list.
+   *
+   * MOCK: no recommendation API yet, so we stand in with rating-sorted manga
+   * shuffled per call. TODO: replace with the real per-user endpoint when ready
+   * (e.g. GET `${base}/recommend?userId=...`).
+   */
+  getRecommendedForUser(count = 6): Observable<MangaSumaryDto[]> {
+    return this.getSortedPaginated(1, Math.max(count * 2, count), MangaSortBy.Rating).pipe(
+      map(res => [...res.data].sort(() => Math.random() - 0.5).slice(0, count))
     );
   }
 
@@ -380,6 +439,7 @@ export class MangaService {
     status?: number;
     type?: number;
     countries?: number;
+    season?: number;
   }): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
     let httpParams = new HttpParams();
     if (params.id) httpParams = httpParams.set('id', params.id);
@@ -388,6 +448,7 @@ export class MangaService {
     if (params.type != null) httpParams = httpParams.set('Type', params.type);
     if (params.countries != null) httpParams = httpParams.set('Countries', params.countries);
     if (params.level != null) httpParams = httpParams.set('Level', params.level);
+    if (params.season != null) httpParams = httpParams.set('Season', params.season);
     if (params.tagIds) httpParams = httpParams.set('tagIds', params.tagIds.join(','));
     if (params.authorId) httpParams = httpParams.set('authorId', params.authorId);
     if (params.artistId) httpParams = httpParams.set('artistId', params.artistId);
@@ -412,7 +473,9 @@ export class MangaService {
         } as Manga));
         const totalCount = raw?.totalCount ?? 0;
         const pageSize = params.pageSize ?? 20;
-        const totalPages = raw?.totalPages ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        // Derive from the reliable totalCount + requested pageSize so the page
+        // count always matches this template's items-per-page.
+        const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : (raw?.totalPages ?? 1);
         return { data: items, totalPages, totalCount };
       })
     );
@@ -447,7 +510,9 @@ export class MangaService {
         } as Manga));
         const totalCount = raw?.totalCount ?? 0;
         const pageSize = params.pageSize ?? 20;
-        const totalPages = raw?.totalPages ?? (totalCount ? Math.ceil(totalCount / pageSize) : 1);
+        // Derive from the reliable totalCount + requested pageSize so the page
+        // count always matches this template's items-per-page.
+        const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : (raw?.totalPages ?? 1);
         return { data: items, totalPages, totalCount };
       })
     );

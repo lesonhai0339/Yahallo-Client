@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
-import { MangaSumaryDto } from '../../../core/models/manga.interface';
+import { UserPreferencesService } from '../../../core/services/user-preferences.service';
+import { MangaSumaryDto, MangaSortBy } from '../../../core/models/manga.interface';
 
 @Component({
   selector: 'app-manga-list-page',
@@ -19,6 +20,8 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
   pageSize = 10;
   pageSizeOptions = [10, 20, 50];
   viewMode: 'list' | 'grid' = 'grid';
+  /** true = gần nhất (descending), false = xa nhất (ascending) */
+  sortDescending = true;
 
   titleKey = '';
   icon = '';
@@ -29,10 +32,13 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
   constructor(
     private mangaService: MangaService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private prefs: UserPreferencesService
   ) {}
 
   ngOnInit(): void {
+    this.pageSize = this.prefs.current.defaultPageSize;
+    this.viewMode = this.prefs.current.defaultView;
     this.mode = this.route.snapshot.data['mode'] ?? 'latest';
     this.titleKey = this.route.snapshot.data['titleKey'] ?? 'HOME.LATEST_UPDATE';
     this.icon = this.route.snapshot.data['icon'] ?? 'fa-solid fa-clock-rotate-left';
@@ -46,9 +52,8 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
 
   loadPage(): void {
     this.isLoading = true;
-    const api$ = this.mode === 'popular'
-      ? this.mangaService.getPopularPaginated(this.currentPage, this.pageSize)
-      : this.mangaService.getNewestMangaPaginated(this.currentPage, this.pageSize);
+    const sortBy = this.mode === 'popular' ? MangaSortBy.ViewCount : MangaSortBy.LastUpdate;
+    const api$ = this.mangaService.getSortedPaginated(this.currentPage, this.pageSize, sortBy, this.sortDescending);
     api$.pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
@@ -64,6 +69,13 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
 
   setViewMode(mode: 'list' | 'grid'): void {
     this.viewMode = mode;
+  }
+
+  setSortDirection(descending: boolean): void {
+    if (descending === this.sortDescending) return;
+    this.sortDescending = descending;
+    this.currentPage = 1;
+    this.loadPage();
   }
 
   setPageSize(size: number): void {

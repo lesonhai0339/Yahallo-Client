@@ -8,6 +8,7 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { RegisterComponent } from './features/auth/register/register.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
 import { ProfileComponent } from './features/user/profile/profile.component';
+import { SettingsComponent } from './features/user/settings/settings.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
@@ -30,6 +31,7 @@ const routes: Routes = [
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },
   { path: 'user/:id/:name', component: ProfileComponent, canActivate: [AuthGuard] },
   { path: 'user/:id/:name/notifications', component: NotificationsComponent, canActivate: [AuthGuard] },
+  { path: 'settings', component: SettingsComponent },
   {
     path: 'admin',
     loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)

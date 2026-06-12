@@ -52,7 +52,7 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
       this.hasScrolledToInitial = false;
       this.updateVisibleIndices();
     }
-    if (changes['preloadCount'] || changes['images']) {
+    if (changes['preloadCount'] || changes['images'] || changes['direction']) {
       this.updateVisibleIndices();
     }
   }
@@ -108,6 +108,19 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     return this.visibleIndices.has(index);
   }
 
+  /**
+   * Pages around the current one to warm in the background while in horizontal
+   * mode (where only the current page is shown). Excludes the current page,
+   * which is already rendered.
+   */
+  get preloadIndices(): number[] {
+    const result: number[] = [];
+    this.visibleIndices.forEach(i => {
+      if (i !== this.currentPage && i >= 0 && i < this.images.length) result.push(i);
+    });
+    return result;
+  }
+
   @HostListener('window:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
     const isRtl = this.horizontalDir === 'rtl';
@@ -159,7 +172,20 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   }
 
   private scrollToInitialIfNeeded(): void {
-    if (!this.hasScrolledToInitial && this.initialPage > 0 && this.pageRefs.length > this.initialPage) {
+    if (this.hasScrolledToInitial || this.initialPage <= 0) return;
+
+    // Horizontal mode shows a single page — jump currentPage to the saved index
+    // so neighbours preload around it (same as the preload window).
+    if (this.direction === 'horizontal') {
+      if (this.images.length === 0) return;
+      this.currentPage = Math.min(this.initialPage, this.images.length - 1);
+      this.updateVisibleIndices();
+      this.pageChange.emit(this.currentPage);
+      this.hasScrolledToInitial = true;
+      return;
+    }
+
+    if (this.pageRefs.length > this.initialPage) {
       setTimeout(() => {
         const el = this.pageRefs.toArray()[this.initialPage]?.nativeElement;
         if (el) {
@@ -171,6 +197,12 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   }
 
   scrollToPage(index: number): void {
+    if (this.direction === 'horizontal') {
+      this.currentPage = Math.min(Math.max(0, index), this.images.length - 1);
+      this.updateVisibleIndices();
+      this.pageChange.emit(this.currentPage);
+      return;
+    }
     const el = this.pageRefs?.toArray()[index]?.nativeElement;
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });

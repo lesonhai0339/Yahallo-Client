@@ -18,14 +18,14 @@
         </div>
       </div>
 
-      <div class="table-wrapper">
+      <!-- Desktop table -->
+      <div class="table-wrapper desktop-only">
         <div *ngIf="loading" class="table-loading">
           <div class="spinner"></div><span>Đang tải...</span>
         </div>
 
         <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
 
-          <!-- Avatar -->
           <ng-container matColumnDef="avatar">
             <th mat-header-cell *matHeaderCellDef>Avatar</th>
             <td mat-cell *matCellDef="let u">
@@ -34,7 +34,6 @@
             </td>
           </ng-container>
 
-          <!-- Name -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Tên</th>
             <td mat-cell *matCellDef="let u">
@@ -43,13 +42,11 @@
             </td>
           </ng-container>
 
-          <!-- Email -->
           <ng-container matColumnDef="email">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
             <td mat-cell *matCellDef="let u">{{ u.email ?? '—' }}</td>
           </ng-container>
 
-          <!-- Roles -->
           <ng-container matColumnDef="roles">
             <th mat-header-cell *matHeaderCellDef>Roles</th>
             <td mat-cell *matCellDef="let u">
@@ -58,22 +55,16 @@
             </td>
           </ng-container>
 
-          <!-- Actions -->
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Thao tác</th>
             <td mat-cell *matCellDef="let u">
               <div class="action-btns">
-                <button
-                  *ngIf="perm.canManageRoles()"
-                  class="action-btn action-btn--role"
-                  (click)="openRoleDialog(u); $event.stopPropagation()"
-                  title="Quản lý role">
+                <button *ngIf="perm.canManageRoles()" class="action-btn action-btn--role"
+                  (click)="openRoleDialog(u); $event.stopPropagation()" title="Quản lý role">
                   <span class="material-icons">manage_accounts</span>
                 </button>
-                <button
-                  class="action-btn action-btn--analytics"
-                  (click)="goAnalytics(u); $event.stopPropagation()"
-                  title="Thống kê">
+                <button class="action-btn action-btn--analytics"
+                  (click)="goAnalytics(u); $event.stopPropagation()" title="Thống kê">
                   <span class="material-icons">bar_chart</span>
                 </button>
                 <span *ngIf="!perm.canManageRoles() && !perm.canManageUsers()" class="text-muted">Chỉ xem</span>
@@ -93,6 +84,31 @@
         </table>
       </div>
 
+      <!-- Mobile cards: tap a row to reveal the user card inline below it -->
+      <div class="mcard-list mobile-only">
+        <div *ngIf="loading" class="table-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+
+        <div class="mcard" *ngFor="let u of dataSource.filteredData" [class.mcard--open]="selectedUser?.id === u.id">
+          <div class="mcard__head" (click)="selectUser(u)">
+            <img *ngIf="u.avatarUrl" [src]="u.avatarUrl" [alt]="u.name" class="mcard__avatar" />
+            <div *ngIf="!u.avatarUrl" class="mcard__avatar mcard__avatar--initials">{{ getInitials(u.name) }}</div>
+            <div class="mcard__title">
+              <div class="mcard__name">{{ u.name ?? u.userName ?? '—' }}</div>
+              <div class="mcard__sub">{{ u.email ?? '—' }}</div>
+            </div>
+            <span class="material-icons mcard__chev">{{ selectedUser?.id === u.id ? 'expand_less' : 'expand_more' }}</span>
+          </div>
+
+          <div class="mcard__details" *ngIf="selectedUser?.id === u.id">
+            <div class="user-card user-card--embedded">
+              <ng-container *ngTemplateOutlet="userCardTpl; context: { u: u, embedded: true }"></ng-container>
+            </div>
+          </div>
+        </div>
+
+        <div class="mcard-empty" *ngIf="!loading && dataSource.filteredData.length === 0">Không có người dùng nào</div>
+      </div>
+
       <mat-paginator
         [length]="totalCount"
         [pageSize]="pageSize"
@@ -102,89 +118,80 @@
       </mat-paginator>
     </div>
 
-    <!-- Column 2: user detail card -->
-    <aside class="page-aside" *ngIf="selectedUser">
+    <!-- Column 2: user detail card (desktop) -->
+    <aside class="page-aside desktop-only" *ngIf="selectedUser">
       <div class="user-card">
-        <!-- Close -->
-        <button class="user-card__close" (click)="selectedUser = null">
-          <span class="material-icons">close</span>
-        </button>
-
-        <!-- Avatar -->
-        <img *ngIf="selectedUser.avatarUrl" [src]="selectedUser.avatarUrl" [alt]="selectedUser.name"
-             class="user-card__avatar" />
-        <div *ngIf="!selectedUser.avatarUrl" class="user-card__avatar user-card__avatar--initials">
-          {{ getInitials(selectedUser.name) }}
-        </div>
-
-        <!-- Display name -->
-        <h3 class="user-card__display-name">{{ selectedUser.name ?? selectedUser.displayName ?? '—' }}</h3>
-
-        <!-- Username -->
-        <span class="user-card__username" *ngIf="selectedUser.userName">@{{ selectedUser.userName }}</span>
-
-        <!-- Roles -->
-        <div class="user-card__roles" *ngIf="selectedUser.roleList?.length">
-          <span class="role-chip role-chip--lg" *ngFor="let r of selectedUser.roleList">{{ r }}</span>
-        </div>
-
-        <!-- Info rows -->
-        <div class="user-card__info">
-          <div class="info-item">
-            <span class="material-icons">mail</span>
-            <div class="info-item__body">
-              <span class="info-item__label">Email</span>
-              <span class="info-item__val">{{ selectedUser.email ?? '—' }}</span>
-            </div>
-          </div>
-
-          <div class="info-item">
-            <span class="material-icons">fingerprint</span>
-            <div class="info-item__body">
-              <span class="info-item__label">ID</span>
-              <span class="info-item__val info-item__val--mono">{{ selectedUser.id }}</span>
-            </div>
-          </div>
-
-          <div class="info-item">
-            <span class="material-icons">calendar_today</span>
-            <div class="info-item__body">
-              <span class="info-item__label">Ngày tạo</span>
-              <span class="info-item__val">{{ selectedUser.createdAt ? (selectedUser.createdAt | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
-            </div>
-          </div>
-
-          <div class="info-item">
-            <span class="material-icons">schedule</span>
-            <div class="info-item__body">
-              <span class="info-item__label">Hoạt động cuối</span>
-              <span class="info-item__val">{{ selectedUser.lastActive ? (selectedUser.lastActive | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick actions -->
-        <div class="user-card__actions">
-          <button class="card-act" (click)="openSendNotification(selectedUser)">
-            <span class="material-icons">notifications_active</span> Gửi thông báo
-          </button>
-          <button class="card-act" (click)="openMessages(selectedUser, 'feedback')">
-            <span class="material-icons">feedback</span> Feedback chờ xử lý
-          </button>
-          <button class="card-act" (click)="openMessages(selectedUser, 'conversation')">
-            <span class="material-icons">chat</span> Lịch sử hội thoại
-          </button>
-          <button class="card-act card-act--warn" (click)="resetPassword(selectedUser)" *ngIf="perm.isAdmin">
-            <span class="material-icons">lock_reset</span> Reset mật khẩu
-          </button>
-          <button class="card-act" (click)="openRoleDialog(selectedUser)" *ngIf="perm.canManageRoles()">
-            <span class="material-icons">manage_accounts</span> Quản lý role
-          </button>
-          <button class="card-act" (click)="goAnalytics(selectedUser)">
-            <span class="material-icons">bar_chart</span> Xem thống kê
-          </button>
-        </div>
+        <ng-container *ngTemplateOutlet="userCardTpl; context: { u: selectedUser, embedded: false }"></ng-container>
       </div>
     </aside>
   </div>
 </div>
+
+<!-- Reusable user card body (desktop aside + mobile inline) -->
+<ng-template #userCardTpl let-u="u" let-embedded="embedded">
+  <button class="user-card__close" *ngIf="!embedded" (click)="selectedUser = null">
+    <span class="material-icons">close</span>
+  </button>
+
+  <img *ngIf="u.avatarUrl" [src]="u.avatarUrl" [alt]="u.name" class="user-card__avatar" />
+  <div *ngIf="!u.avatarUrl" class="user-card__avatar user-card__avatar--initials">{{ getInitials(u.name) }}</div>
+
+  <h3 class="user-card__display-name">{{ u.name ?? u.displayName ?? '—' }}</h3>
+  <span class="user-card__username" *ngIf="u.userName">@{{ u.userName }}</span>
+
+  <div class="user-card__roles" *ngIf="u.roleList?.length">
+    <span class="role-chip role-chip--lg" *ngFor="let r of u.roleList">{{ r }}</span>
+  </div>
+
+  <div class="user-card__info">
+    <div class="info-item">
+      <span class="material-icons">mail</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Email</span>
+        <span class="info-item__val">{{ u.email ?? '—' }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">fingerprint</span>
+      <div class="info-item__body">
+        <span class="info-item__label">ID</span>
+        <span class="info-item__val info-item__val--mono">{{ u.id }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">calendar_today</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Ngày tạo</span>
+        <span class="info-item__val">{{ u.createdAt ? (u.createdAt | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">schedule</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Hoạt động cuối</span>
+        <span class="info-item__val">{{ u.lastActive ? (u.lastActive | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="user-card__actions">
+    <button class="card-act" (click)="openSendNotification(u)">
+      <span class="material-icons">notifications_active</span> Gửi thông báo
+    </button>
+    <button class="card-act" (click)="openMessages(u, 'feedback')">
+      <span class="material-icons">feedback</span> Feedback chờ xử lý
+    </button>
+    <button class="card-act" (click)="openMessages(u, 'conversation')">
+      <span class="material-icons">chat</span> Lịch sử hội thoại
+    </button>
+    <button class="card-act card-act--warn" (click)="resetPassword(u)" *ngIf="perm.isAdmin">
+      <span class="material-icons">lock_reset</span> Reset mật khẩu
+    </button>
+    <button class="card-act" (click)="openRoleDialog(u)" *ngIf="perm.canManageRoles()">
+      <span class="material-icons">manage_accounts</span> Quản lý role
+    </button>
+    <button class="card-act" (click)="goAnalytics(u)">
+      <span class="material-icons">bar_chart</span> Xem thống kê
+    </button>
+  </div>
+</ng-template>

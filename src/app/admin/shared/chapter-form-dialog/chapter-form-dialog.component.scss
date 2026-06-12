@@ -1,14 +1,14 @@
-// ── Light theme tokens (scoped to this dialog) ─────────────────────────────
-$bg: #ffffff;
-$bg-alt: #f8f9fb;
-$bg-hover: #f1f3f5;
-$border: #e0e3e8;
-$border-light: #ebedf0;
-$text: #1a1d23;
-$text-2: #4a5060;
-$text-3: #8b92a5;
-$accent: #e94560;
-$accent-light: rgba(233, 69, 96, 0.08);
+// ── Theme-aware tokens (follow [data-theme] via CSS variables) ─────────────
+$bg: var(--bg-secondary);
+$bg-alt: var(--bg-primary);
+$bg-hover: var(--bg-card-hover);
+$border: var(--border-color);
+$border-light: var(--border-light);
+$text: var(--text-primary);
+$text-2: var(--text-secondary);
+$text-3: var(--text-muted);
+$accent: var(--accent-primary);
+$accent-light: rgba(233, 69, 96, 0.12);
 $warn: #f59e0b;
 $danger: #dc2626;
 $radius: 8px;
@@ -112,7 +112,7 @@ $radius-sm: 6px;
 
   .material-icons { font-size: 1rem !important; }
 
-  &:hover { border-color: darken($border, 10%); background: $bg-alt; color: $text; }
+  &:hover { border-color: var(--text-muted); background: $bg-alt; color: $text; }
 
   &--primary {
     background: $accent;
@@ -120,7 +120,7 @@ $radius-sm: 6px;
     color: #fff;
 
     .material-icons { color: #fff !important; }
-    &:hover { background: darken($accent, 6%); border-color: darken($accent, 6%); color: #fff; }
+    &:hover { filter: brightness(0.92); color: #fff; }
   }
 }
 
@@ -178,7 +178,7 @@ $radius-sm: 6px;
 
   &::-webkit-scrollbar { width: 5px; }
   &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: darken($border, 8%); border-radius: 3px; }
+  &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 }
 
 .image-row {
@@ -525,7 +525,7 @@ $radius-sm: 6px;
     border: 1px solid $accent;
     color: #fff;
 
-    &:hover { background: darken($accent, 6%); }
+    &:hover { filter: brightness(0.92); }
     &:disabled { opacity: 0.5; }
   }
 

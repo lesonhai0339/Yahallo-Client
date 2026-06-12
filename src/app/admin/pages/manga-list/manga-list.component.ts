@@ -23,6 +23,8 @@ export class MangaListComponent implements OnInit, AfterViewInit {
   pageIndex = 0;
   filterValue = '';
   loading = false;
+  /** Mobile: id of the card whose details/actions dropdown is open. */
+  expandedId: string | null = null;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -76,6 +78,10 @@ export class MangaListComponent implements OnInit, AfterViewInit {
   applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value.trim().toLowerCase();
     this.dataSource.filter = value;
+  }
+
+  toggleExpand(manga: any): void {
+    this.expandedId = this.expandedId === manga.id ? null : manga.id;
   }
 
   goCreate(): void {

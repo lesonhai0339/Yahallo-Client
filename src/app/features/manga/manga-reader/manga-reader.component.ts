@@ -1,12 +1,14 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ReadingProgressService } from '../../../core/services/reading-progress.service';
+import { ReadingProgressService, LocalProgress } from '../../../core/services/reading-progress.service';
+import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { SeoService } from '../../../core/services/seo.service';
 import { ChapterImage } from '../../../core/models/chapter.interface';
+import { ReaderViewerComponent } from '../../../shared/components/reader-viewer/reader-viewer.component';
 
 export interface ReaderSettings {
   direction: 'vertical' | 'horizontal';
@@ -47,6 +49,14 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   };
   pendingSettings!: ReaderSettings;
 
+  // Resume-reading prompt (mode = 'ask')
+  showResumePrompt = false;
+  resumeTarget: LocalProgress | null = null;
+  /** True only for the first reader entry (open from detail OR page reload). */
+  private isReaderEntry = true;
+
+  @ViewChild(ReaderViewerComponent) readerViewer?: ReaderViewerComponent;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -56,6 +66,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     private mangaService: MangaService,
     private authService: AuthService,
     private readingProgress: ReadingProgressService,
+    private prefs: UserPreferencesService,
     private seo: SeoService
   ) {}
 
@@ -66,9 +77,73 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
       this.chapterId = p['chapterId'];
       this.mangaName = p['name'] || '';
       this.initialPage = parseInt(p['chapterIndex'] || '0', 10);
+      this.resolveResume();   // may adjust chapter/page ('always') or show prompt ('ask')
       this.loadImages();
       this.loadChapters();
     });
+
+    // Push any local progress changes for logged-in users (process 2, mocked).
+    const uid = this.authService.currentUser?.id;
+    if (uid) this.readingProgress.sync(uid).subscribe();
+  }
+
+  /** Decide whether to resume to a saved position based on the user's setting. */
+  private resolveResume(): void {
+    this.showResumePrompt = false;
+    this.resumeTarget = null;
+
+    // Only on a FRESH entry (open from manga-detail OR a page reload), never on
+    // internal chapter/page navigation within the reader.
+    const firstEntry = this.isReaderEntry;
+    this.isReaderEntry = false;
+    if (!firstEntry) return;
+
+    const mode = this.prefs.current.readProgressMode;
+    if (mode === 'off') return;
+
+    const saved = this.readingProgress.getLocal(this.mangaId);
+    if (!saved || saved.imageIndex <= 0) return;
+
+    if (mode === 'always') {
+      this.applyResume(saved, false);
+    } else {
+      // 'ask' — prompt regardless of how the user arrived (including reload at
+      // a deep-linked page). Reader still loads at the URL page underneath.
+      this.resumeTarget = saved;
+      this.showResumePrompt = true;
+    }
+  }
+
+  /** Jump to a saved position. `reload` = the chapter images are already loaded. */
+  private applyResume(saved: LocalProgress, reload: boolean): void {
+    this.showResumePrompt = false;
+    if (saved.chapterId && saved.chapterId !== this.chapterId) {
+      this.chapterId = saved.chapterId;
+      this.initialPage = saved.imageIndex;
+      this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${this.initialPage}`);
+      if (reload) { this.loadImages(); this.loadChapters(); }
+    } else {
+      this.initialPage = saved.imageIndex;
+      if (reload) this.readerViewer?.scrollToPage(this.initialPage);
+    }
+  }
+
+  resumeReading(): void {
+    if (this.resumeTarget) this.applyResume(this.resumeTarget, true);
+    this.resumeTarget = null;
+  }
+
+  /** "Read from the beginning" — jump to page 0 even if reloaded mid-chapter. */
+  startFromBeginning(): void {
+    this.showResumePrompt = false;
+    this.resumeTarget = null;
+    this.initialPage = 0;
+    this.readerViewer?.scrollToPage(0);
+  }
+
+  dismissResume(): void {
+    this.showResumePrompt = false;
+    this.resumeTarget = null;
   }
 
   ngOnDestroy(): void {
@@ -109,6 +184,13 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
 
   onPageChange(page: number): void {
     this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${page}`);
+    // Process 1: local progress, updated on every new image. Reaching the last
+    // image counts as finished — drop the saved position instead.
+    if (this.images.length > 0 && page >= this.images.length - 1) {
+      this.readingProgress.removeLocal(this.mangaId);
+    } else {
+      this.readingProgress.saveLocal(this.mangaId, this.chapterId, page);
+    }
     this.saveProgress(page);
   }
 
@@ -134,6 +216,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   saveProgress(lastPage: number): void {
+    if (this.prefs.current.readProgressMode === 'off') return;
     const user = this.authService.currentUser;
     if (!user) return;
     this.readingProgress.save({

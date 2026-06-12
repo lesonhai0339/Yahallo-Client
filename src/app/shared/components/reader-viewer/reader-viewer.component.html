@@ -42,5 +42,10 @@
         <i class="fa-solid fa-chevron-right"></i>
       </button>
     </div>
+
+    <!-- Off-screen preload: warms neighbouring pages so flipping is instant -->
+    <div class="horizontal-preload" aria-hidden="true">
+      <img *ngFor="let i of preloadIndices" [src]="images[i].cloudUrl" alt="" loading="eager">
+    </div>
   </ng-container>
 </div>

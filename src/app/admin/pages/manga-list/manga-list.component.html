@@ -20,8 +20,8 @@
     </div>
   </div>
 
-  <!-- Table -->
-  <div class="table-wrapper">
+  <!-- Table (desktop) -->
+  <div class="table-wrapper desktop-only">
     <div *ngIf="loading" class="table-loading">
       <div class="spinner"></div>
       <span>Đang tải...</span>
@@ -138,6 +138,56 @@
         </td>
       </tr>
     </table>
+  </div>
+
+  <!-- Cards (mobile) -->
+  <div class="mcard-list mobile-only">
+    <div *ngIf="loading" class="table-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+
+    <div class="mcard" *ngFor="let m of dataSource.filteredData" [class.mcard--open]="expandedId === m.id">
+      <div class="mcard__head" (click)="toggleExpand(m)">
+        <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="mcard__thumb" />
+        <div *ngIf="!m.thumbnail" class="mcard__thumb mcard__thumb--ph">?</div>
+        <div class="mcard__title">
+          <div class="mcard__name">{{ m.name }}</div>
+          <div class="mcard__sub">{{ m.updateDate ? (m.updateDate | date:'dd/MM/yy') : '—' }}</div>
+        </div>
+        <button class="mcard__toggle" type="button" (click)="$event.stopPropagation(); toggleExpand(m)" title="Thao tác">
+          <span class="material-icons">{{ expandedId === m.id ? 'expand_less' : 'expand_more' }}</span>
+        </button>
+      </div>
+
+      <div class="mcard__details" *ngIf="expandedId === m.id">
+        <div class="mcard__info">
+          <div class="mcard__row"><span class="mcard__k">Loại</span><span class="mcard__v">{{ m.type || '—' }}</span></div>
+          <div class="mcard__row"><span class="mcard__k">Trạng thái</span><span class="mcard__v">{{ getStatusLabel(m.status) }}</span></div>
+          <div class="mcard__row"><span class="mcard__k">Chương</span><span class="mcard__v">{{ m.totalChapters ?? 0 }}</span></div>
+          <div class="mcard__row"><span class="mcard__k">Lượt xem</span><span class="mcard__v">{{ m.totalViews ?? 0 | number }}</span></div>
+          <div class="mcard__row"><span class="mcard__k">ID</span><span class="mcard__v">{{ m.id }}</span></div>
+        </div>
+        <div class="mcard__actions">
+          <button *ngIf="perm.canEditManga(m)" class="action-btn action-btn--edit" (click)="goEdit(m)" title="Chỉnh sửa">
+            <span class="material-icons">edit</span>
+          </button>
+          <button *ngIf="perm.canEditManga(m)" class="action-btn action-btn--chapter" (click)="goChapters(m)" title="Quản lý chương">
+            <span class="material-icons">format_list_numbered</span>
+          </button>
+          <button *ngIf="perm.canEditManga(m)" class="action-btn action-btn--analytics" (click)="goAnalytics(m)" title="Thống kê">
+            <span class="material-icons">bar_chart</span>
+          </button>
+          <button *ngIf="perm.canEditManga(m)" class="action-btn"
+            [class.action-btn--hide]="m.status !== 'Hidden'" [class.action-btn--show]="m.status === 'Hidden'"
+            (click)="toggleStatus(m)" [title]="m.status === 'Hidden' ? 'Hiện truyện' : 'Ẩn truyện'">
+            <span class="material-icons">{{ m.status === 'Hidden' ? 'visibility' : 'visibility_off' }}</span>
+          </button>
+          <button *ngIf="perm.canDeleteSpecificManga(m)" class="action-btn action-btn--delete" (click)="deleteManga(m)" title="Xóa">
+            <span class="material-icons">delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mcard-empty" *ngIf="!loading && dataSource.filteredData.length === 0">Không tìm thấy truyện nào</div>
   </div>
 
   <!-- Pagination -->

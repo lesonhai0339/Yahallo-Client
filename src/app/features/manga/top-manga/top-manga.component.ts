@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
+import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { Manga } from '../../../core/models/interfaces';
 
 export interface SortOption {
@@ -56,10 +57,13 @@ export class TopMangaComponent implements OnInit, OnDestroy {
   constructor(
     private mangaService: MangaService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private prefs: UserPreferencesService
   ) {}
 
   ngOnInit(): void {
+    this.pageSize = this.prefs.current.defaultPageSize;
+    this.viewMode = this.prefs.current.defaultView;
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
       const criterion = params['criterion'];
       if (criterion && this.criterionMap[criterion]) {

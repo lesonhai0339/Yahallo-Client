@@ -366,3 +366,78 @@ $radius-md: 10px;
     }
   }
 }
+
+// ── Responsive: desktop table+aside vs mobile inline cards ────────────────────
+.mobile-only { display: none; }
+
+.mcard-list { display: flex; flex-direction: column; gap: 10px; }
+
+.mcard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+
+  &--open { border-color: var(--accent-primary); }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+
+  &__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+
+    &--initials {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-secondary);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+  }
+
+  &__title { flex: 1; min-width: 0; }
+  &__name { font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__sub { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  &__chev { color: var(--text-muted); flex-shrink: 0; }
+
+  &__details {
+    border-top: 1px solid var(--border-color);
+    padding: 12px;
+
+    // The embedded user-card fills the row, no sticky/extra frame.
+    .user-card--embedded {
+      position: static;
+      padding: 0;
+      border: none;
+      background: none;
+      box-shadow: none;
+    }
+  }
+}
+
+.mcard-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block; }
+
+  // No aside column on mobile — inline cards replace it.
+  .page-layout, .page-layout--has-aside { grid-template-columns: 1fr !important; }
+}

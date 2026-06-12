@@ -1,0 +1,117 @@
+<div class="tax-page">
+  <header class="tax-page__head">
+    <div>
+      <h1 class="tax-page__title">Thư viện Tag / Tác giả / Họa sĩ</h1>
+      <p class="tax-page__sub" *ngIf="!canManage">
+        Bạn có thể gửi yêu cầu thêm — admin sẽ duyệt.
+      </p>
+    </div>
+    <button class="add-btn" (click)="openForm('create')">
+      <span class="material-icons">{{ canManage ? 'add' : 'outgoing_mail' }}</span>
+      {{ canManage ? 'Thêm' : 'Yêu cầu thêm' }}
+    </button>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tax-tabs">
+    <button *ngFor="let t of tabs" class="tax-tab" [class.active]="activeType === t.type"
+            (click)="selectTab(t.type)">
+      <span class="material-icons">{{ t.icon }}</span>{{ t.label }}
+    </button>
+  </div>
+
+  <!-- Search -->
+  <div class="tax-search">
+    <span class="material-icons">search</span>
+    <input [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Tìm theo tên..." />
+  </div>
+
+  <div class="tax-loading" *ngIf="isLoading">
+    <mat-progress-spinner mode="indeterminate" diameter="36"></mat-progress-spinner>
+  </div>
+
+  <div class="tax-empty" *ngIf="!isLoading && items.length === 0">
+    <span class="material-icons">inbox</span>
+    <p>Chưa có dữ liệu</p>
+  </div>
+
+  <!-- Desktop table -->
+  <table class="tax-table desktop-only" *ngIf="!isLoading && items.length > 0">
+    <thead>
+      <tr>
+        <th>Tên</th>
+        <th *ngIf="activeType === 'tag'">Mô tả</th>
+        <ng-container *ngIf="activeType !== 'tag'">
+          <th>Mô tả</th>
+          <th>Quốc gia</th>
+          <th>Ngày sinh</th>
+        </ng-container>
+        <th class="tax-table__actions" *ngIf="canManage">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of items">
+        <td class="tax-table__name">{{ item.name }}</td>
+        <td *ngIf="activeType === 'tag'" class="tax-table__muted">{{ item.description || '—' }}</td>
+        <ng-container *ngIf="activeType !== 'tag'">
+          <td class="tax-table__muted">{{ item.depscription || '—' }}</td>
+          <td>{{ countryOf(item) ?? '—' }}</td>
+          <td class="tax-table__muted">{{ item.birth ? (item.birth | date:'dd/MM/yyyy') : '—' }}</td>
+        </ng-container>
+        <td class="tax-table__actions" *ngIf="canManage">
+          <button class="icon-btn" (click)="openForm('edit', item)" title="Sửa">
+            <span class="material-icons">edit</span>
+          </button>
+          <button class="icon-btn icon-btn--danger" (click)="remove(item)" title="Xóa">
+            <span class="material-icons">delete</span>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Mobile cards -->
+  <div class="mcard-list mobile-only" *ngIf="!isLoading && items.length > 0">
+    <div class="mcard" *ngFor="let item of items" [class.mcard--open]="expandedId === item.id">
+      <div class="mcard__head" (click)="toggleExpand(item)">
+        <div class="mcard__title">
+          <div class="mcard__name">{{ item.name }}</div>
+          <div class="mcard__sub" *ngIf="activeType !== 'tag'">QG {{ countryOf(item) ?? '—' }}</div>
+        </div>
+        <button class="mcard__toggle" type="button" (click)="$event.stopPropagation(); toggleExpand(item)" title="Thao tác">
+          <span class="material-icons">{{ expandedId === item.id ? 'expand_less' : 'expand_more' }}</span>
+        </button>
+      </div>
+
+      <div class="mcard__details" *ngIf="expandedId === item.id">
+        <div class="mcard__info">
+          <div class="mcard__row" *ngIf="activeType === 'tag'"><span>Mô tả</span><span>{{ item.description || '—' }}</span></div>
+          <ng-container *ngIf="activeType !== 'tag'">
+            <div class="mcard__row"><span>Mô tả</span><span>{{ item.depscription || '—' }}</span></div>
+            <div class="mcard__row"><span>Quốc gia</span><span>{{ countryOf(item) ?? '—' }}</span></div>
+            <div class="mcard__row"><span>Ngày sinh</span><span>{{ item.birth ? (item.birth | date:'dd/MM/yyyy') : '—' }}</span></div>
+          </ng-container>
+        </div>
+        <div class="mcard__actions" *ngIf="canManage">
+          <button class="icon-btn" (click)="openForm('edit', item)" title="Sửa">
+            <span class="material-icons">edit</span> Sửa
+          </button>
+          <button class="icon-btn icon-btn--danger" (click)="remove(item)" title="Xóa">
+            <span class="material-icons">delete</span> Xóa
+          </button>
+        </div>
+        <p class="mcard__note" *ngIf="!canManage">Chỉ admin mới sửa/xóa.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <mat-paginator *ngIf="!isLoading && totalCount > 0"
+    [length]="totalCount"
+    [pageSize]="pageSize"
+    [pageIndex]="pageIndex"
+    [pageSizeOptions]="[10, 20, 50, 100]"
+    (page)="onPageChange($event)"
+    showFirstLastButtons>
+  </mat-paginator>
+</div>

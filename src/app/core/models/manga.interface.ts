@@ -19,6 +19,15 @@ export interface TagDto{
     description: string,
 }
 
+/** Mirrors backend MangaSortBy enum (filter-manga) */
+export enum MangaSortBy {
+    LastUpdate = 'LastUpdate',
+    ViewCount = 'ViewCount',
+    Rating = 'Rating',
+    CommentCount = 'CommentCount',
+    ChapterCount = 'ChapterCount',
+}
+
 export interface TopMangaDto {
     id: string;
     name: string;

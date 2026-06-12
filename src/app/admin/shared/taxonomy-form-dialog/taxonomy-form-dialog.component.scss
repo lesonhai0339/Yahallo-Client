@@ -1,0 +1,109 @@
+.tax-dialog {
+  padding: 4px;
+  min-width: 480px;
+  max-width: 560px;
+}
+
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 18px;
+
+  .material-icons { font-size: 1.2rem !important; color: var(--accent-primary); }
+}
+
+.dialog-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: -10px 0 16px;
+}
+
+// ── Fields (shared admin form spec) ──────────────────────────────────────────
+.field {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+
+  &__label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+
+    .req { color: var(--accent-primary); }
+  }
+
+  &__input,
+  &__textarea {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    font-family: inherit;
+
+    &:focus { outline: none; border-color: var(--accent-primary); }
+    &::placeholder { color: var(--text-muted); }
+  }
+
+  &__textarea { resize: vertical; line-height: 1.5; min-height: 80px; }
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+  .field { flex: 1; }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.act-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 1rem !important; }
+
+  &--cancel {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+
+    &:hover { border-color: var(--text-muted); color: var(--text-primary); }
+  }
+
+  &--submit {
+    background: var(--accent-primary);
+    border: none;
+    color: white;
+
+    &:hover { background: #d13a54; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+}

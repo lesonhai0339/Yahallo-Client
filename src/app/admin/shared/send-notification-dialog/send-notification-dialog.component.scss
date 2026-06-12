@@ -1,13 +1,14 @@
 // ── Light-theme tokens ──────────────────────────────────────────────────────
-$bg: #ffffff;
-$bg-alt: #f8f9fb;
-$bg-hover: #f1f3f5;
-$text: #1a1d23;
-$text-sec: #4b5563;
-$text-muted: #9ca3af;
-$border: #e2e5ea;
-$border-light: #edf0f3;
-$accent: #e94560;
+// Theme-aware tokens — follow [data-theme] via CSS variables.
+$bg: var(--bg-secondary);
+$bg-alt: var(--bg-primary);
+$bg-hover: var(--bg-card-hover);
+$text: var(--text-primary);
+$text-sec: var(--text-secondary);
+$text-muted: var(--text-muted);
+$border: var(--border-color);
+$border-light: var(--border-light);
+$accent: var(--accent-primary);
 $radius-sm: 6px;
 
 .notif-dialog {

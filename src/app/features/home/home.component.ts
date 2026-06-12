@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Subject, takeUntil } from 'rxjs';
 import { MasterDataService } from '../../core/services/master-data.service';
+import { MangaService } from '../../core/services/manga.service';
 import { MangaSumaryDto, TopMangaDto } from '../../core/models/manga.interface';
 
 @Component({
@@ -11,6 +12,7 @@ import { MangaSumaryDto, TopMangaDto } from '../../core/models/manga.interface';
 export class HomeComponent implements OnInit, OnDestroy {
   latestManga: MangaSumaryDto[] = [];
   popularManga: MangaSumaryDto[] = [];
+  recommendedManga: MangaSumaryDto[] = [];
   categories: any[] = [];
   randomCategories: any[] = [];
   isLoading = true;
@@ -26,7 +28,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private masterData: MasterDataService) {}
+  constructor(
+    private masterData: MasterDataService,
+    private mangaService: MangaService,
+  ) {}
 
   ngOnInit(): void {
     this.isMobile = window.innerWidth <= 992;
@@ -55,6 +60,12 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.randomCategories = [...c].sort(() => Math.random() - 0.5).slice(0, 20);
     });
 
+    // Recommendations are per-user, so fetched with a dedicated call (mocked for now).
+    this.mangaService.getRecommendedForUser(6).pipe(takeUntil(this.destroy$)).subscribe({
+      next: list => this.recommendedManga = list,
+      error: () => {}
+    });
+
     this.masterData.homepage$.pipe(takeUntil(this.destroy$)).subscribe({
       next: (homepage) => {
         this.latestManga = homepage.lastUpdate || [];
@@ -80,5 +91,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   onTopListPeriodChange(period: 'day' | 'month' | 'year'): void {
     this.topListPeriod = period;
+  }
+
+  /** Top list is a dropdown on mobile only; desktop always shows it in full. */
+  toggleTopList(): void {
+    if (this.isMobile) this.isTopListCollapsed = !this.isTopListCollapsed;
   }
 }

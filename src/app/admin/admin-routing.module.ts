@@ -12,6 +12,8 @@ import { MangaAnalyticsComponent } from './pages/manga-analytics/manga-analytics
 import { UserListComponent } from './pages/user-list/user-list.component';
 import { UserAnalyticsComponent } from './pages/user-analytics/user-analytics.component';
 import { TopicListComponent } from './pages/topic-list/topic-list.component';
+import { TaxonomyListComponent } from './pages/taxonomy-list/taxonomy-list.component';
+import { TaxonomyRequestsComponent } from './pages/taxonomy-requests/taxonomy-requests.component';
 
 const routes: Routes = [
   {
@@ -66,6 +68,18 @@ const routes: Routes = [
       {
         path: 'topics',
         component: TopicListComponent,
+      },
+      {
+        // Visible to all admin-access roles; the page itself switches between
+        // direct manage (admin) and request mode (mod/trans).
+        path: 'taxonomy',
+        component: TaxonomyListComponent,
+      },
+      {
+        path: 'taxonomy-requests',
+        component: TaxonomyRequestsComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageTaxonomy }
       },
     ]
   }

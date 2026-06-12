@@ -1,0 +1,60 @@
+<div class="tax-dialog">
+  <h2 class="dialog-title">
+    <span class="material-icons">{{ data.asRequest ? 'outgoing_mail' : 'add_circle_outline' }}</span>
+    {{ title }}
+  </h2>
+
+  <p class="dialog-hint" *ngIf="data.asRequest">
+    Yêu cầu sẽ được gửi tới admin để duyệt trước khi thêm vào hệ thống.
+  </p>
+
+  <!-- Name -->
+  <div class="field">
+    <label class="field__label">Tên <span class="req">*</span></label>
+    <input class="field__input" [(ngModel)]="name" [ngModelOptions]="{ standalone: true }"
+           [placeholder]="'Tên ' + typeLabel + '...'" maxlength="200" />
+  </div>
+
+  <!-- Tag description -->
+  <div class="field" *ngIf="!isPerson">
+    <label class="field__label">Mô tả</label>
+    <textarea class="field__textarea" [(ngModel)]="description" [ngModelOptions]="{ standalone: true }"
+              rows="3" placeholder="Mô tả ngắn (tuỳ chọn)..." maxlength="500"></textarea>
+  </div>
+
+  <!-- Person fields -->
+  <ng-container *ngIf="isPerson">
+    <div class="field">
+      <label class="field__label">Mô tả <span class="req">*</span></label>
+      <textarea class="field__textarea" [(ngModel)]="depscription" [ngModelOptions]="{ standalone: true }"
+                rows="3" placeholder="Tiểu sử / mô tả..." maxlength="1000"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label">Mã quốc gia <span class="req">*</span></label>
+        <input class="field__input" type="number" min="1" max="249"
+               [(ngModel)]="country" [ngModelOptions]="{ standalone: true }" placeholder="1 - 249" />
+      </div>
+      <div class="field">
+        <label class="field__label">Ngày sinh <span class="req">*</span></label>
+        <input class="field__input" type="date" [(ngModel)]="birth" [ngModelOptions]="{ standalone: true }" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label">Tình trạng</label>
+      <select class="field__input" [(ngModel)]="lifeStatus" [ngModelOptions]="{ standalone: true }">
+        <option *ngFor="let o of lifeStatusOptions" [ngValue]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+  </ng-container>
+
+  <div class="dialog-actions">
+    <button class="act-btn act-btn--cancel" (click)="cancel()">Hủy</button>
+    <button class="act-btn act-btn--submit" [disabled]="!canSubmit" (click)="submit()">
+      <span class="material-icons">{{ data.asRequest ? 'send' : 'check' }}</span>
+      {{ data.asRequest ? 'Gửi yêu cầu' : (data.mode === 'edit' ? 'Lưu' : 'Thêm') }}
+    </button>
+  </div>
+</div>

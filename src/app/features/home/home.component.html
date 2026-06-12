@@ -42,6 +42,21 @@
           </div>
         </section>
 
+        <!-- Recommended -->
+        <section class="manga-section">
+          <div class="section-header">
+            <h2 class="section-header__title">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>{{ 'HOME.RECOMMENDED' | translate }}
+            </h2>
+          </div>
+
+          <app-loading-skeleton *ngIf="isLoading" [count]="6" [cols]="6"></app-loading-skeleton>
+
+          <div class="manga-grid" *ngIf="!isLoading">
+            <app-manga-sumary-card *ngFor="let manga of recommendedManga" [manga]="manga"></app-manga-sumary-card>
+          </div>
+        </section>
+
       </main>
 
       <!-- Sidebar -->
@@ -63,22 +78,21 @@
 
         <div class="sidebar-section mt-4">
           <div class="sidebar-title-row sidebar-title-row--collapsible"
-               (click)="isTopListCollapsed = !isTopListCollapsed">
+               (click)="toggleTopList()">
             <h3 class="sidebar-title">
               <i class="fa-solid fa-ranking-star me-2"></i>{{ 'HOME.TOP_LIST' | translate }}
             </h3>
-            <div class="sidebar-title-row__right">
-              <a routerLink="/top-manga/views" class="see-more-link"
-                 (click)="$event.stopPropagation()">
-                {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
-              </a>
-              <i class="fa-solid sidebar-collapse-icon"
-                 [class.fa-chevron-down]="isTopListCollapsed"
-                 [class.fa-chevron-up]="!isTopListCollapsed"
-                 *ngIf="isMobile"></i>
-            </div>
+            <!-- Desktop: see-more sits where the dropdown arrow would be -->
+            <a *ngIf="!isMobile" routerLink="/top-manga/views" class="see-more-link"
+               (click)="$event.stopPropagation()">
+              {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+            </a>
+            <!-- Mobile: collapse arrow toggles the dropdown -->
+            <i *ngIf="isMobile" class="fa-solid sidebar-collapse-icon"
+               [class.fa-chevron-down]="isTopListCollapsed"
+               [class.fa-chevron-up]="!isTopListCollapsed"></i>
           </div>
-          <ng-container *ngIf="!isTopListCollapsed || !isMobile">
+          <ng-container *ngIf="!isMobile || !isTopListCollapsed">
             <div class="top-period-tabs">
               <button class="top-period-tab" [class.active]="topListPeriod === 'day'"
                 (click)="onTopListPeriodChange('day')">{{ 'HOME.TOP_DAY' | translate }}</button>
@@ -98,6 +112,9 @@
                 </div>
               </a>
             </div>
+            <a *ngIf="isMobile" routerLink="/top-manga/views" class="top-see-more">
+              {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+            </a>
           </ng-container>
         </div>
       </aside>
