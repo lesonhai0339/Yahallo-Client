@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
   apiUrl: 'https://api.yahallo.online',
+  ratingApi: 'https://api.yahallo.online/rating',
   mangaApi: 'https://api.yahallo.online/manga',
   chapterApi: 'https://api.yahallo.online/chapter',
   commentApi: 'https://api.yahallo.online/comment',

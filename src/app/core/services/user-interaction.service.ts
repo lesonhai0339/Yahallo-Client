@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class UserInteractionService {
+  private readonly ratingBase = environment.ratingApi;
   private readonly followBase = environment.followMangaApi;
   private readonly notifBase = environment.notificationApi;
 
@@ -35,19 +36,49 @@ export class UserInteractionService {
     return this.http.post(`${environment.serviceApi}/CapNhatView/${mangaId}`, {});
   }
 
-  rate(mangaId: string, star: number): Observable<any> {
-    return this.http.post(`${environment.serviceApi}/rating`, { mangaId, star });
+  rate(mangaId: string, userId: string, star: number): Observable<any> {
+    const body = {
+      MangaId: mangaId,
+      UserId: userId,
+      Rating: star
+    };
+    return this.http.post(`${this.ratingBase}/create`, body);
   }
 
-  getUserRating(mangaId: string): Observable<number> {
-    return this.http.get<any>(`${environment.serviceApi}/rating/${mangaId}`).pipe(
+  getUserRating(mangaId: string): Observable<{ id: string; rating: number }> {
+    return this.filterUserRating(1, 20, mangaId).pipe(
       map((res: any) => {
-        const d = res?.value ?? res;
-        return d?.star ?? d?.rating ?? 0;
+        const item = res?.value?.data?.[0];
+        return {
+          id: item?.id ?? '',
+          rating: item?.rating ?? 0
+        };
       })
     );
   }
 
+  filterUserRating(
+    pageNo: number = 1,
+    pageSize: number = 20,
+    mangaId: string = '',
+    mangaName: string = '',
+    userId: string = '',
+    userName: string = '',
+    sortBy: number = 0,
+    reverse: boolean = false
+  ): Observable<any> {
+    let params = new HttpParams()
+      .set('PageNumber', pageNo)
+      .set('PageSize', pageSize)
+      .set('MangaId', mangaId)
+      .set('MangaName', mangaName)
+      .set('UserId', userId)
+      .set('UserName', userName)
+      .set('SortBy', sortBy)
+      .set('ReverseSort', reverse);
+
+    return this.http.get<any>(`${this.ratingBase}/filter`, { params });
+  }
   markNotificationRead(id: string): Observable<any> {
     return this.http.post(`${this.notifBase}/mark-read`, { id });
   }

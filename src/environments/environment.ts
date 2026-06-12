@@ -1,6 +1,7 @@
 export const environment = {
   production: false,
   apiUrl: 'https://localhost:7181',
+  ratingApi: 'https://localhost:7181/rating',
   mangaApi: 'https://localhost:7181/manga',
   chapterApi: 'https://localhost:7181/chapter',
   commentApi: 'https://localhost:7181/comment',

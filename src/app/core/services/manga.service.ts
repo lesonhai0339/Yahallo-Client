@@ -257,7 +257,9 @@ export class MangaService {
   }
 
   getDetail(mangaId: string): Observable<any> {
-    return this.http.get(`${this.base}/detail/${mangaId}`);
+    const params = new HttpParams()
+    .set('Id', mangaId)
+    return this.http.get(`${this.base}/detail`, {params});
   }
 
   /**
@@ -266,7 +268,9 @@ export class MangaService {
    * here; load those with getMangaStats() and getChapters().
    */
   getDetailAggregated(mangaId: string): Observable<MangaDetailDto> {
-    return this.http.get(`${this.base}/detail/${mangaId}`)
+    const params = new HttpParams()
+    .set('Id', mangaId)
+    return this.http.get(`${this.base}/detail`, {params})
     .pipe(map((res: any) => {
       const t = res?.value ?? res;
       return {
@@ -288,21 +292,13 @@ export class MangaService {
       }));
   }
 
-  /**
-   * Dynamic stats for a manga (views / rating / follows / chapters).
-   * TODO: replace with the real backend endpoint(s) when available —
-   * e.g. GET `${this.base}/{mangaId}/stats`. Mocked for now.
-   */
   getMangaStats(mangaId: string): Observable<MangaStatsDto> {
-    // Deterministic pseudo-random mock so a manga keeps stable numbers across reloads.
-    const seed = Array.from(mangaId).reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const mock: MangaStatsDto = {
-      totalViews: 10_000 + (seed * 137) % 990_000,
-      averageRating: Math.round((5 + (seed % 50) / 10) * 10) / 10, // 5.0 – 9.9
-      totalFollows: 100 + (seed * 53) % 50_000,
-      totalChapters: 0, // real value comes from getChapters().length
-    };
-    return of(mock);
+    const params = new HttpParams()
+    .set('MangaId', mangaId)
+    return this.http.get(`${this.base}/status`, { params }).pipe(
+       map((res: any) => res?.value ?? res)
+    );
+
   }
 
   getChapters(

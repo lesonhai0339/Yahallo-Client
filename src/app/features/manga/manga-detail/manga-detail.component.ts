@@ -81,7 +81,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     this.mangaService.getDetailAggregated(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
       next: m => {
         this.manga = m;
-        this.manga.description = 'Trong một thế giới nơi con người sống chung với yêu quái và ma thuật, chàng trai trẻ Takeshi vô tình phát hiện mình sở hữu sức mạnh cổ đại bị phong ấn hàng ngàn năm. Khi các thế lực bóng tối bắt đầu trỗi dậy và đe dọa hủy diệt cả thế giới, Takeshi buộc phải rời bỏ cuộc sống bình yên tại ngôi làng nhỏ để bắt đầu hành trình tìm kiếm sự thật về nguồn gốc sức mạnh của mình. Trên đường đi, anh gặp gỡ những người đồng hành đáng tin cậy — một nữ kiếm sĩ lạnh lùng với quá khứ bí ẩn, một pháp sư trẻ tuổi nhưng tài năng xuất chúng, và một tên trộm ranh mãnh nhưng tốt bụng. Cùng nhau, họ đối mặt với vô số thử thách, từ những trận chiến khốc liệt với quân đoàn bóng tối cho đến những âm mưu chính trị phức tạp trong triều đình. Liệu Takeshi có thể kiểm soát được sức mạnh đang ngày càng bùng phát trong mình, hay nó sẽ nuốt chửng anh trước khi anh kịp cứu thế giới?';
+        this.manga.description = m.description;
         this.isLoading = false;
         this.seo.setMangaDetail(this.manga);
         this.addView();
@@ -100,7 +100,6 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Dynamic counters are loaded separately from the (static) manga detail. */
   loadStats(): void {
     this.mangaService.getMangaStats(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(s => {
       this.stats = { ...s, totalChapters: this.chapters.length || s.totalChapters };
@@ -141,7 +140,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     const user = this.authService.currentUser;
     if (!user) { this.router.navigate(['/auth/login']); return; }
     if (this.selectedRating < 1) { this.toastr.warning('Vui lòng chọn số sao'); return; }
-    this.userInteraction.rate(this.mangaId, this.selectedRating).subscribe(() => {
+    this.userInteraction.rate(this.mangaId, user.id, this.selectedRating).subscribe(() => {
       this.existingRating = this.selectedRating;
       this.hasRated = true;
       this.showReratePanel = false;
@@ -164,11 +163,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     const user = this.authService.currentUser;
     if (!user) return;
     this.userInteraction.getUserRating(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (star) => {
-        if (star > 0) {
+      next: (rating) => {
+        if (rating.rating > 0) {
           this.hasRated = true;
-          this.existingRating = star;
-          this.selectedRating = star;
+          this.existingRating = rating.rating;
+          this.selectedRating = rating.rating;
         }
       },
       error: () => {}
