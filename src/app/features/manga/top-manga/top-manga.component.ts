@@ -4,6 +4,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { Manga } from '../../../core/models/interfaces';
+import { MangaSortBy } from '../../../core/models/manga.interface';
 
 export interface SortOption {
   key: string;
@@ -81,7 +82,7 @@ export class TopMangaComponent implements OnInit, OnDestroy {
 
   loadPage(): void {
     this.isLoading = true;
-    this.mangaService.getTopMangaPaginated(this.currentPage, this.pageSize)
+    this.mangaService.getTopMangaPaginated(this.currentPage, this.pageSize, MangaSortBy.ViewCount, true)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: ({ data, totalPages, totalCount }) => {

@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { Chapter, Manga, MangaDetailDto, MangaStatsDto, MangaPagination, PagedResult } from '../models/interfaces';
 import { ChapterImage, ChapterSortBy } from '../models/chapter.interface';
 import { HomepageDto, MangaSumaryDto, MangaSortBy } from '../models/manga.interface';
+import { ReadVarExpr } from '@angular/compiler';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
@@ -96,10 +97,12 @@ export class MangaService {
     return this.http.get(`${this.base}/trending`);
   }
 
-  getTopMangaPaginated(page = 1, pageSize = 20): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
+  getTopMangaPaginated(page = 1, pageSize = 20, sortBy: MangaSortBy, reverseSort: boolean): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
     const params = new HttpParams()
-      .set('pageNumber', page)
-      .set('pageSize', pageSize);
+      .set('pageNumber', page)  
+      .set('pageSize', pageSize)
+      .set('sortBy', sortBy)
+      .set('reverseSort', reverseSort);
     return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
       map((res: any) => {
         const raw = res?.value ?? res;
@@ -436,6 +439,8 @@ export class MangaService {
     type?: number;
     countries?: number;
     season?: number;
+    sortBy?: MangaSortBy;
+    reverseSort?: boolean;
   }): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
     let httpParams = new HttpParams();
     if (params.id) httpParams = httpParams.set('id', params.id);
@@ -448,6 +453,8 @@ export class MangaService {
     if (params.tagIds) httpParams = httpParams.set('tagIds', params.tagIds.join(','));
     if (params.authorId) httpParams = httpParams.set('authorId', params.authorId);
     if (params.artistId) httpParams = httpParams.set('artistId', params.artistId);
+    if (params.sortBy) httpParams =  httpParams.set('SortBy', params.sortBy);
+    if (params.reverseSort) httpParams = httpParams.set('ReverseSort', params.reverseSort);
 
     httpParams = httpParams.set('pageNumber', params.pageNo ?? 1);
     httpParams = httpParams.set('pageSize', params.pageSize ?? 20);
