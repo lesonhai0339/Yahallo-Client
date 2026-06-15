@@ -112,7 +112,7 @@
         [placeholder]="('COMMENT.REPLY_PLACEHOLDER' | translate) + ' @' + comment.name + '...'"
         [autoFocus]="true"
         [compact]="true"
-        (submitted)="submitReply($event)"
+        (submitted)="submitReply(comment.id, $event)"
         (cancelled)="isReplying = false">
       </app-comment-editor>
     </div>

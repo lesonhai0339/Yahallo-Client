@@ -110,10 +110,10 @@ export class CommentItemComponent implements OnInit {
     this.isEditing = false;
   }
 
-  submitReply(text: string): void {
+  submitReply(commentToUserId: string, text: string): void {
     if (!this.currentUser || !text.trim()) return;
     const prefixed = text.startsWith('@') ? text : `@${this.comment.name} ${text}`;
-    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed).subscribe({
+    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, commentToUserId).subscribe({
       next: (res: any) => {
         const newReply: ReplyData = {
           id: res?.id ?? String(Date.now()),

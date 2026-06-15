@@ -97,7 +97,7 @@ export class CommentSectionComponent implements OnInit {
     const uid = this.currentUser!.id;
     const create$ = this.chapterId
       ? this.commentService.createChapterComment(uid, this.mangaId, this.chapterId, text)
-      : this.commentService.createComment(uid, this.mangaId, text);
+      : this.commentService.createComment(uid, this.mangaId, text, 1);
 
     create$.subscribe({
       next: (res: any) => {

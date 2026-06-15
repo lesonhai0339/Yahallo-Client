@@ -37,19 +37,20 @@ export class CommentService {
     return this.filter({ mangaId, pageSize: 50 });
   }
 
-  createComment(userId: string, mangaId: string, message: string, chapterId = '', parentId = ''): Observable<any> {
+  createComment(userId: string, mangaId: string, message: string, type: number , commentToUserId = '', chapterId = '', parentId = ''): Observable<any> {
     const form = new FormData();
     form.append('UserId', userId);
     form.append('MangaId', mangaId);
     form.append('Message', message);
-    form.append('Type', '0');
+    form.append('Type', type.toString());
     if (chapterId) form.append('ChapterId', chapterId);
     if (parentId) form.append('ParentId', parentId);
+    if(commentToUserId) form.append('CommentToUserId', commentToUserId);
     return this.http.post(`${this.base}/create`, form);
   }
 
   createChapterComment(userId: string, mangaId: string, chapterId: string, message: string): Observable<any> {
-    return this.createComment(userId, mangaId, message, chapterId);
+    return this.createComment(userId, mangaId, message, 2, chapterId);
   }
 
   editComment(commentId: string, message: string): Observable<any> {
@@ -67,8 +68,8 @@ export class CommentService {
     return this.filter({ parentId: commentId, pageSize: 50 });
   }
 
-  createReply(parentId: string, userId: string, message: string, mangaId = ''): Observable<any> {
-    return this.createComment(userId, mangaId, message, '', parentId);
+  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, mangaId = ''): Observable<any> {
+    return this.createComment(userId, mangaId, message, type, commentToUserId, parentId);
   }
 
   getCount(mangaId: string): Observable<any> {
