@@ -28,6 +28,13 @@ export enum MangaSortBy {
     ChapterCount = 'ChapterCount',
 }
 
+/** Mirrors backend RatingEnum (rating target type) */
+export enum RatingTarget {
+    Manga = 0,
+    Chapter = 1,
+    User = 2,
+}
+
 export interface TopMangaDto {
     id: string;
     name: string;

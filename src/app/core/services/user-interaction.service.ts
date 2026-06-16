@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { RatingTarget } from '../models/manga.interface';
 
 @Injectable({ providedIn: 'root' })
 export class UserInteractionService {
@@ -37,9 +38,12 @@ export class UserInteractionService {
   }
 
   rate(mangaId: string, userId: string, star: number): Observable<any> {
+    // Backend CreateRatingCommand is now generic over target type:
+    // { TargetId, UserId, RatingTo, Rating }. For a manga rating, RatingTo = Manga.
     const body = {
-      MangaId: mangaId,
+      TargetId: mangaId,
       UserId: userId,
+      RatingTo: RatingTarget.Manga,
       Rating: star
     };
     return this.http.post(`${this.ratingBase}/create`, body);
