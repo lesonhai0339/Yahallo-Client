@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { CommentData, ReplyData, DELETED_MARKER } from '../../../core/models/comment.interfaces';
+import { CommentData, ReplyData, ThreadedReply, DELETED_MARKER } from '../../../core/models/comment.interfaces';
 import { CommentService } from '../../../core/services/comment.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { User } from '../../../core/models/interfaces';
@@ -31,6 +31,8 @@ export class CommentItemComponent implements OnInit {
   isEditing = false;
   repliesLoading = false;
   showConfirmDelete = false;
+  replyingToId: string | null = null;   // id của reply đang được trả lời (Model A: phẳng)
+  threadedReplies: ThreadedReply[] = []; // replies gom theo replyToCommentId (lồng 1 cấp)
 
   get isOwner(): boolean {
     return !!this.currentUser && this.currentUser.id === this.comment.idUser;
@@ -95,7 +97,58 @@ export class CommentItemComponent implements OnInit {
       this.comment.repliesLoaded = true;
       this.comment.showReplies = true;
       this.repliesLoading = false;
+      this.rebuildThread();
     });
+  }
+
+  /**
+   * Gom replies (phẳng dưới root) thành cây 1 cấp theo replyToCommentId.
+   * Reply trả lời thẳng root → top-level. Reply trả lời một reply khác →
+   * con của reply đó. Reply lồng sâu hơn được gom về top-level gần nhất (cap 1 cấp).
+   */
+  private rebuildThread(): void {
+    const replies = this.comment.replies ?? [];
+    const rootId = this.comment.id;
+    const byId = new Map(replies.map(r => [r.id, r]));
+
+    const isTop = (r: ReplyData): boolean =>
+      !r.replyToCommentId || r.replyToCommentId === rootId || !byId.has(r.replyToCommentId);
+
+    const topAncestor = (r: ReplyData): ReplyData => {
+      let cur = r;
+      const seen = new Set<string>();
+      while (!isTop(cur) && !seen.has(cur.id)) {
+        seen.add(cur.id);
+        cur = byId.get(cur.replyToCommentId!)!;
+      }
+      return cur;
+    };
+
+    const nodes: ThreadedReply[] = [];
+    const index = new Map<string, ThreadedReply>();
+
+    for (const r of replies) {
+      if (isTop(r)) {
+        const node: ThreadedReply = { reply: r, children: [] };
+        nodes.push(node);
+        index.set(r.id, node);
+      }
+    }
+    for (const r of replies) {
+      if (!isTop(r)) {
+        const node = index.get(topAncestor(r).id);
+        if (node) node.children.push(r);
+        else nodes.push({ reply: r, children: [] }); // fallback an toàn
+      }
+    }
+
+    // mới nhất trước: sort cả top-level lẫn các reply con
+    const byDateDesc = (a: ReplyData, b: ReplyData) =>
+      this.parseUtc(b.date).getTime() - this.parseUtc(a.date).getTime();
+    nodes.sort((x, y) => byDateDesc(x.reply, y.reply));
+    nodes.forEach(n => n.children.sort(byDateDesc));
+
+    this.threadedReplies = nodes;
   }
 
   /** Map a raw API reply to the ReplyData shape used by the UI. */
@@ -108,8 +161,9 @@ export class CommentItemComponent implements OnInit {
       avatar: author.avatar ?? r.avatar ?? '',
       data: r.message ?? r.data ?? '',
       date: r.dateTime ?? r.date ?? '',
-      namereply: r.namereply ?? this.comment.displayName ?? '',
+      namereply: author.displayName ?? this.comment.displayName ?? '',
       replyToUserId: r.commentToUserId ?? r.replyToUserId,
+      replyToCommentId: r.replyToCommentId,
       likeCount: r.like ?? r.likeCount ?? 0,
       dislikeCount: r.dislike ?? r.dislikeCount ?? 0,
       isDeleted: r.isDeleted ?? false,
@@ -126,10 +180,11 @@ export class CommentItemComponent implements OnInit {
     this.isEditing = false;
   }
 
-  submitReply(commentToUserId: string, text: string): void {
+  submitReply(text: string): void {
     if (!this.currentUser || !text.trim()) return;
     const prefixed = text.startsWith('@') ? text : `@${this.comment.displayName} ${text}`;
-    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, commentToUserId, this.mangaId).subscribe({
+    // trả lời trực tiếp comment gốc: ParentId = root, ReplyCommentId = root
+    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, this.comment.idUser, this.comment.id, this.mangaId).subscribe({
       next: (res: any) => {
         const newReply: ReplyData = {
           id: res?.id ?? String(Date.now()),
@@ -139,6 +194,7 @@ export class CommentItemComponent implements OnInit {
           data: prefixed,
           date: new Date().toISOString(),
           namereply: this.comment.displayName,
+          replyToCommentId: this.comment.id,
           likeCount: 0,
           dislikeCount: 0,
           isDeleted: false,
@@ -151,6 +207,48 @@ export class CommentItemComponent implements OnInit {
         this.comment.showReplies = true;
         this.comment.replyCount = (this.comment.replyCount ?? 0) + 1;
         this.isReplying = false;
+        this.rebuildThread();
+        this.toastr.success('Đã gửi trả lời');
+      },
+      error: () => this.toastr.error('Không thể gửi trả lời')
+    });
+  }
+
+  // ── Reply to a reply (Model A: ParentId vẫn là root, chỉ đổi CommentToUserId) ─
+
+  startReplyToChild(reply: ReplyData): void {
+    if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
+    this.replyingToId = reply.id;
+  }
+
+  submitChildReply(reply: ReplyData, text: string): void {
+    if (!this.currentUser || !text.trim()) return;
+    const prefixed = text.startsWith('@') ? text : `@${reply.name} ${text}`;
+    // ParentId = root (giữ thread phẳng); ReplyCommentId = đúng reply được trả lời; CommentToUserId = tác giả reply
+    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, reply.idUser, reply.id, this.mangaId).subscribe({
+      next: (res: any) => {
+        const newReply: ReplyData = {
+          id: res?.id ?? String(Date.now()),
+          idUser: this.currentUser!.id,
+          name: this.currentUser!.name,
+          avatar: this.currentUser!.avatar,
+          data: prefixed,
+          date: new Date().toISOString(),
+          namereply: reply.name,
+          replyToCommentId: reply.id,
+          likeCount: 0,
+          dislikeCount: 0,
+          isDeleted: false,
+          isEdited: false,
+          userReaction: null,
+        };
+        if (!this.comment.replies) this.comment.replies = [];
+        this.comment.replies.push(newReply);
+        this.comment.repliesLoaded = true;
+        this.comment.showReplies = true;
+        this.comment.replyCount = (this.comment.replyCount ?? 0) + 1;
+        this.replyingToId = null;
+        this.rebuildThread();
         this.toastr.success('Đã gửi trả lời');
       },
       error: () => this.toastr.error('Không thể gửi trả lời')
@@ -227,16 +325,31 @@ export class CommentItemComponent implements OnInit {
 
   formatRelativeTime(dateStr: string): string {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const d = this.parseUtc(dateStr);
     const now = new Date();
     const diff = now.getTime() - d.getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Vừa xong';
+    if (mins < 1) return 'Vừa xong';            // diff âm do lệch giờ nhỏ cũng rơi vào đây
     if (mins < 60) return `${mins} phút trước`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs} giờ trước`;
     const days = Math.floor(hrs / 24);
     if (days < 7) return `${days} ngày trước`;
     return d.toLocaleDateString('vi-VN');
+  }
+
+  /**
+   * Backend lưu DateTime.UtcNow nhưng chuỗi JSON thiếu 'Z' (EF trả Kind=Unspecified).
+   * Tự thêm 'Z' để Date hiểu là UTC, sau đó Date tự quy đổi sang giờ khu vực của máy.
+   */
+  private parseUtc(dateStr: string): Date {
+    const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(dateStr);
+    return new Date(hasTz ? dateStr : dateStr + 'Z');
+  }
+
+  /** Thời gian đầy đủ theo giờ khu vực — dùng cho tooltip. */
+  formatLocal(dateStr: string): string {
+    if (!dateStr) return '';
+    return this.parseUtc(dateStr).toLocaleString('vi-VN');
   }
 }

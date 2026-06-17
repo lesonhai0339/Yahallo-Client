@@ -14,6 +14,7 @@ export interface CommentData {
   isDeleted: boolean;
   isEdited: boolean;
   replyCount: number;
+  replyToCommentId?: string;
 
   // runtime UI state (not persisted)
   replies?: ReplyData[];
@@ -32,11 +33,18 @@ export interface ReplyData {
   date: string;
   namereply: string;
   replyToUserId?: string;
+  replyToCommentId?: string;
   likeCount: number;
   dislikeCount: number;
   isDeleted: boolean;
   isEdited: boolean;
   userReaction?: Reaction;
+}
+
+/** Reply top-level kèm các reply con (lồng tối đa 1 cấp theo replyToCommentId). */
+export interface ThreadedReply {
+  reply: ReplyData;
+  children: ReplyData[];
 }
 
 export const DELETED_MARKER = '__DELETED__';

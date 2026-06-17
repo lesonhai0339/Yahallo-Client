@@ -204,4 +204,12 @@
   border-bottom: 1px solid rgba(255,255,255,0.04);
 
   &:last-child { border-bottom: none; }
+
+  // Reply-to-reply: lồng 1 cấp dưới reply cha
+  &.reply-child {
+    margin-left: 28px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border-color);
+    border-bottom: none;
+  }
 }

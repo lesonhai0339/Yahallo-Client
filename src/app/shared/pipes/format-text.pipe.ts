@@ -12,7 +12,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 export class FormatTextPipe implements PipeTransform {
   constructor(private sanitizer: DomSanitizer) {}
 
-  transform(text: string | null | undefined): SafeHtml {
+  // 2nd arg = the @mention name to highlight (e.g. userCommentTo.displayName)
+  transform(text: string | null | undefined, mentionName?: string): SafeHtml {
     if (!text) return '';
 
     // 1. Separate quote lines before escaping so > isn't mangled
@@ -21,9 +22,9 @@ export class FormatTextPipe implements PipeTransform {
       const trimmed = line.trimStart();
       if (trimmed.startsWith('> ')) {
         const inner = this.escapeHtml(trimmed.slice(2));
-        return `<blockquote class="comment-quote">${this.inlineMarkdown(inner)}</blockquote>`;
+        return `<blockquote class="comment-quote">${this.inlineMarkdown(inner, mentionName)}</blockquote>`;
       }
-      return this.inlineMarkdown(this.escapeHtml(line));
+      return this.inlineMarkdown(this.escapeHtml(line), mentionName);
     });
 
     const html = processed.join('<br>');
@@ -38,10 +39,16 @@ export class FormatTextPipe implements PipeTransform {
       .replace(/"/g, '&quot;');
   }
 
-  private inlineMarkdown(s: string): string {
-    return s
+  private inlineMarkdown(s: string, mentionName?: string): string {
+    let out = s
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/@(\w+)/g, '<span class="comment-mention">@$1</span>');
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    if (mentionName) {
+      const esc = this.escapeHtml(mentionName);   // match the already-escaped message text
+      const token = '@' + esc;
+      out = out.split(token).join(`<span class="comment-mention">${token}</span>`);
+    }
+    return out;
   }
 }

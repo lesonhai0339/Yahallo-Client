@@ -15,7 +15,7 @@
       <span *ngIf="showChapterLabel && comment.chapterName" class="chapter-badge">
         <i class="fa-solid fa-book-open me-1"></i>{{ comment.chapterName }}
       </span>
-      <span class="comment-time" [title]="comment.dateComment">
+      <span class="comment-time" [title]="formatLocal(comment.dateComment)">
         {{ formatRelativeTime(comment.dateComment) }}
       </span>
       <span *ngIf="comment.isEdited && !isDeleted" class="edited-badge">
@@ -112,7 +112,7 @@
         [placeholder]="('COMMENT.REPLY_PLACEHOLDER' | translate) + ' @' + comment.displayName + '...'"
         [autoFocus]="true"
         [compact]="true"
-        (submitted)="submitReply(comment.id, $event)"
+        (submitted)="submitReply($event)"
         (cancelled)="isReplying = false">
       </app-comment-editor>
     </div>
@@ -135,61 +135,84 @@
         </ng-container>
       </button>
 
-      <!-- Reply list -->
+      <!-- Reply list (lồng 1 cấp theo replyToCommentId) -->
       <div class="replies-list" *ngIf="comment.showReplies && comment.replies?.length">
-        <div class="reply-item" *ngFor="let reply of comment.replies">
-
-          <!-- Deleted reply -->
-          <ng-container *ngIf="reply.isDeleted; else liveReply">
-            <div class="comment-avatar reply-avatar">
-              <img src="assets/images/default-avatar.png" alt="">
-            </div>
-            <div class="comment-body">
-              <p class="deleted-text">
-                <i class="fa-solid fa-ban me-1"></i>{{ 'COMMENT.DELETED_MSG' | translate }}
-              </p>
-            </div>
-          </ng-container>
-
-          <ng-template #liveReply>
-            <div class="comment-avatar reply-avatar">
-              <img [src]="reply.avatar || 'assets/images/default-avatar.png'"
-                   [alt]="reply.name"
-                   appImageFallback="assets/images/default-avatar.png">
-            </div>
-            <div class="comment-body">
-              <div class="comment-header">
-                <span class="comment-author">{{ reply.name }}</span>
-                <span class="comment-time">{{ formatRelativeTime(reply.date) }}</span>
-                <span *ngIf="reply.isEdited" class="edited-badge">({{ 'COMMENT.EDITED' | translate }})</span>
-              </div>
-              <div class="comment-text" [innerHTML]="reply.data | formatText"></div>
-              <div class="comment-actions">
-                <button class="action-btn" [class.active]="reply.userReaction === 'like'"
-                        (click)="reactToReply(reply, 'like')">
-                  <i class="fa-solid fa-thumbs-up"></i>
-                  <span *ngIf="reply.likeCount">{{ reply.likeCount }}</span>
-                </button>
-                <button class="action-btn" [class.active]="reply.userReaction === 'dislike'"
-                        (click)="reactToReply(reply, 'dislike')">
-                  <i class="fa-solid fa-thumbs-down"></i>
-                  <span *ngIf="reply.dislikeCount">{{ reply.dislikeCount }}</span>
-                </button>
-                <button class="action-btn" (click)="quoteComment()">
-                  <i class="fa-solid fa-quote-left"></i>
-                  {{ 'COMMENT.QUOTE' | translate }}
-                </button>
-                <button *ngIf="currentUser && currentUser.id === reply.idUser"
-                        class="action-btn danger" (click)="deleteReply(reply)">
-                  <i class="fa-solid fa-trash"></i>
-                  {{ 'COMMENT.DELETE' | translate }}
-                </button>
-              </div>
-            </div>
-          </ng-template>
-
-        </div>
+        <ng-container *ngFor="let node of threadedReplies">
+          <div class="reply-item">
+            <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: node.reply }"></ng-container>
+          </div>
+          <div class="reply-item reply-child" *ngFor="let child of node.children">
+            <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: child }"></ng-container>
+          </div>
+        </ng-container>
       </div>
+
+      <!-- Template render 1 reply (dùng chung cho top-level và child) -->
+      <ng-template #replyTpl let-reply>
+        <!-- Deleted reply -->
+        <ng-container *ngIf="reply.isDeleted; else liveReply">
+          <div class="comment-avatar reply-avatar">
+            <img src="assets/images/default-avatar.png" alt="">
+          </div>
+          <div class="comment-body">
+            <p class="deleted-text">
+              <i class="fa-solid fa-ban me-1"></i>{{ 'COMMENT.DELETED_MSG' | translate }}
+            </p>
+          </div>
+        </ng-container>
+
+        <ng-template #liveReply>
+          <div class="comment-avatar reply-avatar">
+            <img [src]="reply.avatar || 'assets/images/default-avatar.png'"
+                 [alt]="reply.name"
+                 appImageFallback="assets/images/default-avatar.png">
+          </div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="comment-author">{{ reply.name }}</span>
+              <span class="comment-time" [title]="formatLocal(reply.date)">{{ formatRelativeTime(reply.date) }}</span>
+              <span *ngIf="reply.isEdited" class="edited-badge">({{ 'COMMENT.EDITED' | translate }})</span>
+            </div>
+            <div class="comment-text" [innerHTML]="reply.data | formatText : reply.namereply"></div>
+            <div class="comment-actions">
+              <button class="action-btn" [class.active]="reply.userReaction === 'like'"
+                      (click)="reactToReply(reply, 'like')">
+                <i class="fa-solid fa-thumbs-up"></i>
+                <span *ngIf="reply.likeCount">{{ reply.likeCount }}</span>
+              </button>
+              <button class="action-btn" [class.active]="reply.userReaction === 'dislike'"
+                      (click)="reactToReply(reply, 'dislike')">
+                <i class="fa-solid fa-thumbs-down"></i>
+                <span *ngIf="reply.dislikeCount">{{ reply.dislikeCount }}</span>
+              </button>
+              <button class="action-btn" (click)="startReplyToChild(reply)">
+                <i class="fa-solid fa-reply"></i>
+                {{ 'COMMENT.REPLY' | translate }}
+              </button>
+              <button class="action-btn" (click)="quoteComment()">
+                <i class="fa-solid fa-quote-left"></i>
+                {{ 'COMMENT.QUOTE' | translate }}
+              </button>
+              <button *ngIf="currentUser && currentUser.id === reply.idUser"
+                      class="action-btn danger" (click)="deleteReply(reply)">
+                <i class="fa-solid fa-trash"></i>
+                {{ 'COMMENT.DELETE' | translate }}
+              </button>
+            </div>
+
+            <!-- Inline editor: trả lời một reply (vẫn nằm dưới root) -->
+            <div class="reply-editor-wrap" *ngIf="replyingToId === reply.id">
+              <app-comment-editor
+                [placeholder]="('COMMENT.REPLY_PLACEHOLDER' | translate) + ' @' + reply.name + '...'"
+                [autoFocus]="true"
+                [compact]="true"
+                (submitted)="submitChildReply(reply, $event)"
+                (cancelled)="replyingToId = null">
+              </app-comment-editor>
+            </div>
+          </div>
+        </ng-template>
+      </ng-template>
     </div>
 
   </div>

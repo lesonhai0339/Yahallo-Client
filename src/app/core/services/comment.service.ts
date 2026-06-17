@@ -24,20 +24,25 @@ export class CommentService {
     if (params.mangaId) hp = hp.set('MangaId', params.mangaId);
     if (params.userId) hp = hp.set('UserId', params.userId);
     if (params.parentId) hp = hp.set('ParentId', params.parentId);
-    if (params.orderByDateDesc != null) hp = hp.set('IsDateTimeReverser', params.orderByDateDesc);
-    if (params.orderByLikeDesc != null) hp = hp.set('IsLikeReserver', params.orderByLikeDesc);
+    // Backend bind FilterCommentQuery: SortBy (Time|Like|Dislike) + ReverseSort (true = giảm dần / mới nhất trước)
+    if (params.orderByLikeDesc != null) {
+      hp = hp.set('SortBy', 'Like').set('ReverseSort', params.orderByLikeDesc);
+    } else if (params.orderByDateDesc != null) {
+      hp = hp.set('SortBy', 'Time').set('ReverseSort', params.orderByDateDesc);
+    }
     return this.http.get(`${this.base}/filter-comment`, { params: hp });
   }
 
   getAllMangaComments(mangaId: string, pageSize: number, page: number): Observable<any> {
-    return this.filter({ mangaId, page, pageSize });
+    // mới nhất lên đầu: SortBy=Time + ReverseSort=true (OrderByDescending CreateDate)
+    return this.filter({ mangaId, page, pageSize, orderByDateDesc: true });
   }
 
   getChapterComments(mangaId: string, chapterId: string): Observable<any> {
     return this.filter({ mangaId, pageSize: 50 });
   }
 
-  createComment(userId: string, mangaId: string, message: string, type: number , commentToUserId = '', chapterId = '', parentId = ''): Observable<any> {
+  createComment(userId: string, mangaId: string, message: string, type: number , commentToUserId = '', chapterId = '', parentId = '', replyCommentId = ''): Observable<any> {
     const form = new FormData();
     form.append('UserId', userId);
     form.append('MangaId', mangaId);
@@ -45,6 +50,7 @@ export class CommentService {
     form.append('Type', type.toString());
     if (chapterId) form.append('ChapterId', chapterId);
     if (parentId) form.append('ParentId', parentId);
+    if (replyCommentId) form.append('ReplyCommentId', replyCommentId);
     if(commentToUserId) form.append('CommentToUserId', commentToUserId);
     return this.http.post(`${this.base}/create`, form);
   }
@@ -68,8 +74,8 @@ export class CommentService {
     return this.filter({ parentId: commentId, pageSize: 50 });
   }
 
-  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, mangaId = '', chapterId = ''): Observable<any> {
-    return this.createComment(userId, mangaId, message, type, commentToUserId, chapterId, parentId);
+  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, replyCommentId = '', mangaId = '', chapterId = ''): Observable<any> {
+    return this.createComment(userId, mangaId, message, type, commentToUserId, chapterId, parentId, replyCommentId);
   }
 
   getCount(mangaId: string): Observable<any> {
