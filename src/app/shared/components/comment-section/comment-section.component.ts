@@ -69,23 +69,41 @@ export class CommentSectionComponent implements OnInit {
 
     load$.subscribe({
       next: (res: any) => {
-        const raw: CommentData[] = Array.isArray(res) ? res : (res?.items ?? res?.data ?? []);
-        this.comments = raw.map(c => ({
-          ...c,
-          likeCount: c.likeCount ?? 0,
-          dislikeCount: c.dislikeCount ?? 0,
-          isDeleted: c.isDeleted ?? false,
-          isEdited: c.isEdited ?? false,
-          replyCount: c.replyCount ?? 0,
-          repliesLoaded: false,
-          showReplies: false,
-        }));
-        this.totalCount = res?.totalCount ?? this.comments.length;
+        // API wraps the page in `value`: { value: { totalCount, data: [...] } }
+        const payload = res?.value ?? res;
+        const raw: any[] = Array.isArray(payload)
+          ? payload
+          : (payload?.items ?? payload?.data ?? []);
+        this.comments = raw.map(c => this.mapApiComment(c));
+        this.totalCount = payload?.totalCount ?? this.comments.length;
         this.currentPage = page;
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
+  }
+
+  /** Map a raw API comment to the CommentData shape used by the UI. */
+  private mapApiComment(c: any): CommentData {
+    const author = c.userCommentTo ?? {};
+    return {
+      id: c.id,
+      idUser: c.userId ?? author.id ?? '',
+      displayName: author.displayName ?? c.displayName ?? '',
+      avatar: author.avatar ?? c.avatar ?? '',
+      commentData: c.message ?? c.commentData ?? '',
+      dateComment: c.dateTime ?? c.dateComment ?? '',
+      chapterId: c.chapterId,
+      chapterName: c.chapterName,
+      likeCount: c.like ?? c.likeCount ?? 0,
+      dislikeCount: c.dislike ?? c.dislikeCount ?? 0,
+      isDeleted: c.isDeleted ?? false,
+      isEdited: c.isEdited ?? false,
+      replyCount: c.replyCount ?? c.childCount ?? 0,
+      repliesLoaded: false,
+      showReplies: false,
+      userReaction: null,
+    };
   }
 
   // ── Post new comment ──────────────────────────────────────────────────────
@@ -104,7 +122,7 @@ export class CommentSectionComponent implements OnInit {
         const newComment: CommentData = {
           id: res?.id ?? String(Date.now()),
           idUser: this.currentUser!.id,
-          name: this.currentUser!.name,
+          displayName: this.currentUser!.name,
           avatar: this.currentUser!.avatar,
           commentData: text,
           dateComment: new Date().toISOString(),

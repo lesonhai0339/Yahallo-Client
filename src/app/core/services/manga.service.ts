@@ -44,7 +44,7 @@ export class MangaService {
         return tags?.data?.map((t: any) => (
           { 
             id: t.id, 
-            name: t.name, 
+            name: t.displayName, 
             mangaThumbnail: t.mangaThumbnail, 
             mangaBackground: t.mangaBackground,
             status: t.status, 
@@ -68,7 +68,7 @@ export class MangaService {
         const raw = res?.value ?? res;
         const data = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
-          name: t.name,
+          name: t.displayName,
           mangaThumbnail: t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           totalViews: t.totalViews ?? 0,
@@ -108,7 +108,7 @@ export class MangaService {
         const raw = res?.value ?? res;
         const items = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
-          name: t.name,
+          displayName: t.displayName,
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           status: t.status,
@@ -147,7 +147,7 @@ export class MangaService {
         const raw = res?.value ?? res;
         const data = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
-          name: t.name,
+          name: t.displayName,
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           totalViews: t.totalViews ?? 0,
@@ -191,7 +191,7 @@ export class MangaService {
         const raw = res?.value ?? res;
         const data = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
-          name: t.name,
+          name: t.displayName,
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           totalViews: t.totalViews ?? 0,
@@ -229,7 +229,7 @@ export class MangaService {
       map((res: any) => {
         return res?.value?.data?.map((t: any) => ({
           id: t.id,
-          name: t.name,
+          displayName: t.displayName,
           mangaThumbnail: t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           status: t.status,
@@ -278,7 +278,7 @@ export class MangaService {
       const t = res?.value ?? res;
       return {
           id: t.id,
-          name: t.name,
+          name: t.displayName,
           description: t.description,
           level: t.level,
           status: t.status,
@@ -365,7 +365,7 @@ export class MangaService {
     return this.http.get(`${this.base}/filter-manga`, { params: httpParams })
     .pipe(map((res: any) =>{
         const tags: MangaPagination = res?.value ?? null;
-        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.name, mangaImage: t.thumbnail, status: t.status,  })) ?? [];
+        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.displayName, mangaImage: t.thumbnail, status: t.status,  })) ?? [];
     }));
   }
 
@@ -383,7 +383,7 @@ export class MangaService {
     return this.http.get(`${this.base}/filter-manga-by-tags`, { params: httpParams })
     .pipe(map((res: any) =>{
         const tags: MangaPagination = res?.value ?? null;
-        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.name, mangaImage: t.thumbnail, status: t.status,  })) ?? [];
+        return tags?.data?.map((t: any) => ({ mangaId: t.id, mangaName: t.displayName, mangaImage: t.thumbnail, status: t.status,  })) ?? [];
     }));
   }
 
@@ -463,7 +463,7 @@ export class MangaService {
         const raw = res?.value ?? res;
         const items = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
-          name: t.name,
+          displayName: t.displayName,
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           status: t.status,
@@ -500,7 +500,7 @@ export class MangaService {
         const raw = res?.value ?? res;
         const items = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
-          name: t.name,
+          displayName: t.displayName,
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           status: t.status,

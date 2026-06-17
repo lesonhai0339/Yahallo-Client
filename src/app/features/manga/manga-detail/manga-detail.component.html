@@ -207,8 +207,8 @@
             <div class="side-card__list">
               <a class="side-manga-item" *ngFor="let m of sameAuthorManga"
                  [routerLink]="['/manga', m.id]">
-                <img [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
-                <span class="side-manga-item__name">{{ m.name }}</span>
+                <img [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback>
+                <span class="side-manga-item__name">{{ m.displayName }}</span>
               </a>
             </div>
             <a class="side-card__see-more"
@@ -229,8 +229,8 @@
             <div class="side-card__list">
               <a class="side-manga-item" *ngFor="let m of sameArtistManga"
                  [routerLink]="['/manga', m.id]">
-                <img [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
-                <span class="side-manga-item__name">{{ m.name }}</span>
+                <img [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback>
+                <span class="side-manga-item__name">{{ m.displayName }}</span>
               </a>
             </div>
             <a class="side-card__see-more"

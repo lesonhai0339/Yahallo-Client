@@ -37,7 +37,7 @@ export enum RatingTarget {
 
 export interface TopMangaDto {
     id: string;
-    name: string;
+    displayName: string;
     mangaThumbnail: string;
     view: number;
 }

@@ -104,9 +104,9 @@
               [class.hl]="i === highlightedResultIndex"
               (mouseenter)="highlightedResultIndex = i"
               (click)="goToManga(item)">
-              <img [src]="item.mangaThumbnail" [alt]="item.name" appImageFallback>
+              <img [src]="item.mangaThumbnail" [alt]="item.displayName" appImageFallback>
               <div class="search-result-info">
-                <span class="name">{{ item.name }}</span>
+                <span class="name">{{ item.displayName }}</span>
                 <span class="chapter">{{ item.listChaper?.[0]?.chapterName ?? '' }}</span>
               </div>
             </li>

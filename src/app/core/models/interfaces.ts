@@ -55,7 +55,7 @@ export interface MangaPagination{
 
 export interface Manga {
   id: string;
-  name: string;
+  displayName: string;
   description: string;
   level: string;
   status: string;

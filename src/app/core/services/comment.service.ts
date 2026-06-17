@@ -68,8 +68,8 @@ export class CommentService {
     return this.filter({ parentId: commentId, pageSize: 50 });
   }
 
-  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, mangaId = ''): Observable<any> {
-    return this.createComment(userId, mangaId, message, type, commentToUserId, parentId);
+  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, mangaId = '', chapterId = ''): Observable<any> {
+    return this.createComment(userId, mangaId, message, type, commentToUserId, chapterId, parentId);
   }
 
   getCount(mangaId: string): Observable<any> {

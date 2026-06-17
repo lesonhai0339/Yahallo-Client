@@ -206,9 +206,9 @@
     <div class="search-list" *ngIf="!isLoading && viewMode === 'list' && results.length > 0">
       <a class="search-row" *ngFor="let m of results"
          [routerLink]="['/manga', m.id]">
-        <img class="search-row__thumb" [src]="m.mangaThumbnail" [alt]="m.name" appImageFallback>
+        <img class="search-row__thumb" [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback>
         <div class="search-row__info">
-          <div class="search-row__name">{{ m.name }}</div>
+          <div class="search-row__name">{{ m.displayName }}</div>
           <div class="search-row__tags" *ngIf="m.tags?.length">
             <span class="row-tag" *ngFor="let t of m.tags | slice:0:3">{{ t.name }}</span>
           </div>

@@ -91,10 +91,10 @@
           {{ getRank(i) }}
         </span>
 
-        <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback>
+        <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.displayName" appImageFallback>
 
         <div class="manga-row__info">
-          <div class="manga-row__name">{{ manga.name }}</div>
+          <div class="manga-row__name">{{ manga.displayName }}</div>
           <div class="manga-row__tags" *ngIf="manga.tags?.length">
             <button class="row-tag row-tag--link" *ngFor="let t of manga.tags | slice:0:3"
               (click)="goToTag($event, t.id)">{{ t.name }}</button>

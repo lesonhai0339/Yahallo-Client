@@ -2,16 +2,16 @@
 
   <!-- Avatar -->
   <div class="comment-avatar">
-    <img [src]="comment.avatar || 'assets/images/default-avatar.png'"
-         [alt]="comment.name"
-         appImageFallback="assets/images/default-avatar.png">
+    <img [src]="comment.avatar || 'assets/images/user.jpg'"
+         [alt]="comment.displayName"
+         appImageFallback="assets/images/user.jpg">
   </div>
 
   <div class="comment-body">
 
     <!-- Header -->
     <div class="comment-header">
-      <span class="comment-author">{{ comment.name }}</span>
+      <span class="comment-author">{{ comment.displayName }}</span>
       <span *ngIf="showChapterLabel && comment.chapterName" class="chapter-badge">
         <i class="fa-solid fa-book-open me-1"></i>{{ comment.chapterName }}
       </span>
@@ -109,7 +109,7 @@
     <div class="reply-editor-wrap" *ngIf="isReplying">
       <app-comment-editor
         #replyEditor
-        [placeholder]="('COMMENT.REPLY_PLACEHOLDER' | translate) + ' @' + comment.name + '...'"
+        [placeholder]="('COMMENT.REPLY_PLACEHOLDER' | translate) + ' @' + comment.displayName + '...'"
         [autoFocus]="true"
         [compact]="true"
         (submitted)="submitReply(comment.id, $event)"

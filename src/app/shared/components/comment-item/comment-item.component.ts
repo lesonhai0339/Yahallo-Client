@@ -19,7 +19,8 @@ export class CommentItemComponent implements OnInit {
   @Input() comment!: CommentData;
   @Input() isReply = false;
   @Input() showChapterLabel = false;
-
+  @Input() mangaId = '';
+  @Input() chapterId? = '';
   @Output() deleted = new EventEmitter<string>();
   @Output() quoteRequest = new EventEmitter<{ author: string; text: string }>();
 
@@ -84,22 +85,37 @@ export class CommentItemComponent implements OnInit {
 
   loadReplies(): void {
     this.repliesLoading = true;
-    this.commentService.getReplies(this.comment.id).subscribe(replies => {
-      this.comment.replies = this.normalizeReplies(replies);
+    this.commentService.getReplies(this.comment.id).subscribe((res: any) => {
+      // API wraps the page in `value`: { value: { data: [...] } }
+      const payload = res?.value ?? res;
+      const raw: any[] = Array.isArray(payload)
+        ? payload
+        : (payload?.items ?? payload?.data ?? []);
+      this.comment.replies = raw.map(r => this.mapApiReply(r));
       this.comment.repliesLoaded = true;
       this.comment.showReplies = true;
       this.repliesLoading = false;
     });
   }
 
-  private normalizeReplies(raw: ReplyData[]): ReplyData[] {
-    return raw.map(r => ({
-      ...r,
-      likeCount: r.likeCount ?? 0,
-      dislikeCount: r.dislikeCount ?? 0,
+  /** Map a raw API reply to the ReplyData shape used by the UI. */
+  private mapApiReply(r: any): ReplyData {
+    const author = r.userCommentTo ?? {};
+    return {
+      id: r.id,
+      idUser: r.userId ?? author.id ?? '',
+      name: author.displayName ?? r.name ?? '',
+      avatar: author.avatar ?? r.avatar ?? '',
+      data: r.message ?? r.data ?? '',
+      date: r.dateTime ?? r.date ?? '',
+      namereply: r.namereply ?? this.comment.displayName ?? '',
+      replyToUserId: r.commentToUserId ?? r.replyToUserId,
+      likeCount: r.like ?? r.likeCount ?? 0,
+      dislikeCount: r.dislike ?? r.dislikeCount ?? 0,
       isDeleted: r.isDeleted ?? false,
       isEdited: r.isEdited ?? false,
-    }));
+      userReaction: null,
+    };
   }
 
   // ── Reply submit ───────────────────────────────────────────────────────────
@@ -112,8 +128,8 @@ export class CommentItemComponent implements OnInit {
 
   submitReply(commentToUserId: string, text: string): void {
     if (!this.currentUser || !text.trim()) return;
-    const prefixed = text.startsWith('@') ? text : `@${this.comment.name} ${text}`;
-    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, commentToUserId).subscribe({
+    const prefixed = text.startsWith('@') ? text : `@${this.comment.displayName} ${text}`;
+    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, commentToUserId, this.mangaId).subscribe({
       next: (res: any) => {
         const newReply: ReplyData = {
           id: res?.id ?? String(Date.now()),
@@ -122,7 +138,7 @@ export class CommentItemComponent implements OnInit {
           avatar: this.currentUser!.avatar,
           data: prefixed,
           date: new Date().toISOString(),
-          namereply: this.comment.name,
+          namereply: this.comment.displayName,
           likeCount: 0,
           dislikeCount: 0,
           isDeleted: false,
@@ -145,7 +161,7 @@ export class CommentItemComponent implements OnInit {
 
   quoteComment(): void {
     if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
-    this.quoteRequest.emit({ author: this.comment.name, text: this.comment.commentData });
+    this.quoteRequest.emit({ author: this.comment.displayName, text: this.comment.commentData });
   }
 
   // ── Edit ──────────────────────────────────────────────────────────────────

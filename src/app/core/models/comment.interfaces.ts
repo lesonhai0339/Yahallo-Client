@@ -3,7 +3,7 @@ export type Reaction = 'like' | 'dislike' | null;
 export interface CommentData {
   id: string;
   idUser: string;
-  name: string;
+  displayName: string;
   avatar: string;
   commentData: string;
   dateComment: string;

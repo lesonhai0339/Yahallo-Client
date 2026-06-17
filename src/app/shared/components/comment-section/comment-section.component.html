@@ -12,10 +12,10 @@
   <!-- Top editor -->
   <div class="top-editor-wrap" *ngIf="currentUser; else loginPrompt">
     <div class="editor-user-row">
-      <img [src]="currentUser.avatar || 'assets/images/default-avatar.png'"
+      <img [src]="currentUser.avatar || 'assets/images/user.jpg'"
            [alt]="currentUser.name"
            class="editor-avatar"
-           appImageFallback="assets/images/default-avatar.png">
+           appImageFallback="assets/images/user.jpg">
     </div>
     <app-comment-editor
       #topEditor
@@ -54,7 +54,9 @@
   <div class="comments-list" *ngIf="!loading && comments.length > 0">
     <app-comment-item
       *ngFor="let c of comments"
-      [comment]="c"
+      [comment]="c",
+      [mangaId]="mangaId",
+      [chapterId]="chapterId",
       [showChapterLabel]="!!chapterId === false"
       (quoteRequest)="onQuoteRequest($event)">
     </app-comment-item>
