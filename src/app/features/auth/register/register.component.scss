@@ -1,0 +1,94 @@
+// Hàng số điện thoại: 2 cột theo tỷ lệ 2 - 8
+.phone-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+
+  .country-select { flex: 2 1 0; min-width: 0; }
+  .phone-input    { flex: 8 1 0; min-width: 0; }
+}
+
+.country-select {
+  position: relative;
+
+  .country-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: 44px;
+    padding: 0 8px;
+    background: var(--bg-input, var(--bg-card));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: var(--transition);
+
+    &:hover:not(:disabled) { border-color: var(--accent-primary); }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .dial-code { font-size: 0.9rem; font-weight: 600; }
+    .dial-code.muted { color: var(--text-muted); }
+    .caret { margin-left: auto; font-size: 0.65rem; color: var(--text-muted); }
+  }
+
+  &.open .country-trigger { border-color: var(--accent-primary); }
+
+  // Dropdown overlay — không chiếm chỗ trong form (position: absolute), có scrollbar.
+  .country-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 50;
+    width: 280px;
+    max-width: 78vw;
+    max-height: 280px;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .country-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+
+    &:hover,
+    &.highlighted { background: rgba(233, 69, 96, 0.12); }
+    &.selected { background: rgba(233, 69, 96, 0.18); }
+
+    .cname {
+      flex: 1;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dial {
+      flex: 0 0 auto;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+  }
+
+  // Cờ quốc gia (ảnh flagcdn, cao 20px giữ tỷ lệ)
+  .flag {
+    height: 14px;
+    width: auto;
+    border-radius: 2px;
+    object-fit: cover;
+    flex: 0 0 auto;
+  }
+}

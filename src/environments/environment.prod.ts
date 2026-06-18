@@ -18,5 +18,6 @@ export const environment = {
   notificationApi: 'https://api.yahallo.online/notification',
   subscriptionApi: 'https://api.yahallo.online/subscription',
   securityApi: 'https://api.yahallo.online/security',
+  countryApi: 'https://api.yahallo.online/country',
   hubUrl: 'https://api.yahallo.online/hubs/notification',
 };

@@ -18,5 +18,6 @@ export const environment = {
   notificationApi: 'https://localhost:7181/notification',
   subscriptionApi: 'https://localhost:7181/subscription',
   securityApi: 'https://localhost:7181/security',
+  countryApi: 'https://localhost:7181/country',
   hubUrl: 'https://localhost:7181/hubs/notification',
 };

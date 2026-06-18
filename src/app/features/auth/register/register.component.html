@@ -37,10 +37,34 @@
       </div>
        <div class="form-group">
         <label>{{ 'AUTH.PHONE_NUMBER' | translate }}</label>
-        <div class="input-wrapper">
-          <i class="fa fa-phone"></i>
-          <input type="tel" class="form-control" [(ngModel)]="phoneNumber" name="phoneNumber" pattern="[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,3}[)]?[-\s.]?[0-9]{3,4}[-\s.]?[0-9]{3,4}" #phone="ngModel" required
-            [placeholder]="'AUTH.PHONE_NUMBER_PLACEHOLDER' | translate">
+        <div class="phone-row">
+          <!-- Cột 1 (tỷ lệ 2): chọn mã điện thoại quốc gia -->
+          <div class="country-select" [class.open]="countryDropdownOpen">
+            <button type="button" class="country-trigger" (click)="toggleCountryDropdown()"
+              (keydown)="onTriggerKeydown($event)" [disabled]="loadingCountries">
+              <img *ngIf="selectedCountry" class="flag" [src]="flagUrl(selectedCountry.name)" alt=""
+                (error)="$any($event.target).style.display='none'">
+              <span class="dial-code" *ngIf="selectedCountry">+{{ selectedCountry.phoneCode }}</span>
+              <span class="dial-code muted" *ngIf="!selectedCountry">--</span>
+              <i class="fa fa-chevron-down caret"></i>
+            </button>
+            <ul class="country-panel" *ngIf="countryDropdownOpen">
+              <li *ngFor="let c of countries; let i = index" class="country-item"
+                [class.selected]="c.code === selectedCountry?.code" [class.highlighted]="i === highlightedIndex"
+                (mousedown)="selectCountry(c)">
+                <img class="flag" [src]="flagUrl(c.name)" alt="" (error)="$any($event.target).style.display='none'">
+                <span class="cname">{{ c.vietnameseName }}</span>
+                <span class="dial">+{{ c.phoneCode }}</span>
+              </li>
+            </ul>
+          </div>
+          <!-- Cột 2 (tỷ lệ 8): nhập số điện thoại -->
+          <div class="input-wrapper phone-input">
+            <i class="fa fa-phone"></i>
+            <input type="tel" class="form-control" [(ngModel)]="phoneNumber" name="phoneNumber"
+              pattern="[0-9\s.-]{6,15}" #phone="ngModel" required
+              [placeholder]="'AUTH.PHONE_NUMBER_PLACEHOLDER' | translate">
+          </div>
         </div>
         <div *ngIf="phone.invalid && phone.touched">
             <small class="text-danger" *ngIf="phone.errors?.['pattern']">

@@ -134,6 +134,8 @@
     "PHONE_NUMBER": "Số điện thoại",
     "PHONE_NUMBER_PLACEHOLDER": "Nhập số điện thoại",
     "INVALID_PHONE": "Số điện thoại không hợp lệ",
+    "COUNTRY_SEARCH_PLACEHOLDER": "Tìm quốc gia...",
+    "NO_COUNTRY_FOUND": "Không tìm thấy quốc gia",
     "USERNAME": "Tên đăng nhập",
     "USERNAME_PLACEHOLDER": "Nhập tên đăng nhập",
     "AVATAR": "Ảnh đại diện",
