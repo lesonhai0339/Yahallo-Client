@@ -40,6 +40,12 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   menuTimeout: any;
   private lastScrollY = 0;
 
+  // View tracking: tính 1 view sau 5s từ khi load HOẶC sau khi xem qua 5 ảnh (bên nào tới trước).
+  private readonly VIEW_DELAY_MS = 5000;
+  private readonly VIEW_IMAGE_THRESHOLD = 5;
+  private viewCounted = false;
+  private viewTimer: any = null;
+
   settings: ReaderSettings = {
     direction: 'vertical',
     horizontalDir: 'rtl',
@@ -152,6 +158,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     clearTimeout(this.menuTimeout);
+    this.cancelViewTracking();
   }
 
   loadImages(): void {
@@ -162,6 +169,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
         this.images = imgs.sort((a, b) => a.index - b.index);
         this.isLoading = false;
         this.saveProgress(this.initialPage);
+        this.startViewTracking();
       });
   }
 
@@ -184,6 +192,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
 
   onPageChange(page: number): void {
     this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${page}`);
+    // Xem qua >= 5 ảnh (page 0-based: tới ảnh thứ 5) -> tính view.
+    if (page + 1 >= this.VIEW_IMAGE_THRESHOLD) this.markViewed();
     // Process 1: local progress, updated on every new image. Reaching the last
     // image counts as finished — drop the saved position instead.
     if (this.images.length > 0 && page >= this.images.length - 1) {
@@ -225,6 +235,28 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
       chapterId: this.chapterId,
       lastPage
     }).subscribe();
+  }
+
+  // ── View tracking ────────────────────────────────────────────────────────
+  /** Bắt đầu đếm cho chapter hiện tại: 5s HOẶC scroll qua 5 ảnh -> tính 1 view. */
+  private startViewTracking(): void {
+    this.cancelViewTracking();
+    this.viewCounted = false;
+    this.viewTimer = setTimeout(() => this.markViewed(), this.VIEW_DELAY_MS);
+  }
+
+  private cancelViewTracking(): void {
+    if (this.viewTimer) { clearTimeout(this.viewTimer); this.viewTimer = null; }
+  }
+
+  /** Gọi API ghi view đúng 1 lần. Backend tự dedup 1 view/ngày/manga. */
+  private markViewed(): void {
+    if (this.viewCounted || !this.mangaId) return;
+    this.viewCounted = true;
+    this.cancelViewTracking();
+    this.mangaService.recordView(this.mangaId, this.chapterId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ error: () => {} });   // lỗi đếm view không ảnh hưởng trải nghiệm đọc
   }
 
   @HostListener('window:scroll')

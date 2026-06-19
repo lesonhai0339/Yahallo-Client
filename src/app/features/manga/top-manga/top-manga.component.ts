@@ -53,6 +53,15 @@ export class TopMangaComponent implements OnInit, OnDestroy {
     updated: 'updateDate',
   };
 
+  // Map sortOption.key -> SortBy của API (server-side sort + phân trang).
+  readonly sortKeyToApi: Record<string, MangaSortBy> = {
+    totalViews:    MangaSortBy.ViewCount,
+    averageRating: MangaSortBy.Rating,
+    totalChapters: MangaSortBy.ChapterCount,
+    totalComments: MangaSortBy.CommentCount,
+    updateDate:    MangaSortBy.LastUpdate,
+  };
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -82,14 +91,16 @@ export class TopMangaComponent implements OnInit, OnDestroy {
 
   loadPage(): void {
     this.isLoading = true;
-    this.mangaService.getTopMangaPaginated(this.currentPage, this.pageSize, MangaSortBy.ViewCount, true)
+    const sortBy = this.sortKeyToApi[this.activeSort.key] ?? MangaSortBy.ViewCount;
+    const reverseSort = this.activeSort.direction === 'desc';   // desc = cao nhất trước
+    this.mangaService.getTopMangaPaginated(this.currentPage, this.pageSize, sortBy, reverseSort)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: ({ data, totalPages, totalCount }) => {
           this.mangaList = data;
           this.totalPages = totalPages;
           this.totalCount = totalCount || totalPages * this.pageSize;
-          this.applySorting();
+          this.applyClientFilters();
           this.isLoading = false;
         },
         error: () => { this.isLoading = false; }
@@ -102,17 +113,9 @@ export class TopMangaComponent implements OnInit, OnDestroy {
 
   setPageSize(size: number): void {
     if (size === this.pageSize) return;
-    const oldSize = this.pageSize;
     this.pageSize = size;
     this.currentPage = 1;
-    this.totalPages = Math.max(1, Math.ceil(this.totalCount / size));
-
-    if (size <= this.mangaList.length) {
-      this.mangaList = this.mangaList.slice(0, size);
-      this.applySorting();
-    } else {
-      this.loadPage();
-    }
+    this.loadPage();   // server-side sort/phân trang -> reload cho đúng
   }
 
   setSort(option: SortOption): void {
@@ -120,15 +123,17 @@ export class TopMangaComponent implements OnInit, OnDestroy {
       option.direction = option.direction === 'desc' ? 'asc' : 'desc';
     }
     this.activeSort = option;
+    this.currentPage = 1;
     const slug = Object.entries(this.criterionMap).find(([, v]) => v === option.key)?.[0] || 'views';
     this.router.navigate(['/top-manga', slug], { replaceUrl: true });
-    this.applySorting();
+    this.loadPage();   // sort do server làm -> reload từ API
   }
 
-  private applySorting(): void {
-    const key = this.activeSort.key;
-    const dir = this.activeSort.direction === 'desc' ? -1 : 1;
-
+  /**
+   * Server đã sort + phân trang. Đây chỉ là lọc phụ phía client (khoảng ngày /
+   * khoảng rating) trên trang hiện tại; KHÔNG sort lại để giữ thứ tự của server.
+   */
+  private applyClientFilters(): void {
     let filtered = [...this.mangaList];
 
     if (this.filterDateFrom) {
@@ -146,33 +151,18 @@ export class TopMangaComponent implements OnInit, OnDestroy {
       });
     }
 
-    if (key === 'averageRating') {
+    if (this.activeSort.key === 'averageRating') {
       filtered = filtered.filter((m: any) => {
         const r = m.averageRating ?? 0;
         return r >= this.filterRatingMin && r <= this.filterRatingMax;
       });
     }
 
-    this.sortedList = filtered.sort((a: any, b: any) => {
-      let valA = a[key];
-      let valB = b[key];
-
-      if (key === 'updateDate') {
-        valA = valA ? new Date(valA).getTime() : 0;
-        valB = valB ? new Date(valB).getTime() : 0;
-      }
-
-      if (key === 'totalComments') {
-        valA = a.comments?.length ?? 0;
-        valB = b.comments?.length ?? 0;
-      }
-
-      return ((valA ?? 0) - (valB ?? 0)) * dir;
-    });
+    this.sortedList = filtered;
   }
 
   applyFilters(): void {
-    this.applySorting();
+    this.applyClientFilters();
   }
 
   clearFilters(): void {
@@ -180,7 +170,7 @@ export class TopMangaComponent implements OnInit, OnDestroy {
     this.filterDateTo = '';
     this.filterRatingMin = 0;
     this.filterRatingMax = 10;
-    this.applySorting();
+    this.applyClientFilters();
   }
 
   goToPage(page: number): void {

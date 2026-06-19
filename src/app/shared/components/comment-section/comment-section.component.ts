@@ -74,7 +74,10 @@ export class CommentSectionComponent implements OnInit {
         const raw: any[] = Array.isArray(payload)
           ? payload
           : (payload?.items ?? payload?.data ?? []);
-        this.comments = raw.map(c => this.mapApiComment(c));
+        // Root comment: mới nhất trước (gần nhất)
+        this.comments = raw
+          .map(c => this.mapApiComment(c))
+          .sort((a, b) => new Date(b.dateComment).getTime() - new Date(a.dateComment).getTime());
         this.totalCount = payload?.totalCount ?? this.comments.length;
         this.currentPage = page;
         this.loading = false;
@@ -85,12 +88,13 @@ export class CommentSectionComponent implements OnInit {
 
   /** Map a raw API comment to the CommentData shape used by the UI. */
   private mapApiComment(c: any): CommentData {
-    const author = c.userCommentTo ?? {};
+    // Tác giả comment là c.displayName/c.avatar/c.userId.
+    // c.userCommentTo là người được @mention (chỉ dùng khi cần), KHÔNG phải tác giả.
     return {
       id: c.id,
-      idUser: c.userId ?? author.id ?? '',
-      displayName: author.displayName ?? c.displayName ?? '',
-      avatar: author.avatar ?? c.avatar ?? '',
+      idUser: c.userId ?? '',
+      displayName: c.displayName ?? '',
+      avatar: c.avatar ?? '',
       commentData: c.message ?? c.commentData ?? '',
       dateComment: c.dateTime ?? c.dateComment ?? '',
       chapterId: c.chapterId,

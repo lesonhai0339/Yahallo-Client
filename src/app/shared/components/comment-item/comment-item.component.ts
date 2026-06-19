@@ -142,27 +142,28 @@ export class CommentItemComponent implements OnInit {
       }
     }
 
-    // mới nhất trước: sort cả top-level lẫn các reply con
-    const byDateDesc = (a: ReplyData, b: ReplyData) =>
-      this.parseUtc(b.date).getTime() - this.parseUtc(a.date).getTime();
-    nodes.sort((x, y) => byDateDesc(x.reply, y.reply));
-    nodes.forEach(n => n.children.sort(byDateDesc));
+    // Reply: cũ nhất trước (xa nhất) — đọc theo thứ tự hội thoại; áp cho cả top-level lẫn con
+    const byDateAsc = (a: ReplyData, b: ReplyData) =>
+      this.parseUtc(a.date).getTime() - this.parseUtc(b.date).getTime();
+    nodes.sort((x, y) => byDateAsc(x.reply, y.reply));
+    nodes.forEach(n => n.children.sort(byDateAsc));
 
     this.threadedReplies = nodes;
   }
 
   /** Map a raw API reply to the ReplyData shape used by the UI. */
   private mapApiReply(r: any): ReplyData {
-    const author = r.userCommentTo ?? {};
+    // userCommentTo = người ĐƯỢC trả lời (mention), KHÔNG phải tác giả reply.
+    const commentTo = r.userCommentTo ?? {};
     return {
       id: r.id,
-      idUser: r.userId ?? author.id ?? '',
-      name: author.displayName ?? r.name ?? '',
-      avatar: author.avatar ?? r.avatar ?? '',
+      idUser: r.userId ?? '',
+      name: r.displayName ?? r.name ?? '',          // tác giả reply
+      avatar: r.avatar ?? '',                        // avatar tác giả reply
       data: r.message ?? r.data ?? '',
       date: r.dateTime ?? r.date ?? '',
-      namereply: author.displayName ?? this.comment.displayName ?? '',
-      replyToUserId: r.commentToUserId ?? r.replyToUserId,
+      namereply: commentTo.displayName ?? '',        // tên người được @mention
+      replyToUserId: commentTo.id ?? r.commentToUserId ?? r.replyToUserId,
       replyToCommentId: r.replyToCommentId,
       likeCount: r.like ?? r.likeCount ?? 0,
       dislikeCount: r.dislike ?? r.dislikeCount ?? 0,

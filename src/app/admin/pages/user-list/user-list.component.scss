@@ -370,7 +370,8 @@ $radius-md: 10px;
 // ── Responsive: desktop table+aside vs mobile inline cards ────────────────────
 .mobile-only { display: none; }
 
-.mcard-list { display: flex; flex-direction: column; gap: 10px; }
+// display để media query mobile quản; tránh override .mobile-only{display:none} trên desktop
+.mcard-list { flex-direction: column; gap: 10px; }
 
 .mcard {
   background: var(--bg-card);
@@ -437,6 +438,7 @@ $radius-md: 10px;
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
   .mobile-only { display: block; }
+  .mcard-list { display: flex; }   // sau .mobile-only nên thắng → flex column trên mobile
 
   // No aside column on mobile — inline cards replace it.
   .page-layout, .page-layout--has-aside { grid-template-columns: 1fr !important; }

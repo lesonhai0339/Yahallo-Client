@@ -11,6 +11,7 @@ export class CommentService {
 
   filter(params: {
     mangaId?: string;
+    chapterId?:string;
     userId?: string;
     parentId?: string;
     page?: number;
@@ -22,6 +23,7 @@ export class CommentService {
       .set('PageNumber', params.page ?? 1)
       .set('PageSize', params.pageSize ?? 20);
     if (params.mangaId) hp = hp.set('MangaId', params.mangaId);
+    if (params.chapterId) hp = hp.set('ChapterId', params.chapterId);
     if (params.userId) hp = hp.set('UserId', params.userId);
     if (params.parentId) hp = hp.set('ParentId', params.parentId);
     // Backend bind FilterCommentQuery: SortBy (Time|Like|Dislike) + ReverseSort (true = giảm dần / mới nhất trước)
@@ -39,7 +41,7 @@ export class CommentService {
   }
 
   getChapterComments(mangaId: string, chapterId: string): Observable<any> {
-    return this.filter({ mangaId, pageSize: 50 });
+    return this.filter({ mangaId, chapterId , pageSize: 50 });
   }
 
   createComment(userId: string, mangaId: string, message: string, type: number , commentToUserId = '', chapterId = '', parentId = '', replyCommentId = ''): Observable<any> {
@@ -56,7 +58,7 @@ export class CommentService {
   }
 
   createChapterComment(userId: string, mangaId: string, chapterId: string, message: string): Observable<any> {
-    return this.createComment(userId, mangaId, message, 2, chapterId);
+    return this.createComment(userId, mangaId, message, 2, '', chapterId, '', '');
   }
 
   editComment(commentId: string, message: string): Observable<any> {
