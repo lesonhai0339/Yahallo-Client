@@ -40,9 +40,27 @@ export interface RegisterRequest {
   LastName: string;
   Email: string;
   PhoneNumber: string;
+  CountryId: string;
   UserName: string;
   Password: string;
-  Avatar: File | null ;  
+  Avatar: File | null ;
+  Background: File | null ;
+}
+
+/**
+ * Response của POST /create. Server không upload file lên S3 nữa mà trả về
+ * pre-signed PUT URL để client tự upload trực tiếp lên S3.
+ * (camelCase do System.Text.Json default policy.)
+ */
+export interface CreateUserResponseDto {
+  message: string;
+  avatarUrl: string | null;
+  backgroundUrl: string | null;
+  /**
+   * Chỉ dùng ở client: true khi tài khoản đã tạo thành công nhưng upload
+   * ảnh lên S3 thất bại (lỗi không nghiêm trọng — user có thể cập nhật sau).
+   */
+  uploadFailed?: boolean;
 }
 
 export interface MangaPagination{

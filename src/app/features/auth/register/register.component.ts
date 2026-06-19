@@ -23,6 +23,8 @@ export class RegisterComponent implements OnInit {
   showConfirmPassword = false;
   selectedAvatar: File | null = null;
   avatarPreviewUrl: string | null = null;
+  selectedBackground: File | null = null;
+  backgroundPreviewUrl: string | null = null;
 
   // ── Country / phone code ──────────────────────────────────────────────
   countries: Country[] = [];
@@ -149,22 +151,31 @@ export class RegisterComponent implements OnInit {
   }
 
   onFileSelected(event: any): void {
-    const file: File = event.target.files[0];
-    if (file) {
-      // You can add validation for file type and size here if needed
-      // For example, to check if it's an image and less than 2MB:
-      if (!file.type.startsWith('image/')) {
-        this.toastr.error('Sai định dạng ảnh');
-        return;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        this.toastr.error('Kích thước file phải nhỏ hơn 2MB');
-        return;
-      }
-      // Store the selected file for later use during registration
-      this.selectedAvatar = file;
-      this.avatarPreviewUrl = URL.createObjectURL(file);
+    const file = this.validateImage(event.target.files[0]);
+    if (!file) return;
+    this.selectedAvatar = file;
+    this.avatarPreviewUrl = URL.createObjectURL(file);
+  }
+
+  onBackgroundSelected(event: any): void {
+    const file = this.validateImage(event.target.files[0]);
+    if (!file) return;
+    this.selectedBackground = file;
+    this.backgroundPreviewUrl = URL.createObjectURL(file);
+  }
+
+  /** Kiểm tra định dạng ảnh + dung lượng < 2MB. Trả về file hợp lệ hoặc null. */
+  private validateImage(file: File | undefined): File | null {
+    if (!file) return null;
+    if (!file.type.startsWith('image/')) {
+      this.toastr.error('Sai định dạng ảnh');
+      return null;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      this.toastr.error('Kích thước file phải nhỏ hơn 2MB');
+      return null;
+    }
+    return file;
   }
 
   submit(): void {
@@ -184,10 +195,13 @@ export class RegisterComponent implements OnInit {
     const localNumber = this.phoneNumber.trim().replace(/\s/g, '').replace(/^0+/, '');
     const fullPhone = `+${this.selectedCountry.phoneCode}${localNumber}`;
     this.isLoading = true;
-    this.auth.register({FirstName: this.firstName, LastName: this.lastName, Email: this.email, PhoneNumber: fullPhone, UserName: this.username, Password: this.password, Avatar: this.selectedAvatar  }).subscribe({
-      next: (repsonse) => {
-        const res = repsonse?.value ?? repsonse;
-        this.toastr.success(res);
+    this.auth.register({FirstName: this.firstName, LastName: this.lastName, Email: this.email, PhoneNumber: fullPhone, CountryId: String(this.selectedCountry.id), UserName: this.username, Password: this.password, Avatar: this.selectedAvatar, Background: this.selectedBackground }).subscribe({
+      next: (res) => {
+        if (res.uploadFailed) {
+          this.toastr.warning('Tạo tài khoản thành công nhưng tải ảnh lên thất bại. Bạn có thể cập nhật ảnh sau.');
+        } else {
+          this.toastr.success(res.message);
+        }
         this.router.navigate(['/auth/login']);
       },
       error: (err) => {
