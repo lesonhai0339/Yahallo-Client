@@ -52,6 +52,10 @@ export interface MangaPagination{
   totalPages: number;
   data: Manga[];
 }
+export interface UserRating{
+  id: string;
+  rating: number;
+}
 
 export interface Manga {
   id: string;

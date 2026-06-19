@@ -16,6 +16,30 @@ export class MangaService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Ghi 1 lượt xem manga. Luôn gửi visitorId (cho khách); nếu user đã login,
+   * backend bỏ qua visitorId và dedup theo UserId từ JWT. Dedup trong cửa sổ ngắn (vài phút).
+   */
+  recordView(mangaId: string, chapterId?: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/manga-view/record`, {
+      mangaId,
+      chapterId: chapterId ?? null,
+      visitorId: this.getVisitorId(),
+    });
+  }
+
+  /** GUID định danh khách vãng lai, lưu localStorage 1 lần dùng mãi. */
+  private getVisitorId(): string {
+    let id = localStorage.getItem('visitorId');
+    if (!id) {
+      id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'v-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+      localStorage.setItem('visitorId', id);
+    }
+    return id;
+  }
+
   getHomepage(): Observable<HomepageDto> {
     return this.http.get<any>(`${this.base}/homepage`).pipe(
       map((res: any) => res?.value ?? res)
@@ -112,8 +136,9 @@ export class MangaService {
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           status: t.status,
-          totalViews: t.totalViews ?? 0,
-          averageRating: t.averageRating ?? 0,
+          // Server (FilterManga/MangaDto) trả về viewCount/rating, KHÔNG phải totalViews/averageRating.
+          totalViews: t.viewCount ?? t.totalViews ?? 0,
+          averageRating: t.rating ?? t.averageRating ?? 0,
           totalChapters: t.totalChapters ?? 0,
           totalFollows: t.totalFollows ?? 0,
           tags: t.tags ?? [],
@@ -325,7 +350,7 @@ export class MangaService {
                index : chapter.index,
                title: chapter.title,
                mangaId: chapter.mangaId,
-               chapterDate: chapter.chapterDate ?? new Date().toString()
+               chapterDate: chapter.createDate
             }
           )
         ) ?? []

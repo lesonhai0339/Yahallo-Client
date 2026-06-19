@@ -91,7 +91,7 @@
               </div>
               <div class="info-row info-row--end">
                 <span class="info-label"><i class="fa-regular fa-calendar me-2"></i>{{ 'MANGA.UPDATED' | translate }}</span>
-                <span class="info-value">{{ formatDate(latestChapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
+                <span class="chapter-date">{{ toUtcIso(latestChapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
               </div>
             </div>
           </div>
@@ -123,10 +123,10 @@
             <div class="rated-summary" *ngIf="hasRated && !showReratePanel">
               <div class="rated-summary__stars">
                 <i *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="fa-solid fa-star"
-                   [class.filled]="i <= existingRating"></i>
+                   [class.filled]="i <= existingRating.rating"></i>
               </div>
               <div class="rated-summary__info">
-                <span class="rated-summary__label">Đã đánh giá <strong>{{ existingRating }}/10</strong></span>
+                <span class="rated-summary__label">Đã đánh giá <strong>{{ existingRating.rating }}/10</strong></span>
                 <button class="rated-summary__rerate" (click)="openRerate()">
                   <i class="fa-solid fa-pen me-1"></i>Đánh giá lại
                 </button>
@@ -171,8 +171,7 @@
               <a class="chapter-item" *ngFor="let ch of visibleChapters" [routerLink]="readChapterLink(ch)">
                 <span class="chapter-name">{{ ch.title }}</span>
                 <span class="chapter-title">Không</span>
-                <span class="chapter-date">{{ formatDate(ch.chapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
-              </a>
+                <span class="chapter-date">{{ toUtcIso(ch.chapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>              </a>
             </div>
             <div class="chapter-toggle" *ngIf="chapters.length > 5">
               <button class="btn btn-secondary btn-sm" (click)="showAllChapters = !showAllChapters">

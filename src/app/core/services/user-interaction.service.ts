@@ -7,6 +7,7 @@ import { RatingTarget } from '../models/manga.interface';
 
 @Injectable({ providedIn: 'root' })
 export class UserInteractionService {
+
   private readonly ratingBase = environment.ratingApi;
   private readonly followBase = environment.followMangaApi;
   private readonly notifBase = environment.notificationApi;
@@ -47,6 +48,14 @@ export class UserInteractionService {
       Rating: star
     };
     return this.http.post(`${this.ratingBase}/create`, body);
+  }
+  reRate(rateId: string, selectedRating: number): Observable<any>
+  {
+    const body = {
+      ratingId: rateId,
+      rating: selectedRating
+    };
+    return this.http.put(`${this.ratingBase}/update`, body);
   }
 
   getUserRating(mangaId: string): Observable<{ id: string; rating: number }> {

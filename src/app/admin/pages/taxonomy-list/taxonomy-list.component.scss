@@ -124,7 +124,8 @@
 // ── Responsive: desktop table vs mobile cards ────────────────────────────────
 .mobile-only { display: none; }
 
-.mcard-list { display: flex; flex-direction: column; gap: 10px; }
+// display để media query mobile quản; tránh override .mobile-only{display:none} trên desktop
+.mcard-list { flex-direction: column; gap: 10px; }
 
 .mcard {
   background: var(--bg-card);
@@ -188,6 +189,7 @@
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
   .mobile-only { display: block; }
+  .mcard-list { display: flex; }   // sau .mobile-only nên thắng → flex column trên mobile
 
   .tax-page__head { flex-direction: column; align-items: stretch; }
   .add-btn { justify-content: center; }

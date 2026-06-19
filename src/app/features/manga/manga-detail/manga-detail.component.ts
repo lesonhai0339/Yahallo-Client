@@ -6,7 +6,7 @@ import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserInteractionService } from '../../../core/services/user-interaction.service';
 import { SeoService } from '../../../core/services/seo.service';
-import { Chapter, Manga, MangaDetailDto, MangaStatsDto } from '../../../core/models/interfaces';
+import { Chapter, Manga, MangaDetailDto, MangaStatsDto, UserRating } from '../../../core/models/interfaces';
 import { ChapterSortBy } from '../../../core/models/chapter.interface';
 
 @Component({
@@ -24,7 +24,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   selectedRating = 0;
   hoverRating = 0;
   hasRated = false;
-  existingRating = 0;
+  existingRating!: UserRating;
   showReratePanel = false;
   synopsisExpanded = false;
   sameAuthorManga: Manga[] = [];
@@ -140,22 +140,35 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     const user = this.authService.currentUser;
     if (!user) { this.router.navigate(['/auth/login']); return; }
     if (this.selectedRating < 1) { this.toastr.warning('Vui lòng chọn số sao'); return; }
-    this.userInteraction.rate(this.mangaId, user.id, this.selectedRating).subscribe(() => {
-      this.existingRating = this.selectedRating;
-      this.hasRated = true;
-      this.showReratePanel = false;
-      this.toastr.success(`Đã đánh giá ${this.selectedRating} sao`);
-    });
+
+    if(this.existingRating != null)
+    {
+      this.userInteraction.reRate(this.existingRating.id, this.selectedRating).subscribe(() => {
+          this.existingRating.rating = this.selectedRating;
+          this.hasRated = true;
+          this.showReratePanel = false;
+          this.toastr.success(`Đã đánh giá ${this.selectedRating} sao`);
+        });
+    }
+    else{
+      this.userInteraction.rate(this.mangaId, user.id, this.selectedRating).subscribe(() => {
+          this.existingRating.rating = this.selectedRating;
+          this.hasRated = true;
+          this.showReratePanel = false;
+          this.toastr.success(`Đã đánh giá ${this.selectedRating} sao`);
+        });
+    }
+   
   }
 
   openRerate(): void {
-    this.selectedRating = this.existingRating;
+    this.selectedRating = this.existingRating?.rating;
     this.showReratePanel = true;
   }
 
   cancelRerate(): void {
     this.showReratePanel = false;
-    this.selectedRating = this.existingRating;
+    this.selectedRating = this.existingRating?.rating;
     this.hoverRating = 0;
   }
 
@@ -166,7 +179,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
       next: (rating) => {
         if (rating.rating > 0) {
           this.hasRated = true;
-          this.existingRating = rating.rating;
+          this.existingRating = rating;
           this.selectedRating = rating.rating;
         }
       },
@@ -199,10 +212,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     return ['/manga', this.mangaId, 'chapter', chapter.id, '0'];
   }
 
-  formatDate(date: string): string {
-    if (!date) return '';
-    try { return new Date(date).toLocaleDateString('vi-VN'); } catch { return date; }
-  }
+toUtcIso(date: string): string {
+  if (!date) return '';
+  return /[Zz]|[+-]\d{2}:\d{2}$/.test(date) ? date : date + 'Z';
+}
+
 
   formatNumber(n: number): string {
     if (!n) return '0';
