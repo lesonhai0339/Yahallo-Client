@@ -38,32 +38,156 @@
 }
 
 .profile-info h1 { font-size: 1.4rem; margin-bottom: 4px; }
-.profile-stats { display: flex; gap: 24px; margin-top: 12px; }
-.stat { display: flex; flex-direction: column; strong { font-size: 1.2rem; } span { font-size: 0.8rem; color: var(--text-muted); } }
 
-.profile-tabs {
+// Mỗi mục thống kê: nhãn (tag) ở dòng trên, số liệu ở dòng dưới, cùng 1 cột.
+.profile-stats { display: flex; gap: 28px; margin-top: 14px; }
+.stat {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  strong { font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+}
+
+// ── 2-8 split: taskbar (left) + content (right) ──────────────────────────────
+// Cả 2 phần nằm trong 1 container có nền riêng, cao tối thiểu phủ hết màn hình.
+.profile-layout {
+  display: grid;
+  grid-template-columns: 2fr 8fr;
+  grid-template-rows: 1fr;     // hàng chiếm trọn chiều cao container
+  gap: 20px;
+  align-items: stretch;        // 2 cột kéo cao full parent
+
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  min-height: 100vh;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;   // stack on mobile
+    grid-template-rows: auto;     // nav + content theo nội dung khi stack
+    min-height: auto;
+  }
+}
+
+.profile-nav {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 6px;
+  padding: 8px;
+  position: sticky;
+  top: 16px;
 
-  .tab-btn {
-    flex: 1;
-    padding: 8px 12px;
+  @media (max-width: 768px) {
+    position: static;
+    flex-direction: row;          // horizontal bar on mobile
+    overflow-x: auto;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
     border: none;
     background: none;
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     font-weight: 500;
+    text-align: left;
+    text-decoration: none;
     cursor: pointer;
     transition: var(--transition);
+    white-space: nowrap;
+
+    > i { width: 18px; text-align: center; flex-shrink: 0; }
+    > span:nth-of-type(1) { flex: 1; }
+
+    &__count {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      padding: 1px 8px;
+      border-radius: 20px;
+    }
 
     &:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-    &.active { background: var(--accent-gradient); color: white; }
+    &.active {
+      background: var(--accent-gradient);
+      color: white;
+      .nav-item__count { background: rgba(255,255,255,0.2); color: #fff; }
+    }
   }
+}
+
+.profile-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  // Nội dung tab đang hiển thị kéo cao đầy cột content.
+  > * { flex: 1 1 auto; }
+}
+
+// ── Following: card-list (vertical) ──────────────────────────────────────────
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.follow-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: var(--transition);
+
+  &:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-card-hover);
+  }
+
+  &__thumb {
+    width: 48px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+
+  &__body { flex: 1; min-width: 0; }
+
+  &__title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    margin-top: 4px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  &__chev { color: var(--text-muted); flex-shrink: 0; }
 }
 
 .card-section-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); i { color: var(--accent-primary); } }

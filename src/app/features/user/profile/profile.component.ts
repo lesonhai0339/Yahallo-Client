@@ -13,8 +13,12 @@ import { ReadingProgressService } from '../../../core/services/reading-progress.
 export class ProfileComponent implements OnInit, OnDestroy {
   user: any = null;
   following: any[] = [];
+  followingPage = 1;
+  followingPageSize = 24;
+  followingTotal = 0;
   readingHistory: any[] = [];
   activeTab = 'info';
+  readonly validTabs = ['info', 'following', 'history', 'settings'];
   isLoading = true;
 
   // Temp profile cover until a per-user background field exists on the backend.
@@ -39,6 +43,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.loadHistory();
     }
     this.isLoading = false;
+
+    // Mở đúng tab theo route param (info | following | history | settings).
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(pm => {
+      const tab = pm.get('tab') ?? 'info';
+      this.activeTab = this.validTabs.includes(tab) ? tab : 'info';
+    });
   }
 
   ngOnDestroy(): void {
@@ -46,11 +56,19 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  loadFollowing(): void {
+  loadFollowing(page: number = this.followingPage): void {
     if (!this.user) return;
-    this.userInteraction.getFollowing(this.user.id).pipe(takeUntil(this.destroy$)).subscribe(f => {
-      this.following = f || [];
-    });
+    this.followingPage = page;
+    this.userInteraction.getFollowing(this.user.id, page, this.followingPageSize)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.following = res.items;
+        this.followingTotal = res.totalCount;
+      });
+  }
+
+  onFollowingPageChange(page: number): void {
+    this.loadFollowing(page);
   }
 
   loadHistory(): void {

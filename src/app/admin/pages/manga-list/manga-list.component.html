@@ -9,6 +9,12 @@
     </button>
   </div>
 
+  <!-- Two-column layout -->
+  <div class="page-layout" [class.page-layout--has-aside]="selectedManga">
+
+  <!-- Column 1: filter + list -->
+  <div class="page-main">
+
   <!-- Filter -->
   <div class="toolbar">
     <div class="toolbar__search">
@@ -87,7 +93,7 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>Thao tác</th>
         <td mat-cell *matCellDef="let m">
-          <div class="action-btns">
+          <div class="action-btns" (click)="$event.stopPropagation()">
             <button
               *ngIf="perm.canEditManga(m)"
               class="action-btn action-btn--edit"
@@ -130,7 +136,10 @@
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+          (click)="selectManga(row)"
+          [class.row-selected]="selectedManga?.id === row.id"
+          class="clickable-row"></tr>
 
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
@@ -198,4 +207,99 @@
     (page)="onPageChange($event)"
     showFirstLastButtons>
   </mat-paginator>
+
+  </div><!-- /page-main -->
+
+  <!-- Column 2: manga detail card (desktop) -->
+  <aside class="page-aside desktop-only" *ngIf="selectedManga">
+    <div class="manga-card">
+      <ng-container *ngTemplateOutlet="mangaCardTpl; context: { m: selectedManga }"></ng-container>
+    </div>
+  </aside>
+
+  </div><!-- /page-layout -->
 </div>
+
+<!-- Reusable manga detail card -->
+<ng-template #mangaCardTpl let-m="m">
+  <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="manga-card__cover" />
+  <div *ngIf="!m.thumbnail" class="manga-card__cover manga-card__cover--ph">?</div>
+
+  <h3 class="manga-card__title">{{ m.name }}</h3>
+
+  <div class="manga-card__badges">
+    <span class="type-badge">{{ m.type || '—' }}</span>
+    <span class="status-badge" [ngClass]="getStatusClass(m.status)">{{ getStatusLabel(m.status) }}</span>
+  </div>
+
+  <div class="manga-card__info">
+    <div class="info-item">
+      <span class="material-icons">person</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Tác giả</span>
+        <span class="info-item__val">{{ detailLoading ? '…' : (authorNames(detail) || '—') }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">brush</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Họa sĩ</span>
+        <span class="info-item__val">{{ detailLoading ? '…' : (artistNames(detail) || '—') }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">format_list_numbered</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Số chương</span>
+        <span class="info-item__val">{{ m.totalChapters ?? 0 }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">visibility</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Lượt xem</span>
+        <span class="info-item__val">{{ m.totalViews ?? 0 | number }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">schedule</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Cập nhật</span>
+        <span class="info-item__val">{{ m.updateDate ? (m.updateDate | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">notes</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Mô tả</span>
+        <span class="info-item__val info-item__val--desc">{{ detailLoading ? '…' : (detail?.description || '—') }}</span>
+      </div>
+    </div>
+    <div class="info-item">
+      <span class="material-icons">fingerprint</span>
+      <div class="info-item__body">
+        <span class="info-item__label">ID</span>
+        <span class="info-item__val info-item__val--mono">{{ m.id }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="manga-card__actions">
+    <button class="card-act" *ngIf="perm.canEditManga(m)" (click)="goEdit(m)">
+      <span class="material-icons">edit</span> Chỉnh sửa
+    </button>
+    <button class="card-act" *ngIf="perm.canEditManga(m)" (click)="goChapters(m)">
+      <span class="material-icons">format_list_numbered</span> Quản lý chương
+    </button>
+    <button class="card-act" (click)="goAnalytics(m)">
+      <span class="material-icons">bar_chart</span> Xem thống kê
+    </button>
+    <button class="card-act" *ngIf="perm.canEditManga(m)" (click)="toggleStatus(m)">
+      <span class="material-icons">{{ m.status === 'Hidden' ? 'visibility' : 'visibility_off' }}</span>
+      {{ m.status === 'Hidden' ? 'Hiện truyện' : 'Ẩn truyện' }}
+    </button>
+    <button class="card-act card-act--warn" *ngIf="perm.canDeleteSpecificManga(m)" (click)="deleteManga(m)">
+      <span class="material-icons">delete</span> Xóa truyện
+    </button>
+  </div>
+</ng-template>

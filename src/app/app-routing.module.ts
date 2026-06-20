@@ -31,6 +31,8 @@ const routes: Routes = [
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },
   { path: 'user/:id/:name', component: ProfileComponent, canActivate: [AuthGuard] },
   { path: 'user/:id/:name/notifications', component: NotificationsComponent, canActivate: [AuthGuard] },
+  // Profile tab deep-links (info | following | history | settings). Phải đứng sau 'notifications'.
+  { path: 'user/:id/:name/:tab', component: ProfileComponent, canActivate: [AuthGuard] },
   { path: 'settings', component: SettingsComponent },
   {
     path: 'admin',

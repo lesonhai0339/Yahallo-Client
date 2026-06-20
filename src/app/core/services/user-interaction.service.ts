@@ -22,10 +22,25 @@ export class UserInteractionService {
     return this.http.delete(`${this.followBase}/delete`, { body: { userId, mangaId } });
   }
 
-  getFollowing(userId: string): Observable<any[]> {
-    const params = new HttpParams().set('UserId', userId).set('PageSize', 200);
+  getFollowing(userId: string, pageNumber = 1, pageSize = 24): Observable<{ items: any[]; totalCount: number }> {
+    const params = new HttpParams()
+      .set('UserId', userId)
+      .set('PageNumber', pageNumber)
+      .set('PageSize', pageSize);
     return this.http.get<any>(`${this.followBase}/filter-follow-manga`, { params }).pipe(
-      map((res: any) => res?.data?.items ?? res?.items ?? [])
+      map((res: any) => {
+        const d = res?.value ?? res;
+        const raw = d?.data ?? [];
+        // FollowMangaDto -> shape mà app-manga-sumary-card mong đợi.
+        const items = raw.map((f: any) => ({
+          ...f,
+          id: f.mangaId,
+          displayName: f.mangaName,
+          mangaThumbnail: f.avatar,
+          lastChapterUpdate: f.lastUpdate,
+        }));
+        return { items, totalCount: d?.totalCount ?? items.length };
+      })
     );
   }
 

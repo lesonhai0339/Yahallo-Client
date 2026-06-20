@@ -25,6 +25,11 @@ export class MangaListComponent implements OnInit, AfterViewInit {
   loading = false;
   /** Mobile: id of the card whose details/actions dropdown is open. */
   expandedId: string | null = null;
+  /** Desktop: manga whose detail card is shown in the right aside. */
+  selectedManga: any = null;
+  /** Full detail (authors/artists/description) of the selected manga. */
+  detail: any = null;
+  detailLoading = false;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -64,9 +69,48 @@ export class MangaListComponent implements OnInit, AfterViewInit {
           thumbnail: m.mangaThumbnail ?? null
         }));
         this.loading = false;
+        // Mặc định chọn phần tử đầu để hiển thị card chi tiết bên phải.
+        const first = this.dataSource.data[0];
+        if (first) {
+          this.selectManga(first, false);
+        } else {
+          this.selectedManga = null;
+          this.detail = null;
+        }
       },
       error: () => { this.loading = false; }
     });
+  }
+
+  /** Chọn manga để hiện card chi tiết. toggle=true: click lại thì bỏ chọn. */
+  selectManga(manga: any, toggle = true): void {
+    if (toggle && this.selectedManga?.id === manga.id) {
+      this.selectedManga = null;
+      this.detail = null;
+      return;
+    }
+    this.selectedManga = manga;
+    this.loadDetail(manga.id);
+  }
+
+  private loadDetail(id: string): void {
+    this.detail = null;
+    this.detailLoading = true;
+    this.mangaService.getDetail(id).subscribe({
+      next: (res: any) => {
+        this.detail = res?.value ?? res;
+        this.detailLoading = false;
+      },
+      error: () => { this.detailLoading = false; }
+    });
+  }
+
+  authorNames(d: any): string {
+    return (d?.authors ?? []).map((a: any) => a.name).join(', ');
+  }
+
+  artistNames(d: any): string {
+    return (d?.artists ?? []).map((a: any) => a.name).join(', ');
   }
 
   onPageChange(event: PageEvent): void {

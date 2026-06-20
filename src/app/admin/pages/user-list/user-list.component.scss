@@ -1,16 +1,16 @@
-// ── Light-theme tokens ──────────────────────────────────────────────────────
-$bg: #ffffff;
-$bg-alt: #f8f9fb;
-$bg-hover: #f1f3f5;
-$text: #1a1d23;
-$text-sec: #4b5563;
-$text-muted: #9ca3af;
-$border: #e2e5ea;
-$border-light: #edf0f3;
-$accent: #e94560;
-$accent-hover: #d13a54;
-$radius-sm: 6px;
-$radius-md: 10px;
+// ── Theme tokens (đổi theo theme đang chọn, dùng chung với manga-list) ───────
+$bg: var(--bg-card);
+$bg-alt: var(--bg-secondary);
+$bg-hover: var(--overlay-light);
+$text: var(--text-primary);
+$text-sec: var(--text-secondary);
+$text-muted: var(--text-muted);
+$border: var(--border-color);
+$border-light: var(--border-light);
+$accent: var(--accent-primary);
+$accent-hover: var(--accent-primary);
+$radius-sm: var(--radius-sm);
+$radius-md: var(--radius-md);
 
 .user-page { color: $text; }
 
@@ -33,7 +33,7 @@ $radius-md: 10px;
   transition: grid-template-columns 0.2s ease;
 
   &--has-aside {
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 380px;
   }
 }
 
@@ -70,7 +70,7 @@ $radius-md: 10px;
 .table-loading {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center; gap: 12px;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(15, 15, 26, 0.6);
   z-index: 5;
   color: $text-sec;
   font-size: 0.9rem;

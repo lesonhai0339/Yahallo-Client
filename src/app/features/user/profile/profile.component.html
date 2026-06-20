@@ -13,12 +13,12 @@
           <p class="text-muted">{{ user.email }}</p>
           <div class="profile-stats">
             <div class="stat">
-              <strong>{{ following.length }}</strong>
               <span>{{ 'USER.FOLLOWING_COUNT' | translate }}</span>
+              <strong>{{ followingTotal }}</strong>
             </div>
             <div class="stat">
-              <strong>{{ readingHistory.length }}</strong>
               <span>{{ 'USER.READ_COUNT' | translate }}</span>
+              <strong>{{ readingHistory.length }}</strong>
             </div>
           </div>
         </div>
@@ -26,78 +26,118 @@
     </div>
   </div>
 
-  <!-- Tabs -->
-  <div class="profile-tabs mb-4">
-    <button class="tab-btn" [class.active]="activeTab === 'info'" (click)="setTab('info')">
-      <i class="fa-regular fa-user me-2"></i>{{ 'USER.INFO_TAB' | translate }}
-    </button>
-    <button class="tab-btn" [class.active]="activeTab === 'following'" (click)="setTab('following')">
-      <i class="fa-regular fa-heart me-2"></i>{{ 'USER.FOLLOWING_TAB' | translate }} ({{ following.length }})
-    </button>
-    <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="setTab('history')">
-      <i class="fa-solid fa-history me-2"></i>{{ 'USER.HISTORY_TAB' | translate }} ({{ readingHistory.length }})
-    </button>
-  </div>
+  <!-- 2-8 split: left taskbar + right content -->
+  <div class="profile-layout">
 
-  <!-- Tab Content -->
-  <div [ngSwitch]="activeTab">
+    <!-- Left (2): taskbar -->
+    <aside class="profile-nav">
+      <a class="nav-item" [class.active]="activeTab === 'info'"
+         [routerLink]="['/user', user.id, user.name]">
+        <i class="fa-regular fa-user"></i>
+        <span>{{ 'USER.INFO_TAB' | translate }}</span>
+      </a>
+      <a class="nav-item" [class.active]="activeTab === 'following'"
+         [routerLink]="['/user', user.id, user.name, 'following']">
+        <i class="fa-regular fa-heart"></i>
+        <span>{{ 'USER.FOLLOWING_TAB' | translate }}</span>
+        <span class="nav-item__count">{{ followingTotal }}</span>
+      </a>
+      <a class="nav-item" [class.active]="activeTab === 'history'"
+         [routerLink]="['/user', user.id, user.name, 'history']">
+        <i class="fa-solid fa-history"></i>
+        <span>{{ 'USER.HISTORY_TAB' | translate }}</span>
+        <span class="nav-item__count">{{ readingHistory.length }}</span>
+      </a>
+      <a class="nav-item" [class.active]="activeTab === 'settings'"
+         [routerLink]="['/user', user.id, user.name, 'settings']">
+        <i class="fa-solid fa-gear"></i>
+        <span>{{ 'SETTINGS.TITLE' | translate }}</span>
+      </a>
+    </aside>
 
-    <!-- Info -->
-    <div *ngSwitchCase="'info'" class="card">
-      <div class="card-body">
-        <h3 class="card-section-title">
-          <i class="fa-regular fa-id-card me-2"></i>{{ 'USER.PERSONAL_INFO' | translate }}
-        </h3>
-        <div class="info-list">
-          <div class="info-row">
-            <span class="info-label">{{ 'USER.DISPLAY_NAME' | translate }}</span>
-            <span>{{ user.name }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">{{ 'USER.EMAIL_LABEL' | translate }}</span>
-            <span>{{ user.email }}</span>
+    <!-- Right (8): content -->
+    <section class="profile-content" [ngSwitch]="activeTab">
+
+      <!-- Info -->
+      <div *ngSwitchCase="'info'" class="card">
+        <div class="card-body">
+          <h3 class="card-section-title">
+            <i class="fa-regular fa-id-card me-2"></i>{{ 'USER.PERSONAL_INFO' | translate }}
+          </h3>
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-label">{{ 'USER.DISPLAY_NAME' | translate }}</span>
+              <span>{{ user.name }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">{{ 'USER.EMAIL_LABEL' | translate }}</span>
+              <span>{{ user.email }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Following -->
-    <div *ngSwitchCase="'following'">
-      <div class="manga-grid" *ngIf="following.length > 0">
-        <app-manga-sumary-card *ngFor="let m of following" [manga]="m"></app-manga-sumary-card>
-      </div>
-      <div class="empty-state" *ngIf="following.length === 0">
-        <i class="fa-regular fa-heart-broken"></i>
-        <p>{{ 'USER.NO_FOLLOWING' | translate }}</p>
-        <a routerLink="/" class="btn btn-primary btn-sm mt-2">{{ 'USER.EXPLORE_MANGA' | translate }}</a>
-      </div>
-    </div>
-
-    <!-- History -->
-    <div *ngSwitchCase="'history'">
-      <div class="history-list" *ngIf="readingHistory.length > 0">
-        <div class="history-item card mb-2" *ngFor="let h of readingHistory">
-          <div class="card-body d-flex align-items-center gap-3">
-            <div class="history-info flex-grow-1">
-              <a [routerLink]="['/manga', h.mangaId]" class="history-title">{{ h.mangaId }}</a>
-              <div class="history-meta">
-                <span>{{ 'USER.CHAPTER_LABEL' | translate }}: {{ h.chapterId }}</span>
-                <span>{{ 'USER.PAGE_LABEL' | translate }} {{ h.lastPage }}</span>
-                <span>{{ h.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
+      <!-- Following: card-list -->
+      <div *ngSwitchCase="'following'">
+        <div class="card-list" *ngIf="following.length > 0">
+          <a class="follow-card" *ngFor="let m of following" [routerLink]="['/manga', m.id]">
+            <img class="follow-card__thumb" [src]="m.mangaThumbnail" [alt]="m.displayName"
+                 appImageFallback loading="lazy">
+            <div class="follow-card__body">
+              <div class="follow-card__title">{{ m.displayName }}</div>
+              <div class="follow-card__meta">
+                <i class="fa-regular fa-clock me-1"></i>{{ m.lastChapterUpdate ? (m.lastChapterUpdate | date:'dd/MM/yyyy HH:mm') : '—' }}
               </div>
             </div>
-            <a class="btn btn-secondary btn-sm"
-               [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ?? 0]">
-              {{ 'USER.CONTINUE_READING' | translate }}
-            </a>
-          </div>
+            <i class="fa-solid fa-chevron-right follow-card__chev"></i>
+          </a>
+        </div>
+
+        <app-pagination *ngIf="followingTotal > followingPageSize"
+          [currentPage]="followingPage"
+          [totalCount]="followingTotal"
+          [pageSize]="followingPageSize"
+          (pageChange)="onFollowingPageChange($event)"></app-pagination>
+
+        <div class="empty-state" *ngIf="followingTotal === 0">
+          <i class="fa-regular fa-heart-broken"></i>
+          <p>{{ 'USER.NO_FOLLOWING' | translate }}</p>
+          <a routerLink="/" class="btn btn-primary btn-sm mt-2">{{ 'USER.EXPLORE_MANGA' | translate }}</a>
         </div>
       </div>
-      <div class="empty-state" *ngIf="readingHistory.length === 0">
-        <i class="fa-solid fa-book-open"></i>
-        <p>{{ 'USER.NO_HISTORY' | translate }}</p>
-        <a routerLink="/" class="btn btn-primary btn-sm mt-2">{{ 'USER.START_READING' | translate }}</a>
+
+      <!-- History -->
+      <div *ngSwitchCase="'history'">
+        <div class="history-list" *ngIf="readingHistory.length > 0">
+          <div class="history-item card mb-2" *ngFor="let h of readingHistory">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="history-info flex-grow-1">
+                <a [routerLink]="['/manga', h.mangaId]" class="history-title">{{ h.mangaId }}</a>
+                <div class="history-meta">
+                  <span>{{ 'USER.CHAPTER_LABEL' | translate }}: {{ h.chapterId }}</span>
+                  <span>{{ 'USER.PAGE_LABEL' | translate }} {{ h.lastPage }}</span>
+                  <span>{{ h.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              </div>
+              <a class="btn btn-secondary btn-sm"
+                 [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ?? 0]">
+                {{ 'USER.CONTINUE_READING' | translate }}
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="readingHistory.length === 0">
+          <i class="fa-solid fa-book-open"></i>
+          <p>{{ 'USER.NO_HISTORY' | translate }}</p>
+          <a routerLink="/" class="btn btn-primary btn-sm mt-2">{{ 'USER.START_READING' | translate }}</a>
+        </div>
       </div>
-    </div>
+
+      <!-- Settings (cá nhân user) -->
+      <div *ngSwitchCase="'settings'">
+        <app-settings></app-settings>
+      </div>
+
+    </section>
   </div>
 </div>
