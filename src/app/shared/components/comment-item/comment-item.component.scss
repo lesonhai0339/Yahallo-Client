@@ -59,6 +59,39 @@
   white-space: nowrap;
 }
 
+// ── Author role / level badges ───────────────────────────────────────────────
+.role-badge,
+.level-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  border-radius: 4px;
+  padding: 1px 7px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+// Roles — colour by privilege (Admin highest → User lowest).
+.role-badge--admin { color: #ff8585; background: rgba(233, 69, 96, 0.18); border-color: rgba(233, 69, 96, 0.55); }
+.role-badge--mod   { color: #5fd38a; background: rgba(40, 167, 69, 0.16);  border-color: rgba(40, 167, 69, 0.5); }
+.role-badge--trans { color: #5cc6ff; background: rgba(14, 165, 233, 0.16); border-color: rgba(14, 165, 233, 0.5); }
+.role-badge--user  { color: var(--text-muted); background: rgba(255, 255, 255, 0.06); border-color: var(--border-color); }
+
+// Level — colour by tier (low → max).
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+}
+.level-badge--low  { color: #9aa0a6; background: rgba(255, 255, 255, 0.06); border-color: var(--border-color); }
+.level-badge--mid  { color: #5cc6ff; background: rgba(14, 165, 233, 0.16); border-color: rgba(14, 165, 233, 0.5); }
+.level-badge--high { color: #c89bff; background: rgba(124, 92, 255, 0.18); border-color: rgba(124, 92, 255, 0.55); }
+.level-badge--max  {
+  color: #4a3a00;
+  background: linear-gradient(135deg, #ffe9a8, #f9d976);
+  border-color: #f9d976;
+}
+
 .comment-time {
   font-size: 0.75rem;
   color: var(--text-muted);

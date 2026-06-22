@@ -89,7 +89,7 @@
         <span class="theme-card__swatch" [style.background]="t.swatch[0]">
           <span class="theme-card__dot" [style.background]="t.swatch[1]"></span>
         </span>
-        <span class="theme-card__label">{{ t.label }}</span>
+        <span class="theme-card__label">{{ t.label | translate }}</span>
         <i class="fa-solid fa-check theme-card__check" *ngIf="currentTheme === t.id"></i>
       </button>
     </div>
@@ -130,7 +130,7 @@
         </div>
       </div>
       <small *ngIf="activeThemeMeta && !activeThemeMeta.supportsImage">
-        {{ 'SETTINGS.BG_UNSUPPORTED' | translate:{ theme: activeThemeMeta.label } }}
+        {{ 'SETTINGS.BG_UNSUPPORTED' | translate:{ theme: (activeThemeMeta.label | translate) } }}
       </small>
     </div>
   </section>

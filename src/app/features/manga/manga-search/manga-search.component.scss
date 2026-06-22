@@ -4,12 +4,12 @@
   padding: 16px 24px;
   margin-top: 16px;
   margin-bottom: 0;
-  border: 1px solid var(--border-color);
+  border: none;
   box-shadow: var(--shadow-card);
   max-width: 85%;
   margin-left: auto;
   margin-right: auto;
-  height: calc(100vh - 76px);
+  height: calc(98vh - 76px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -67,8 +67,8 @@
   gap: 10px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
+  border-radius: 999px;
+  padding: 6px 6px 6px 16px;
   box-shadow: 0 0 12px rgba(255,255,255,0.04);
 
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -87,6 +87,13 @@
     font-size: 0.95rem;
     &:focus { outline: none; }
     &::placeholder { color: var(--text-muted); }
+  }
+
+  // Round the search button to match the pill-shaped group.
+  .btn-primary {
+    border-radius: 999px;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
   @media (max-width: 768px) {
@@ -441,6 +448,39 @@
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
+
+  // Active = this section has a live selection (author / artist / tag). Stays
+  // highlighted even while collapsed so the user can see a filter is applied.
+  &--active {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(233, 69, 96, 0.1);
+
+    i { color: var(--accent-primary); }
+
+    // Keep the highlight visible while still showing the open hover affordance.
+    &:hover { background: rgba(233, 69, 96, 0.16); }
+  }
+}
+
+// Pill on the toggle button showing what's selected (author/artist name or tag
+// count). Sits between the label and the chevron, which is pinned right.
+.tag-grid-toggle__badge {
+  margin-left: auto;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #fff;
+  background: var(--accent-primary);
+
+  // Badge takes over the right-side push, so the chevron sits next to it.
+  & + i:last-child { margin-left: 8px; }
 }
 
 .tag-grid-filter-input {

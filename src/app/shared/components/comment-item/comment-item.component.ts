@@ -42,6 +42,42 @@ export class CommentItemComponent implements OnInit {
     return this.comment.isDeleted || this.comment.commentData === DELETED_MARKER;
   }
 
+  // ── Author role / level badges ───────────────────────────────────────────────
+  /** Roles ranked high → low; the highest one the author has is shown. */
+  private readonly roleRank = ['Admin', 'Mod', 'Trans', 'User'];
+
+  topRole(roles?: string[]): string | null {
+    if (!roles?.length) return null;
+    return this.roleRank.find(r => roles.includes(r)) ?? roles[0];
+  }
+
+  /** Roles for an author — fall back to the logged-in user's own roles. */
+  authorRoles(item: { idUser: string; roles?: string[] }): string[] | undefined {
+    if (item.roles?.length) return item.roles;
+    if (this.currentUser && item.idUser === this.currentUser.id) return this.currentUser.roles;
+    return undefined;
+  }
+
+  /** Level for an author — fall back to the logged-in user's own level. */
+  authorLevel(item: { idUser: string; level?: number }): number | undefined {
+    if (item.level != null) return item.level;
+    if (this.currentUser && item.idUser === this.currentUser.id) return this.currentUser.level ?? undefined;
+    return undefined;
+  }
+
+  roleClass(role: string | null): string {
+    return role ? 'role-badge--' + role.toLowerCase() : '';
+  }
+
+  /** Bucket a 1–9 level into a colour tier. */
+  levelClass(level?: number): string {
+    if (!level) return '';
+    if (level >= 9) return 'level-badge--max';
+    if (level >= 7) return 'level-badge--high';
+    if (level >= 4) return 'level-badge--mid';
+    return 'level-badge--low';
+  }
+
   constructor(
     private commentService: CommentService,
     private auth: AuthService,

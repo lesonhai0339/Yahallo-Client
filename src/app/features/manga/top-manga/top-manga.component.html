@@ -1,5 +1,5 @@
 <div class="top-manga-page">
-  <div class="container-fluid px-3 px-md-4">
+  <div class="top-manga-container">
 
     <h1 class="page-title">
       <i class="fa-solid fa-ranking-star me-2"></i>{{ 'TOP.TITLE' | translate }}
@@ -22,11 +22,10 @@
         </button>
       </div>
 
-      <button class="sort-chip filter-toggle" [class.active]="showFilters" (click)="showFilters = !showFilters">
-        <i class="fa-solid fa-filter me-1"></i>{{ 'TOP.FILTER' | translate }}
-      </button>
-
       <div class="view-controls">
+        <button class="sort-chip filter-toggle" [class.active]="showFilters" (click)="showFilters = !showFilters">
+          <i class="fa-solid fa-filter me-1"></i>{{ 'TOP.FILTER' | translate }}
+        </button>
         <div class="page-size-select">
           <select [ngModel]="pageSize" (ngModelChange)="setPageSize($event)">
             <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }} / {{ 'TOP.PAGE' | translate }}</option>

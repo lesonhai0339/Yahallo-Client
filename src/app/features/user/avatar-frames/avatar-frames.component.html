@@ -1,0 +1,35 @@
+<div class="card">
+  <div class="card-body">
+    <h3 class="card-section-title">
+      <i class="fa-solid fa-certificate me-2"></i>{{ 'USER.FRAMES_TITLE' | translate }}
+    </h3>
+    <p class="frames-desc">{{ 'USER.FRAMES_DESC' | translate }}</p>
+
+    <!-- Basic -->
+    <h4 class="frames-tier">{{ 'USER.FRAMES_TIER_BASIC' | translate }}</h4>
+    <div class="frame-grid">
+      <button *ngFor="let f of basicFrames" type="button" class="frame-card"
+        [class.frame-card--active]="currentFrame === f.id"
+        (click)="select(f.id)">
+        <app-avatar-frame [src]="avatarUrl" [frameId]="f.id" [size]="84"></app-avatar-frame>
+        <span class="frame-card__label">{{ f.label | translate }}</span>
+        <i class="fa-solid fa-check frame-card__check" *ngIf="currentFrame === f.id"></i>
+      </button>
+    </div>
+
+    <!-- Premium -->
+    <h4 class="frames-tier">
+      <i class="fa-solid fa-crown me-1"></i>{{ 'USER.FRAMES_TIER_PREMIUM' | translate }}
+    </h4>
+    <div class="frame-grid">
+      <button *ngFor="let f of premiumFrames" type="button" class="frame-card frame-card--premium"
+        [class.frame-card--active]="currentFrame === f.id"
+        (click)="select(f.id)">
+        <span class="frame-card__badge">{{ 'USER.FRAMES_PREMIUM_BADGE' | translate }}</span>
+        <app-avatar-frame [src]="avatarUrl" [frameId]="f.id" [size]="84"></app-avatar-frame>
+        <span class="frame-card__label">{{ f.label | translate }}</span>
+        <i class="fa-solid fa-check frame-card__check" *ngIf="currentFrame === f.id"></i>
+      </button>
+    </div>
+  </div>
+</div>

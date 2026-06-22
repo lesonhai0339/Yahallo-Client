@@ -2,9 +2,11 @@
 
   <!-- Avatar -->
   <div class="comment-avatar">
-    <img [src]="comment.avatar || 'assets/images/user.jpg'"
-         [alt]="comment.displayName"
-         appImageFallback="assets/images/user.jpg">
+    <app-avatar-frame [src]="comment.avatar || 'assets/images/user.jpg'"
+      [alt]="comment.displayName"
+      [frameId]="comment.avatarFrame || 'default'"
+      fallback="assets/images/user.jpg"
+      [size]="38"></app-avatar-frame>
   </div>
 
   <div class="comment-body">
@@ -12,6 +14,8 @@
     <!-- Header -->
     <div class="comment-header">
       <span class="comment-author">{{ comment.displayName }}</span>
+      <span *ngIf="topRole(authorRoles(comment)) as role" class="role-badge" [ngClass]="roleClass(role)">{{ role }}</span>
+      <span *ngIf="authorLevel(comment) as lv" class="level-badge" [ngClass]="levelClass(lv)">Lv.{{ lv }}</span>
       <span *ngIf="showChapterLabel && comment.chapterName" class="chapter-badge">
         <i class="fa-solid fa-book-open me-1"></i>{{ comment.chapterName }}
       </span>
@@ -163,13 +167,17 @@
 
         <ng-template #liveReply>
           <div class="comment-avatar reply-avatar">
-            <img [src]="reply.avatar || 'assets/images/default-avatar.png'"
-                 [alt]="reply.name"
-                 appImageFallback="assets/images/default-avatar.png">
+            <app-avatar-frame [src]="reply.avatar || 'assets/images/default-avatar.png'"
+              [alt]="reply.name"
+              [frameId]="reply.avatarFrame || 'default'"
+              fallback="assets/images/default-avatar.png"
+              [size]="30"></app-avatar-frame>
           </div>
           <div class="comment-body">
             <div class="comment-header">
               <span class="comment-author">{{ reply.name }}</span>
+              <span *ngIf="topRole(authorRoles(reply)) as role" class="role-badge" [ngClass]="roleClass(role)">{{ role }}</span>
+              <span *ngIf="authorLevel(reply) as lv" class="level-badge" [ngClass]="levelClass(lv)">Lv.{{ lv }}</span>
               <span class="comment-time" [title]="formatLocal(reply.date)">{{ formatRelativeTime(reply.date) }}</span>
               <span *ngIf="reply.isEdited" class="edited-badge">({{ 'COMMENT.EDITED' | translate }})</span>
             </div>

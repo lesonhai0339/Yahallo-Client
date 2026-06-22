@@ -1,0 +1,20 @@
+<div class="avatar-frame" [ngClass]="'avatar-frame--' + resolvedFrame"
+  [class.avatar-frame--has-image]="!!frameImage"
+  [style.--frame-size.px]="size"
+  [style.--avatar-size.px]="avatarSize"
+  [style.--ring-gap.px]="gap"
+  [style.--frame-emoji-size.px]="size * 0.2">
+
+  <span class="avatar-frame__ring" aria-hidden="true"></span>
+
+  <span class="avatar-frame__art" aria-hidden="true" *ngIf="artHtml" [innerHTML]="artHtml"></span>
+
+  <span class="avatar-frame__deco" aria-hidden="true" *ngIf="emojis.length">
+    <span class="avatar-frame__emoji" *ngFor="let e of emojis; let i = index"
+      [style.transform]="emojiTransform(i)">{{ e }}</span>
+  </span>
+
+  <img class="avatar-frame__img" [src]="src" [alt]="alt" [appImageFallback]="fallback">
+
+  <img class="avatar-frame__overlay" *ngIf="frameImage" [src]="frameImage" alt="" aria-hidden="true">
+</div>

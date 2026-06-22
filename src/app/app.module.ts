@@ -27,6 +27,7 @@ import { CommentEditorComponent } from './shared/components/comment-editor/comme
 import { CommentItemComponent } from './shared/components/comment-item/comment-item.component';
 import { CommentSectionComponent } from './shared/components/comment-section/comment-section.component';
 import { ReaderViewerComponent } from './shared/components/reader-viewer/reader-viewer.component';
+import { AvatarFrameComponent } from './shared/components/avatar-frame/avatar-frame.component';
 
 // Features
 import { HomeComponent } from './features/home/home.component';
@@ -39,6 +40,7 @@ import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-
 import { ProfileComponent } from './features/user/profile/profile.component';
 import { NotificationsComponent } from './features/user/notifications/notifications.component';
 import { SettingsComponent } from './features/user/settings/settings.component';
+import { AvatarFramesComponent } from './features/user/avatar-frames/avatar-frames.component';
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { ServerErrorComponent } from './features/error/server-error.component';
@@ -73,6 +75,7 @@ export function initTranslations(translation: TranslationService) {
     CommentItemComponent,
     CommentSectionComponent,
     ReaderViewerComponent,
+    AvatarFrameComponent,
     HomeComponent,
     MangaDetailComponent,
     MangaReaderComponent,
@@ -82,6 +85,7 @@ export function initTranslations(translation: TranslationService) {
     ForgotPasswordComponent,
     ProfileComponent,
     SettingsComponent,
+    AvatarFramesComponent,
     NotificationsComponent,
     TopMangaComponent,
     MangaListPageComponent,

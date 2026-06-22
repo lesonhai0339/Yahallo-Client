@@ -5,6 +5,26 @@ export interface User {
   avatar: string;
   name: string;
   email: string;
+  /** Role names (e.g. Admin | Mod | Trans | User), highest-privilege first. */
+  roles?: string[];
+  /** User level 1–9. */
+  level?: number;
+}
+
+/** Mirrors the backend UserProfileDto from GET /user/get-profile?Id=... */
+export interface UserProfile {
+  id: string;
+  displayName?: string;
+  email: string;
+  phoneNumber?: string;
+  avatar?: string;
+  background?: string;
+  status?: number | string;
+  level?: number | string;
+  mangaFavoriteCount?: number;
+  mangaFollowingCount?: number;
+  createDate?: string;
+  roles: string[];
 }
 
 export interface UserRolePagination{

@@ -94,10 +94,13 @@
     </div>
 
     <!-- Author list (collapsible) -->
-    <div class="tag-grid-toggle-wrap">
-      <button class="tag-grid-toggle" type="button" [class.tag-grid-toggle--open]="showAuthorGrid"
+    <div class="tag-grid-toggle-wrap" [class.tag-grid-toggle-wrap--active]="!!selectedAuthor">
+      <button class="tag-grid-toggle" type="button"
+        [class.tag-grid-toggle--open]="showAuthorGrid"
+        [class.tag-grid-toggle--active]="!!selectedAuthor"
         (click)="showAuthorGrid = !showAuthorGrid">
         <i class="fa-solid fa-user-pen me-1"></i>{{ 'SEARCH.AUTHOR_LIST' | translate }}
+        <span class="tag-grid-toggle__badge" *ngIf="selectedAuthor">{{ selectedAuthor.name }}</span>
         <i class="fa-solid" [class.fa-angles-down]="!showAuthorGrid" [class.fa-angles-up]="showAuthorGrid"></i>
       </button>
     </div>
@@ -120,10 +123,13 @@
     </div>
 
     <!-- Artist list (collapsible) -->
-    <div class="tag-grid-toggle-wrap">
-      <button class="tag-grid-toggle" type="button" [class.tag-grid-toggle--open]="showArtistGrid"
+    <div class="tag-grid-toggle-wrap" [class.tag-grid-toggle-wrap--active]="!!selectedArtist">
+      <button class="tag-grid-toggle" type="button"
+        [class.tag-grid-toggle--open]="showArtistGrid"
+        [class.tag-grid-toggle--active]="!!selectedArtist"
         (click)="showArtistGrid = !showArtistGrid">
         <i class="fa-solid fa-pen-nib me-1"></i>{{ 'SEARCH.ARTIST_LIST' | translate }}
+        <span class="tag-grid-toggle__badge" *ngIf="selectedArtist">{{ selectedArtist.name }}</span>
         <i class="fa-solid" [class.fa-angles-down]="!showArtistGrid" [class.fa-angles-up]="showArtistGrid"></i>
       </button>
     </div>
@@ -146,10 +152,13 @@
     </div>
 
     <!-- Category chips grid (collapsible) -->
-    <div class="tag-grid-toggle-wrap">
-      <button class="tag-grid-toggle" type="button" [class.tag-grid-toggle--open]="showCategoryGrid"
+    <div class="tag-grid-toggle-wrap" [class.tag-grid-toggle-wrap--active]="selectedCategories.length > 0">
+      <button class="tag-grid-toggle" type="button"
+        [class.tag-grid-toggle--open]="showCategoryGrid"
+        [class.tag-grid-toggle--active]="selectedCategories.length > 0"
         (click)="showCategoryGrid = !showCategoryGrid">
         <i class="fa-solid fa-tags me-1"></i>{{ 'SEARCH.TAG_LIST' | translate }}
+        <span class="tag-grid-toggle__badge" *ngIf="selectedCategories.length > 0">{{ selectedCategories.length }}</span>
         <i class="fa-solid" [class.fa-angles-down]="!showCategoryGrid" [class.fa-angles-up]="showCategoryGrid"></i>
       </button>
     </div>

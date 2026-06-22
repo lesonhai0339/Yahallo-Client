@@ -164,7 +164,7 @@
       <!-- Language Switcher -->
       <div class="lang-wrapper">
         <button class="lang-btn" (click)="isLangOpen = !isLangOpen" [title]="'LANG.LABEL' | translate">
-          <span class="lang-flag">{{ langLabels[currentLang].flag }}</span>
+          <span class="lang-flag" [innerHTML]="flagHtml(currentLang)"></span>
           <span class="lang-code">{{ langLabels[currentLang].label }}</span>
           <i class="fa-solid fa-chevron-down lang-arrow" [class.rotated]="isLangOpen"></i>
         </button>
@@ -173,7 +173,7 @@
             class="lang-option"
             [class.active]="lang === currentLang"
             (click)="switchLang(lang)">
-            <span class="lang-flag">{{ langLabels[lang].flag }}</span>
+            <span class="lang-flag" [innerHTML]="flagHtml(lang)"></span>
             <span>{{ 'LANG.' + lang.toUpperCase() | translate }}</span>
             <i class="fa-solid fa-check ms-auto" *ngIf="lang === currentLang"></i>
           </button>
@@ -183,11 +183,11 @@
       <!-- User Menu -->
       <div class="user-menu-wrapper" *ngIf="isLoggedIn; else loginBtn">
         <button class="user-avatar-btn" (click)="isUserMenuOpen = !isUserMenuOpen">
-          <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/user.jpg">
+          <app-avatar-frame [src]="user?.avatar" [alt]="user?.name || ''" [size]="38"></app-avatar-frame>
         </button>
         <div class="user-dropdown" *ngIf="isUserMenuOpen">
           <div class="user-info">
-            <img [src]="user?.avatar" [alt]="user?.name" appImageFallback="/assets/user.jpg">
+            <app-avatar-frame [src]="user?.avatar" [alt]="user?.name || ''" [size]="46"></app-avatar-frame>
             <div>
               <strong>{{ user?.name }}</strong>
               <small>{{ user?.email }}</small>
@@ -264,7 +264,8 @@
           class="lang-option-mobile"
           [class.active]="lang === currentLang"
           (click)="switchLang(lang)">
-          {{ langLabels[lang].flag }} {{ 'LANG.' + lang.toUpperCase() | translate }}
+          <span class="lang-flag" [innerHTML]="flagHtml(lang)"></span>
+          {{ 'LANG.' + lang.toUpperCase() | translate }}
         </button>
       </div>
     </div>

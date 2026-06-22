@@ -75,7 +75,9 @@ export class AuthService {
         const user = {
           id: data.id,
           name: data.name,
-          avatar: data.avatarUri  ?? null
+          avatar: data.avatarUri  ?? null,
+          roles: data.roles ?? [],
+          level: data.level ?? null
         }
         if (accessToken) {
           const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(user), ENCRYPT_KEY).toString();
@@ -163,6 +165,39 @@ export class AuthService {
     Object.keys(user).forEach(k => { if (user[k] != null) form.append(k, user[k]); });
     if (avatar) form.append('Avatar', avatar);
     return this.http.put(`${this.base}/update`, form);
+  }
+
+  /**
+   * Update profile (phone / avatar / background). Same flow as register: send
+   * metadata + files, server replies with pre-signed S3 URLs, then the client
+   * PUTs each file straight to S3. Returns the update DTO (with `uploadFailed`
+   * if an S3 upload failed but the profile row was saved).
+   */
+  updateProfile(
+    fields: { id: string; phoneNumber?: string; displayName?: string },
+    avatar?: File,
+    background?: File,
+  ): Observable<any> {
+    const form = new FormData();
+    form.append('Id', fields.id);
+    if (fields.phoneNumber != null) form.append('PhoneNumber', fields.phoneNumber);
+    if (fields.displayName != null) form.append('DisplayName', fields.displayName);
+    if (avatar) form.append('Avatar', avatar, avatar.name);
+    if (background) form.append('Background', background, background.name);
+
+    return this.http.put<any>(`${this.base}/update`, form).pipe(
+      switchMap((res: any) => {
+        const t = res?.value ?? res;
+        const uploads: Observable<unknown>[] = [];
+        if (t?.avatarUrl && avatar) uploads.push(this.uploadToS3(t.avatarUrl, avatar));
+        if (t?.backgroundUrl && background) uploads.push(this.uploadToS3(t.backgroundUrl, background));
+        if (!uploads.length) return of(t);
+        return forkJoin(uploads).pipe(
+          map(() => t),
+          catchError(() => of({ ...t, uploadFailed: true })),
+        );
+      })
+    );
   }
 
   checkToken(token: string): Observable<any> {

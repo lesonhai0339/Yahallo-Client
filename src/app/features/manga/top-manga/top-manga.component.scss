@@ -3,6 +3,15 @@
   padding: 24px 0 60px;
 }
 
+// Center the content in a constrained column. No border / background so it
+// blends straight into the body; the leftover width on each side stays as free
+// gutter space.
+.top-manga-container {
+  // 2-6-2 layout: 60% content, 20% gutter each side.
+  width: 60%;
+  margin: 0 auto;
+}
+
 .page-title {
   font-size: 1.3rem;
   font-weight: 700;
@@ -206,7 +215,7 @@
 }
 
 .filter-toggle {
-  margin-left: 4px;
+  flex-shrink: 0;
 }
 
 // Loading
@@ -364,14 +373,24 @@
   }
 }
 
-// Grid view
+// Grid view — 5 per row. The cards stay compact because the .top-manga-container
+// above caps the row width, not because of the column count.
 .manga-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 // Responsive
+@media (max-width: 1200px) {
+  // 75% gutters get too tight on smaller viewports — let the content use more
+  // width with a small fixed side padding instead.
+  .top-manga-container {
+    width: 100%;
+    padding: 0 16px;
+  }
+}
+
 @media (max-width: 992px) {
   .manga-grid {
     grid-template-columns: repeat(4, 1fr);

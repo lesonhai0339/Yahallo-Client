@@ -5,16 +5,17 @@
        [style.background-image]="'url(' + coverImage + ')'">
     <div class="card-body">
       <div class="profile-header">
-        <div class="profile-avatar">
-          <img [src]="user.avatar" [alt]="user.name" appImageFallback="/assets/user.jpg">
-        </div>
+        <app-avatar-frame class="profile-avatar" [src]="user.avatar" [alt]="user.name"></app-avatar-frame>
         <div class="profile-info">
           <h1>{{ user.name }}</h1>
-          <p class="text-muted">{{ user.email }}</p>
           <div class="profile-stats">
             <div class="stat">
               <span>{{ 'USER.FOLLOWING_COUNT' | translate }}</span>
-              <strong>{{ followingTotal }}</strong>
+              <strong>{{ profile?.mangaFollowingCount ?? followingTotal }}</strong>
+            </div>
+            <div class="stat">
+              <span>{{ 'USER.FAVORITE_COUNT' | translate }}</span>
+              <strong>{{ profile?.mangaFavoriteCount ?? 0 }}</strong>
             </div>
             <div class="stat">
               <span>{{ 'USER.READ_COUNT' | translate }}</span>
@@ -48,6 +49,11 @@
         <span>{{ 'USER.HISTORY_TAB' | translate }}</span>
         <span class="nav-item__count">{{ readingHistory.length }}</span>
       </a>
+      <a class="nav-item" [class.active]="activeTab === 'frames'"
+         [routerLink]="['/user', user.id, user.name, 'frames']">
+        <i class="fa-solid fa-certificate"></i>
+        <span>{{ 'USER.FRAMES_TAB' | translate }}</span>
+      </a>
       <a class="nav-item" [class.active]="activeTab === 'settings'"
          [routerLink]="['/user', user.id, user.name, 'settings']">
         <i class="fa-solid fa-gear"></i>
@@ -63,15 +69,71 @@
         <div class="card-body">
           <h3 class="card-section-title">
             <i class="fa-regular fa-id-card me-2"></i>{{ 'USER.PERSONAL_INFO' | translate }}
+            <button *ngIf="isOwner && !editing" class="edit-profile-btn" (click)="startEdit()">
+              <i class="fa-solid fa-pen me-1"></i>{{ 'USER.EDIT_PROFILE' | translate }}
+            </button>
           </h3>
-          <div class="info-list">
+
+          <!-- Read-only -->
+          <div class="info-list" *ngIf="!editing">
             <div class="info-row">
               <span class="info-label">{{ 'USER.DISPLAY_NAME' | translate }}</span>
-              <span>{{ user.name }}</span>
+              <span>{{ profile?.displayName || user.name }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">{{ 'USER.EMAIL_LABEL' | translate }}</span>
-              <span>{{ user.email }}</span>
+              <span>{{ profile?.email || user.email }}</span>
+            </div>
+            <div class="info-row" *ngIf="profile?.phoneNumber">
+              <span class="info-label">{{ 'USER.PHONE_LABEL' | translate }}</span>
+              <span>{{ profile?.phoneNumber }}</span>
+            </div>
+            <div class="info-row" *ngIf="profile?.level != null">
+              <span class="info-label">{{ 'USER.LEVEL_LABEL' | translate }}</span>
+              <span>{{ profile?.level }}</span>
+            </div>
+            <div class="info-row" *ngIf="profile?.roles?.length">
+              <span class="info-label">{{ 'USER.ROLES_LABEL' | translate }}</span>
+              <span>{{ profile?.roles?.join(', ') }}</span>
+            </div>
+            <div class="info-row" *ngIf="profile?.createDate">
+              <span class="info-label">{{ 'USER.MEMBER_SINCE' | translate }}</span>
+              <span>{{ profile?.createDate | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+
+          <!-- Edit form (owner) -->
+          <div class="edit-form" *ngIf="editing">
+            <div class="edit-media">
+              <div class="edit-media__col">
+                <span class="edit-label">{{ 'USER.AVATAR_LABEL' | translate }}</span>
+                <img class="edit-avatar" [src]="avatarPreview || user.avatar" appImageFallback="/assets/user.jpg">
+                <button class="btn" (click)="avatarInput.click()">
+                  <i class="fa-solid fa-image me-1"></i>{{ 'USER.CHANGE_AVATAR' | translate }}
+                </button>
+                <input #avatarInput type="file" accept="image/*" hidden (change)="onPick($event, 'avatar')">
+              </div>
+              <div class="edit-media__col edit-media__col--wide">
+                <span class="edit-label">{{ 'USER.BACKGROUND_LABEL' | translate }}</span>
+                <div class="edit-bg" [style.background-image]="'url(' + (backgroundPreview || coverImage) + ')'"></div>
+                <button class="btn" (click)="bgInput.click()">
+                  <i class="fa-solid fa-image me-1"></i>{{ 'USER.CHANGE_BACKGROUND' | translate }}
+                </button>
+                <input #bgInput type="file" accept="image/*" hidden (change)="onPick($event, 'background')">
+              </div>
+            </div>
+
+            <div class="edit-field">
+              <label>{{ 'USER.PHONE_LABEL' | translate }}</label>
+              <input type="text" [(ngModel)]="phoneInput" [ngModelOptions]="{ standalone: true }"
+                     [placeholder]="'USER.PHONE_LABEL' | translate">
+            </div>
+
+            <div class="edit-actions">
+              <button class="btn btn-primary" [disabled]="saving" (click)="saveProfile()">
+                <i class="fa-solid fa-check me-1"></i>{{ 'USER.SAVE' | translate }}
+              </button>
+              <button class="btn" [disabled]="saving" (click)="cancelEdit()">{{ 'USER.CANCEL' | translate }}</button>
             </div>
           </div>
         </div>
@@ -131,6 +193,11 @@
           <p>{{ 'USER.NO_HISTORY' | translate }}</p>
           <a routerLink="/" class="btn btn-primary btn-sm mt-2">{{ 'USER.START_READING' | translate }}</a>
         </div>
+      </div>
+
+      <!-- Avatar frame picker -->
+      <div *ngSwitchCase="'frames'">
+        <app-avatar-frames></app-avatar-frames>
       </div>
 
       <!-- Settings (cá nhân user) -->

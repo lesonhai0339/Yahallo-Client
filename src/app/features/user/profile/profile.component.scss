@@ -29,15 +29,108 @@
   @media (max-width: 576px) { flex-direction: column; align-items: center; text-align: center; }
 }
 
-.profile-avatar img {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid var(--accent-primary);
-}
+// Avatar frame lives in the reusable <app-avatar-frame> component; nothing to
+// style here beyond keeping it from stretching in the flex header.
+.profile-avatar { flex-shrink: 0; }
 
 .profile-info h1 { font-size: 1.4rem; margin-bottom: 4px; }
+
+// ── Edit profile ─────────────────────────────────────────────────────────────
+.card-section-title { display: flex; align-items: center; }
+
+.edit-profile-btn {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  .btn {
+    align-self: flex-start;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: var(--transition);
+    &:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    &.btn-primary { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+}
+
+.edit-media {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.edit-media__col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &--wide { flex: 1; min-width: 240px; }
+}
+
+.edit-label {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.edit-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+}
+
+.edit-bg {
+  height: 96px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-size: cover;
+  background-position: center;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 320px;
+
+  label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+
+  input {
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    &:focus { outline: none; border-color: var(--accent-primary); }
+  }
+}
+
+.edit-actions { display: flex; gap: 10px; }
 
 // Mỗi mục thống kê: nhãn (tag) ở dòng trên, số liệu ở dòng dưới, cùng 1 cột.
 .profile-stats { display: flex; gap: 28px; margin-top: 14px; }

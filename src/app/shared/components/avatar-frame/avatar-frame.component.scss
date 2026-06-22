@@ -1,0 +1,130 @@
+:host { display: inline-flex; }
+
+// Layout: a circular photo on top of a `__ring` layer that draws the frame,
+// plus an optional `__deco` layer that orbits emoji around the ring. Sizes come
+// from CSS vars set by the component so the same markup scales for previews.
+.avatar-frame {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--frame-size, 116px);
+  height: var(--frame-size, 116px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-frame__img {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  width: var(--avatar-size, 100px);
+  height: var(--avatar-size, 100px);
+  border-radius: 50%;
+  object-fit: cover;
+  // Gap ring in the card colour separates the photo from the frame.
+  border: var(--ring-gap, 3px) solid var(--bg-card);
+  background: var(--bg-card);
+}
+
+// Frame layer — fills the full diameter; the rim exposed around the (smaller)
+// photo is what reads as the ring.
+.avatar-frame__ring {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 50%;
+}
+
+// Illustrated SVG art layer — extends beyond the ring so heads/horns/tails
+// aren't clipped. Sits behind the photo so the body coils around the edge.
+.avatar-frame__art {
+  position: absolute;
+  inset: -16%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+// PNG overlay frame (transparent-centre ring art) sits on top of the photo so
+// the ring overlaps the photo edge; extends beyond the frame for decorations.
+// The PNG fills the whole box; the photo is sized to the frame's inner hole so
+// the ring hugs it. Footprint == frame size, so nothing overflows the card.
+.avatar-frame__overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+// With an image frame the CSS ring/gap aren't needed — the photo fills the box
+// and the overlay ring hugs it.
+.avatar-frame--has-image .avatar-frame__img {
+  border: none;
+}
+.avatar-frame--has-image .avatar-frame__ring {
+  background: none;
+}
+
+// Emoji decoration layer.
+.avatar-frame__deco {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.avatar-frame__emoji {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: var(--frame-emoji-size, 22px);
+  line-height: 1;
+  // transform set inline per emoji (orbited onto the ring).
+}
+
+// ── Frame designs ─────────────────────────────────────────────────────────────
+.avatar-frame--default .avatar-frame__ring {
+  background: var(--accent-primary);
+}
+
+.avatar-frame--gradient .avatar-frame__ring {
+  background: conic-gradient(from 220deg,
+    var(--accent-primary), #ffcf6b, #7c5cff, #1ab5b0, var(--accent-primary));
+}
+
+.avatar-frame--glow .avatar-frame__ring {
+  background: var(--accent-primary);
+  animation: avatarGlow 2.4s ease-in-out infinite;
+}
+
+.avatar-frame--neon .avatar-frame__ring {
+  background: conic-gradient(from 0deg,
+    transparent 0 25%, var(--accent-primary) 50%, transparent 75% 100%);
+  animation: avatarSpin 3s linear infinite;
+}
+
+.avatar-frame--rainbow .avatar-frame__ring {
+  background: conic-gradient(from 0deg,
+    #ff004d, #ff8a00, #ffe600, #00d26a, #00a3ff, #7c5cff, #ff004d);
+}
+
+// wreath — soft green ring with flowers orbiting it (static).
+.avatar-frame--wreath .avatar-frame__ring {
+  background: radial-gradient(circle, #4caf50 0%, #2e7d32 100%);
+}
+
+@keyframes avatarGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(233, 69, 96, 0.5); }
+  50%      { box-shadow: 0 0 18px rgba(233, 69, 96, 0.85); }
+}
+
+@keyframes avatarSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-frame__ring,
+  .avatar-frame__deco { animation: none !important; }
+}

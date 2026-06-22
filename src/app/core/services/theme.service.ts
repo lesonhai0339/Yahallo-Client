@@ -6,6 +6,7 @@ export type Theme = 'dark' | 'light' | 'midnight' | 'sepia' | 'ocean';
 
 export interface ThemeMeta {
   id: Theme;
+  /** i18n key for the theme's display name (translated at the view layer). */
   label: string;
   /** Swatch colors [bg, accent] for the picker preview. */
   swatch: [string, string];
@@ -23,11 +24,11 @@ const DEFAULT_OPACITY = 0.82;
 const DEFAULT_BLUR = 0;
 
 export const THEMES: ThemeMeta[] = [
-  { id: 'dark',     label: 'Tối',       swatch: ['#0f0f1a', '#e94560'], supportsImage: true },
-  { id: 'light',    label: 'Sáng',      swatch: ['#f0f6ff', '#0ea5e9'], supportsImage: true },
-  { id: 'midnight', label: 'Nửa đêm',   swatch: ['#070a14', '#7c5cff'], supportsImage: true },
-  { id: 'sepia',    label: 'Sepia',     swatch: ['#efe3cf', '#b4622f'], supportsImage: false },
-  { id: 'ocean',    label: 'Đại dương', swatch: ['#06212b', '#1ab5b0'], supportsImage: true },
+  { id: 'dark',     label: 'SETTINGS.THEME_DARK',     swatch: ['#0f0f1a', '#e94560'], supportsImage: true },
+  { id: 'light',    label: 'SETTINGS.THEME_LIGHT',    swatch: ['#f0f6ff', '#0ea5e9'], supportsImage: true },
+  { id: 'midnight', label: 'SETTINGS.THEME_MIDNIGHT', swatch: ['#070a14', '#7c5cff'], supportsImage: true },
+  { id: 'sepia',    label: 'SETTINGS.THEME_SEPIA',    swatch: ['#efe3cf', '#b4622f'], supportsImage: false },
+  { id: 'ocean',    label: 'SETTINGS.THEME_OCEAN',    swatch: ['#06212b', '#1ab5b0'], supportsImage: true },
 ];
 
 @Injectable({ providedIn: 'root' })

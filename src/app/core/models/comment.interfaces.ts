@@ -5,6 +5,12 @@ export interface CommentData {
   idUser: string;
   displayName: string;
   avatar: string;
+  /** Author's selected avatar frame id (optional; backend may not send it). */
+  avatarFrame?: string;
+  /** Author role names (Admin | Mod | Trans | User), highest first. */
+  roles?: string[];
+  /** Author level 1–9. */
+  level?: number;
   commentData: string;
   dateComment: string;
   chapterId?: string;
@@ -29,6 +35,12 @@ export interface ReplyData {
   idUser: string;
   name: string;
   avatar: string;
+  /** Author's selected avatar frame id (optional; backend may not send it). */
+  avatarFrame?: string;
+  /** Author role names (Admin | Mod | Trans | User), highest first. */
+  roles?: string[];
+  /** Author level 1–9. */
+  level?: number;
   data: string;
   date: string;
   namereply: string;
