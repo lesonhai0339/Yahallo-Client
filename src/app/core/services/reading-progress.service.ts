@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ReadingProgress } from '../models/interfaces';
 import { UserPreferencesService } from './user-preferences.service';
@@ -16,9 +17,6 @@ export interface LocalProgress {
 export type SyncResult = 'pushed' | 'pulled' | 'in-sync' | 'skipped';
 
 const LOCAL_KEY = 'yhl_read_progress';
-// MOCK "server" — stands in for the backend until the sync API exists.
-const MOCK_SERVER_KEY = 'yhl_read_progress_server';
-const MOCK_SERVER_SUM_KEY = 'yhl_read_progress_server_sum';
 
 @Injectable({ providedIn: 'root' })
 export class ReadingProgressService {
@@ -86,42 +84,72 @@ export class ReadingProgressService {
   }
 
   /**
-   * Process 2: sync local progress with the server for a logged-in user.
+   * Process 2: reconcile local progress with the server for a logged-in user.
    *
-   * MOCK: there is no sync API yet, so the "server" is emulated in localStorage.
-   * The real flow (preserved here) is:
-   *   1. compute local checksum, send to API
-   *   2. if server differs from local  → PUSH the whole local snapshot
-   *   3. if server has nothing          → PULL is impossible, push
-   *   4. if local is empty & server has → PULL server into local (cross-device)
-   *   5. if equal                       → in-sync, skip
-   * TODO: replace MOCK_SERVER_* reads/writes with real endpoints, e.g.
-   *   POST `${base}/sync-check` { userId, checksum } and `${base}/sync-push|pull`.
+   * Reading positions are written to localStorage on every page (cheap, offline)
+   * and only reconciled here — on login / reader open / periodic flush — instead
+   * of one API call per image:
+   *   1. GET the server snapshot and map it into the local shape.
+   *   2. Compare checksums — equal ⇒ nothing to do ('in-sync').
+   *   3. Otherwise merge per-manga, newest `lastActionDate` wins (two-way), and
+   *      write the merged result back to localStorage.
+   *   4. PUSH only the entries that are newer locally (or missing on the server).
    */
   sync(userId: string): Observable<SyncResult> {
     if (!userId || this.prefs.current.readProgressMode === 'off') return of('skipped');
 
-    const local = this.prune(this.readMap());
-    this.writeMap(local);
-    const localSum = this.checksum(local);
+    return this.get(userId).pipe(
+      switchMap(serverList => {
+        const serverMap = this.fromServer(serverList || []);
+        const local = this.prune(this.readMap());
 
-    const serverSum = localStorage.getItem(MOCK_SERVER_SUM_KEY);
-    const serverRaw = localStorage.getItem(MOCK_SERVER_KEY);
-    const serverMap: Record<string, LocalProgress> = serverRaw ? JSON.parse(serverRaw) : {};
-    const hasLocal = Object.keys(local).length > 0;
-    const hasServer = Object.keys(serverMap).length > 0;
+        if (this.checksum(local) === this.checksum(serverMap)) return of('in-sync' as SyncResult);
 
-    if (!hasLocal && hasServer) {
-      // Pull — e.g. fresh device.
-      this.writeMap(this.prune(serverMap));
-      return of('pulled');
+        const merged = this.mergeByDate(local, serverMap);
+        this.writeMap(this.prune(merged));
+
+        // Entries the server doesn't have or that are stale there.
+        const toPush = Object.values(merged).filter(m => {
+          const s = serverMap[m.mangaId];
+          return !s || m.updatedAt > s.updatedAt;
+        });
+        if (!toPush.length) return of('pulled' as SyncResult);
+
+        const calls = toPush.map(p => this.save({
+          userId, mangaId: p.mangaId, chapterId: p.chapterId, lastPage: p.imageIndex,
+        }).pipe(catchError(() => of(null))));
+        return forkJoin(calls).pipe(map(() => 'pushed' as SyncResult));
+      }),
+      catchError(() => of('skipped' as SyncResult)),
+    );
+  }
+
+  /** Map the server's ReadingProgress[] into the keyed/timestamped local shape. */
+  private fromServer(list: ReadingProgress[]): Record<string, LocalProgress> {
+    const map: Record<string, LocalProgress> = {};
+    for (const r of list) {
+      if (!r?.mangaId) continue;
+      map[r.mangaId] = {
+        mangaId: r.mangaId,
+        chapterId: r.chapterId,
+        imageIndex: r.lastPage ?? 0,
+        updatedAt: r.lastReadAt ? (Date.parse(r.lastReadAt) || 0) : 0,
+      };
     }
-    if (localSum === serverSum) return of('in-sync');
+    return map;
+  }
 
-    // Local changed → push the whole snapshot.
-    localStorage.setItem(MOCK_SERVER_KEY, JSON.stringify(local));
-    localStorage.setItem(MOCK_SERVER_SUM_KEY, localSum);
-    return of('pushed');
+  /** Per-manga two-way merge: the entry with the newer `updatedAt` wins. */
+  private mergeByDate(
+    a: Record<string, LocalProgress>,
+    b: Record<string, LocalProgress>,
+  ): Record<string, LocalProgress> {
+    const out: Record<string, LocalProgress> = { ...b };
+    for (const [id, p] of Object.entries(a)) {
+      const other = out[id];
+      if (!other || p.updatedAt >= other.updatedAt) out[id] = p;
+    }
+    return out;
   }
 
   // ── Pruning: retention window + max entries ──────────────────────────────────

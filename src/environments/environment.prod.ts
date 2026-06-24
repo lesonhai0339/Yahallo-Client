@@ -15,6 +15,7 @@ export const environment = {
   userRoleApi: 'https://api.yahallo.online/user-role',
   serviceApi: 'https://api.yahallo.online/services',
   readingProgressApi: 'https://api.yahallo.online/reading-progress',
+  userSettingsApi: 'https://api.yahallo.online',
   notificationApi: 'https://api.yahallo.online/notification',
   subscriptionApi: 'https://api.yahallo.online/subscription',
   securityApi: 'https://api.yahallo.online/security',

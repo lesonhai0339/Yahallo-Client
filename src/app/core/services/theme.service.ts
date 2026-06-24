@@ -20,8 +20,26 @@ const BG_OPACITY_KEY = 'yhl_bg_opacity'; // tint overlay strength (0 = image cle
 const BG_BLUR_KEY = 'yhl_bg_blur';       // px
 const BG_COVER_KEY = 'yhl_bg_cover_main'; // image shows through main content vs keep theme bg
 
+const FONT_FAMILY_KEY = 'yhl_font_family';
+const FONT_SIZE_KEY = 'yhl_font_size';   // px
+const FONT_WEIGHT_KEY = 'yhl_font_weight';
+const FONT_COLOR_KEY = 'yhl_font_color';
+
 const DEFAULT_OPACITY = 0.82;
 const DEFAULT_BLUR = 0;
+
+/** Empty values fall back to the theme/global default (no override). */
+export const FONT_FAMILY_OPTIONS = [
+  { value: '', label: 'SETTINGS.FONT_DEFAULT' },
+  { value: "'Inter', sans-serif", label: 'Inter' },
+  { value: "'Roboto', sans-serif", label: 'Roboto' },
+  { value: "'Noto Sans', sans-serif", label: 'Noto Sans' },
+  { value: "Georgia, 'Times New Roman', serif", label: 'Georgia (serif)' },
+  { value: "'Courier New', monospace", label: 'Monospace' },
+];
+export const FONT_WEIGHT_OPTIONS = ['300', '400', '500', '600', '700'];
+const DEFAULT_FONT_SIZE = 16;
+const DEFAULT_FONT_WEIGHT = '400';
 
 export const THEMES: ThemeMeta[] = [
   { id: 'dark',     label: 'SETTINGS.THEME_DARK',     swatch: ['#0f0f1a', '#e94560'], supportsImage: true },
@@ -50,12 +68,28 @@ export class ThemeService {
   private coverMainSubject = new BehaviorSubject<boolean>(localStorage.getItem(BG_COVER_KEY) === '1');
   backgroundCoverMain$ = this.coverMainSubject.asObservable();
 
+  private fontFamilySubject = new BehaviorSubject<string>(localStorage.getItem(FONT_FAMILY_KEY) || '');
+  fontFamily$ = this.fontFamilySubject.asObservable();
+
+  private fontSizeSubject = new BehaviorSubject<number>(this.loadNum(FONT_SIZE_KEY, DEFAULT_FONT_SIZE));
+  fontSize$ = this.fontSizeSubject.asObservable();
+
+  private fontWeightSubject = new BehaviorSubject<string>(localStorage.getItem(FONT_WEIGHT_KEY) || DEFAULT_FONT_WEIGHT);
+  fontWeight$ = this.fontWeightSubject.asObservable();
+
+  private fontColorSubject = new BehaviorSubject<string>(localStorage.getItem(FONT_COLOR_KEY) || '');
+  fontColor$ = this.fontColorSubject.asObservable();
+
   get currentTheme(): Theme { return this.themeSubject.value; }
   get isDark(): boolean { return this.currentTheme !== 'light' && this.currentTheme !== 'sepia'; }
   get backgroundImage(): string | null { return this.bgSubject.value; }
   get backgroundOpacity(): number { return this.opacitySubject.value; }
   get backgroundBlur(): number { return this.blurSubject.value; }
   get backgroundCoverMain(): boolean { return this.coverMainSubject.value; }
+  get fontFamily(): string { return this.fontFamilySubject.value; }
+  get fontSize(): number { return this.fontSizeSubject.value; }
+  get fontWeight(): string { return this.fontWeightSubject.value; }
+  get fontColor(): string { return this.fontColorSubject.value; }
 
   private loadNum(key: string, fallback: number): number {
     const v = parseFloat(localStorage.getItem(key) ?? '');
@@ -77,10 +111,11 @@ export class ThemeService {
     return THEMES.some(t => t.id === saved) ? saved : 'dark';
   }
 
-  /** Apply theme + background image to the document (call on bootstrap). */
+  /** Apply theme + background image + fonts to the document (call on bootstrap). */
   apply(): void {
     document.documentElement.setAttribute('data-theme', this.currentTheme);
     this.applyBackground();
+    this.applyFont();
   }
 
   /** Back-compat: dark ⇄ light quick toggle (header button). */
@@ -134,6 +169,61 @@ export class ThemeService {
     localStorage.setItem(BG_COVER_KEY, cover ? '1' : '0');
     this.coverMainSubject.next(cover);
     this.applyBackground();
+  }
+
+  /** Reset theme, background and fonts to the built-in defaults (local only). */
+  resetToDefaults(): void {
+    this.setTheme('dark');
+    this.setBackgroundImage(null);
+    this.setBackgroundOpacity(DEFAULT_OPACITY);
+    this.setBackgroundBlur(DEFAULT_BLUR);
+    this.setBackgroundCoverMain(false);
+    this.setFontFamily('');
+    this.setFontSize(DEFAULT_FONT_SIZE);
+    this.setFontWeight(DEFAULT_FONT_WEIGHT);
+    this.setFontColor('');
+  }
+
+  // ── Fonts ────────────────────────────────────────────────────────────────────
+  setFontFamily(value: string): void {
+    const v = (value || '').trim();
+    if (v) localStorage.setItem(FONT_FAMILY_KEY, v); else localStorage.removeItem(FONT_FAMILY_KEY);
+    this.fontFamilySubject.next(v);
+    this.applyFont();
+  }
+
+  setFontSize(px: number): void {
+    const v = Math.min(28, Math.max(11, Math.round(px || DEFAULT_FONT_SIZE)));
+    localStorage.setItem(FONT_SIZE_KEY, String(v));
+    this.fontSizeSubject.next(v);
+    this.applyFont();
+  }
+
+  setFontWeight(weight: string): void {
+    const v = (weight || '').trim() || DEFAULT_FONT_WEIGHT;
+    localStorage.setItem(FONT_WEIGHT_KEY, v);
+    this.fontWeightSubject.next(v);
+    this.applyFont();
+  }
+
+  setFontColor(color: string): void {
+    const v = (color || '').trim();
+    if (v) localStorage.setItem(FONT_COLOR_KEY, v); else localStorage.removeItem(FONT_COLOR_KEY);
+    this.fontColorSubject.next(v);
+    this.applyFont();
+  }
+
+  private applyFont(): void {
+    const root = document.documentElement;
+    const family = this.fontFamilySubject.value;
+    const color = this.fontColorSubject.value;
+    // Empty → remove the override so the theme/global default applies.
+    if (family) root.style.setProperty('--app-font-family', family);
+    else root.style.removeProperty('--app-font-family');
+    root.style.setProperty('--app-font-size', `${this.fontSizeSubject.value}px`);
+    root.style.setProperty('--app-font-weight', this.fontWeightSubject.value);
+    if (color) root.style.setProperty('--app-font-color', color);
+    else root.style.removeProperty('--app-font-color');
   }
 
   private applyBackground(): void {

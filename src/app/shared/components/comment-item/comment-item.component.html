@@ -75,24 +75,24 @@
         <!-- Reply -->
         <button *ngIf="!isReply" class="action-btn" (click)="startReply()">
           <i class="fa-solid fa-reply"></i>
-          {{ 'COMMENT.REPLY' | translate }}
+          <span class="action-label">{{ 'COMMENT.REPLY' | translate }}</span>
         </button>
 
         <!-- Quote -->
         <button class="action-btn" (click)="quoteComment()">
           <i class="fa-solid fa-quote-left"></i>
-          {{ 'COMMENT.QUOTE' | translate }}
+          <span class="action-label">{{ 'COMMENT.QUOTE' | translate }}</span>
         </button>
 
         <!-- Owner actions -->
         <ng-container *ngIf="isOwner">
           <button class="action-btn" (click)="startEdit()">
             <i class="fa-solid fa-pen"></i>
-            {{ 'COMMENT.EDIT' | translate }}
+            <span class="action-label">{{ 'COMMENT.EDIT' | translate }}</span>
           </button>
           <button class="action-btn danger" (click)="confirmDelete()">
             <i class="fa-solid fa-trash"></i>
-            {{ 'COMMENT.DELETE' | translate }}
+            <span class="action-label">{{ 'COMMENT.DELETE' | translate }}</span>
           </button>
         </ng-container>
       </ng-container>
@@ -195,16 +195,16 @@
               </button>
               <button class="action-btn" (click)="startReplyToChild(reply)">
                 <i class="fa-solid fa-reply"></i>
-                {{ 'COMMENT.REPLY' | translate }}
+                <span class="action-label">{{ 'COMMENT.REPLY' | translate }}</span>
               </button>
               <button class="action-btn" (click)="quoteComment()">
                 <i class="fa-solid fa-quote-left"></i>
-                {{ 'COMMENT.QUOTE' | translate }}
+                <span class="action-label">{{ 'COMMENT.QUOTE' | translate }}</span>
               </button>
               <button *ngIf="currentUser && currentUser.id === reply.idUser"
                       class="action-btn danger" (click)="deleteReply(reply)">
                 <i class="fa-solid fa-trash"></i>
-                {{ 'COMMENT.DELETE' | translate }}
+                <span class="action-label">{{ 'COMMENT.DELETE' | translate }}</span>
               </button>
             </div>
 

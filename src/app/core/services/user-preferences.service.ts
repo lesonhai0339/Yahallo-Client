@@ -37,6 +37,15 @@ export class UserPreferencesService {
     return this.subject.value;
   }
 
+  /**
+   * True once the user has any locally-saved prefs. Used so that pagination
+   * tweaks made outside the settings page (list/grid, page size) — which are
+   * local-only "temp" overrides — win over the server snapshot on the next load.
+   */
+  get hasStored(): boolean {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  }
+
   private load(): UserPreferences {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);

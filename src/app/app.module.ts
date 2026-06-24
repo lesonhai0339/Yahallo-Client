@@ -44,6 +44,7 @@ import { AvatarFramesComponent } from './features/user/avatar-frames/avatar-fram
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { ServerErrorComponent } from './features/error/server-error.component';
+import { OfflineReaderComponent } from './features/offline-reader/offline-reader.component';
 
 // Core
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
@@ -90,6 +91,7 @@ export function initTranslations(translation: TranslationService) {
     TopMangaComponent,
     MangaListPageComponent,
     ServerErrorComponent,
+    OfflineReaderComponent,
   ],
   imports: [
     BrowserModule,

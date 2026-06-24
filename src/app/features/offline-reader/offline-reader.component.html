@@ -1,0 +1,147 @@
+<div class="offline-page" [class.list-collapsed]="!listOpen">
+
+  <!-- ── Left (2): chapter list ───────────────────────────────────────────── -->
+  <aside class="offline-list" *ngIf="listOpen">
+    <div class="offline-list__head">
+      <h2><i class="fa-solid fa-list me-2"></i>{{ 'OFFLINE.CHAPTER_LIST' | translate }}</h2>
+      <button class="collapse-btn" (click)="toggleList()" [title]="'OFFLINE.HIDE_LIST' | translate">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+    </div>
+
+    <label class="import-btn">
+      <i class="fa-solid fa-folder-open me-2"></i>{{ 'OFFLINE.IMPORT' | translate }}
+      <input type="file" webkitdirectory multiple hidden (change)="onPickFolder($event)">
+    </label>
+
+    <div class="import-hint">{{ 'OFFLINE.IMPORT_HINT' | translate }}</div>
+
+    <div class="offline-list__items" *ngIf="chapters.length > 0; else emptyList">
+      <button *ngFor="let ch of chapters" class="offline-chapter"
+        [class.active]="ch.id === activeId" (click)="selectChapter(ch)">
+        <img *ngIf="ch.thumbnail" class="offline-chapter__thumb" [src]="ch.thumbnail" alt=""
+          (error)="$any($event.target).style.display='none'">
+        <i *ngIf="!ch.thumbnail" class="fa-regular fa-file-image offline-chapter__icon"></i>
+        <span class="offline-chapter__label">{{ ch.label }}</span>
+        <span class="offline-chapter__count">{{ ch.images.length }}</span>
+      </button>
+    </div>
+
+    <ng-template #emptyList>
+      <div class="offline-empty">
+        <i class="fa-solid fa-inbox"></i>
+        <span>{{ 'OFFLINE.EMPTY' | translate }}</span>
+      </div>
+    </ng-template>
+  </aside>
+
+  <!-- ── Right (8): reader ────────────────────────────────────────────────── -->
+  <section class="offline-reader" [class.focus-mode]="settings.mode === 'focus'"
+    (scroll)="onReaderScroll($event)">
+
+    <!-- Floating controls (top-left): show-list arrow + settings, stacked.
+         Hidden while scrolling down, shown on scroll up. -->
+    <div class="offline-controls" [class.hidden]="!controlsVisible">
+      <button class="ctrl-btn" *ngIf="!listOpen" (click)="toggleList()"
+        [title]="'OFFLINE.SHOW_LIST' | translate">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="ctrl-btn" (click)="toggleSidebar()" [title]="'READER.SETTINGS' | translate">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+    </div>
+
+    <!-- Settings sidebar (reading settings only) -->
+    <div class="reader-sidebar-overlay" *ngIf="isSidebarOpen" (click)="closeSidebar()"></div>
+    <div class="reader-sidebar" [class.open]="isSidebarOpen">
+      <div class="sidebar-header">
+        <span>{{ 'READER.SETTINGS' | translate }}</span>
+        <button class="btn-close-sidebar" (click)="closeSidebar()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="sidebar-content">
+        <div class="setting-group">
+          <label class="setting-label">{{ 'READER.DIRECTION' | translate }}</label>
+          <div class="setting-options">
+            <button class="option-btn" [class.active]="pendingSettings.direction === 'vertical'"
+              (click)="pendingSettings.direction = 'vertical'">
+              <i class="fa-solid fa-arrows-up-down me-1"></i>{{ 'READER.VERTICAL' | translate }}
+            </button>
+            <button class="option-btn" [class.active]="pendingSettings.direction === 'horizontal'"
+              (click)="pendingSettings.direction = 'horizontal'">
+              <i class="fa-solid fa-arrows-left-right me-1"></i>{{ 'READER.HORIZONTAL' | translate }}
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-group" *ngIf="pendingSettings.direction === 'horizontal'">
+          <label class="setting-label">{{ 'READER.HORIZONTAL_DIR' | translate }}</label>
+          <div class="setting-options">
+            <button class="option-btn" [class.active]="pendingSettings.horizontalDir === 'rtl'"
+              (click)="pendingSettings.horizontalDir = 'rtl'">
+              <i class="fa-solid fa-arrow-right-to-bracket fa-flip-horizontal me-1"></i>{{ 'READER.RTL' | translate }}
+            </button>
+            <button class="option-btn" [class.active]="pendingSettings.horizontalDir === 'ltr'"
+              (click)="pendingSettings.horizontalDir = 'ltr'">
+              <i class="fa-solid fa-arrow-right-to-bracket me-1"></i>{{ 'READER.LTR' | translate }}
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">{{ 'READER.MODE' | translate }}</label>
+          <div class="setting-options">
+            <button class="option-btn" [class.active]="pendingSettings.mode === 'normal'"
+              (click)="pendingSettings.mode = 'normal'">
+              <i class="fa-solid fa-expand me-1"></i>{{ 'READER.MODE_NORMAL' | translate }}
+            </button>
+            <button class="option-btn" [class.active]="pendingSettings.mode === 'focus'"
+              (click)="pendingSettings.mode = 'focus'">
+              <i class="fa-solid fa-compress me-1"></i>{{ 'READER.MODE_FOCUS' | translate }}
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">
+            {{ 'READER.IMAGE_SIZE' | translate }}
+            <span class="setting-value">{{ pendingSettings.imageSize }}%</span>
+          </label>
+          <input type="range" class="form-range" min="50" max="150" step="5"
+            [(ngModel)]="pendingSettings.imageSize" [ngModelOptions]="{ standalone: true }">
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">
+            {{ 'READER.PRELOAD_COUNT' | translate }}
+            <span class="setting-value">{{ pendingSettings.preloadCount }}</span>
+          </label>
+          <input type="range" class="form-range" min="1" max="10" step="1"
+            [(ngModel)]="pendingSettings.preloadCount" [ngModelOptions]="{ standalone: true }">
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="apply-btn" (click)="applySettings()">
+          <i class="fa-solid fa-check me-1"></i>{{ 'READER.APPLY' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Viewer -->
+    <app-reader-viewer *ngIf="activeImages.length > 0; else noChapter"
+      [images]="activeImages"
+      [direction]="settings.direction"
+      [horizontalDir]="settings.horizontalDir"
+      [imageSize]="settings.imageSize"
+      [preloadCount]="settings.preloadCount">
+    </app-reader-viewer>
+
+    <ng-template #noChapter>
+      <div class="offline-reader__placeholder">
+        <i class="fa-solid fa-book-open"></i>
+        <p>{{ 'OFFLINE.PICK_HINT' | translate }}</p>
+      </div>
+    </ng-template>
+  </section>
+</div>

@@ -290,6 +290,52 @@
   }
 }
 
+// === Typography ===
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  input[type="color"] {
+    width: 46px;
+    height: 38px;
+    padding: 2px;
+    border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+  }
+}
+
+.font-preview {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-color, rgba(255,255,255,0.12));
+  border-radius: 10px;
+  background: var(--bg-secondary, rgba(255,255,255,0.03));
+}
+
+// === Save to server bar ===
+.save-bar {
+  position: sticky;
+  bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  &__btn {
+    min-width: 180px;
+    i { margin-right: 6px; }
+  }
+}
+
 @media (max-width: 600px) {
   .opt-grid { grid-template-columns: 1fr; }
+  .save-bar { flex-direction: column-reverse; }
+  .save-bar__btn, .save-bar__reset { width: 100%; }
 }

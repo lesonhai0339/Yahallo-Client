@@ -46,6 +46,12 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   private viewCounted = false;
   private viewTimer: any = null;
 
+  // Reading-progress: lưu localStorage mỗi trang, đẩy lên server theo chu kỳ
+  // (sau khi ngừng lật trang) + khi rời reader — KHÔNG gọi API mỗi ảnh.
+  private readonly PROGRESS_FLUSH_MS = 8000;
+  private progressFlushTimer: any = null;
+  private currentPage = 0;
+
   settings: ReaderSettings = {
     direction: 'vertical',
     horizontalDir: 'rtl',
@@ -153,6 +159,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Đẩy nốt vị trí đọc cuối cùng trước khi rời reader.
+    this.flushProgress();
     this.seo.resetToDefault();
     document.body.classList.remove('header-hidden');
     this.destroy$.next();
@@ -191,6 +199,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   onPageChange(page: number): void {
+    this.currentPage = page;
     this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${page}`);
     // Xem qua >= 5 ảnh (page 0-based: tới ảnh thứ 5) -> tính view.
     if (page + 1 >= this.VIEW_IMAGE_THRESHOLD) this.markViewed();
@@ -201,7 +210,20 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     } else {
       this.readingProgress.saveLocal(this.mangaId, this.chapterId, page);
     }
-    this.saveProgress(page);
+    // Process 2: chỉ hẹn giờ đẩy lên server, không gọi API ngay mỗi trang.
+    this.scheduleProgressFlush();
+  }
+
+  /** Hẹn đẩy tiến trình lên server sau khi người dùng ngừng lật trang. */
+  private scheduleProgressFlush(): void {
+    if (this.progressFlushTimer) clearTimeout(this.progressFlushTimer);
+    this.progressFlushTimer = setTimeout(() => this.flushProgress(), this.PROGRESS_FLUSH_MS);
+  }
+
+  /** Đẩy vị trí đọc hiện tại lên server (1 lần). Gọi định kỳ và khi rời reader. */
+  private flushProgress(): void {
+    if (this.progressFlushTimer) { clearTimeout(this.progressFlushTimer); this.progressFlushTimer = null; }
+    this.saveProgress(this.currentPage);
   }
 
   goToChapter(chapter: any): void {

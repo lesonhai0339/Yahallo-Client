@@ -8,6 +8,7 @@ import { UserInteractionService } from '../../../core/services/user-interaction.
 import { SeoService } from '../../../core/services/seo.service';
 import { Chapter, Manga, MangaDetailDto, MangaStatsDto, UserRating } from '../../../core/models/interfaces';
 import { ChapterSortBy } from '../../../core/models/chapter.interface';
+import { DownloadService } from '../../../core/services/download.service';
 
 @Component({
   selector: 'app-manga-detail',
@@ -29,6 +30,12 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   synopsisExpanded = false;
   sameAuthorManga: Manga[] = [];
   sameArtistManga: Manga[] = [];
+
+  // Download range picker (download-all)
+  showDownloadPanel = false;
+  readonly MAX_RANGE = 10;
+  rangeStart = 1;
+  rangeEnd = 1;
 
   get visibleChapters(): Chapter[] {
     return this.showAllChapters ? this.chapters : this.chapters.slice(0, 5);
@@ -59,8 +66,50 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private userInteraction: UserInteractionService,
     private toastr: ToastrService,
-    private seo: SeoService
+    private seo: SeoService,
+    private download: DownloadService,
   ) {}
+
+  // ── Download ─────────────────────────────────────────────────────────────────
+  get chapterIndexMin(): number {
+    return this.chapters.length ? Math.min(...this.chapters.map(c => c.index)) : 0;
+  }
+  get chapterIndexMax(): number {
+    return this.chapters.length ? Math.max(...this.chapters.map(c => c.index)) : 0;
+  }
+  get selectedRangeChapters(): Chapter[] {
+    return this.chapters.filter(c => c.index >= this.rangeStart && c.index <= this.rangeEnd);
+  }
+  get rangeCount(): number { return this.selectedRangeChapters.length; }
+  get rangeValid(): boolean {
+    return this.rangeStart <= this.rangeEnd && this.rangeCount > 0 && this.rangeCount <= this.MAX_RANGE;
+  }
+
+  toggleDownloadPanel(): void {
+    this.showDownloadPanel = !this.showDownloadPanel;
+    if (this.showDownloadPanel) {
+      this.rangeStart = this.chapterIndexMin;
+      this.rangeEnd = Math.min(this.chapterIndexMax, this.rangeStart + this.MAX_RANGE - 1);
+    }
+  }
+
+  confirmDownloadRange(): void {
+    if (!this.rangeValid) {
+      this.toastr.warning(`Chọn tối đa ${this.MAX_RANGE} chương`);
+      return;
+    }
+    const refs = this.selectedRangeChapters.map(c => ({ id: c.id, index: c.index, title: c.title }));
+    this.download.downloadRange(this.manga?.name || 'manga', refs, this.manga?.mangaThumbnail);
+    this.showDownloadPanel = false;
+    this.toastr.info(`Đã thêm ${refs.length} chương vào hàng tải`);
+  }
+
+  downloadChapter(ch: Chapter, ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.download.downloadChapter(this.manga?.name || 'manga', { id: ch.id, index: ch.index, title: ch.title }, this.manga?.mangaThumbnail);
+    this.toastr.info(`Đang tải chương ${ch.index}`);
+  }
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {

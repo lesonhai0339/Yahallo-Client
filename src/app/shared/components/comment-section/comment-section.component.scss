@@ -172,3 +172,9 @@
   &.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
   &:disabled { opacity: 0.35; cursor: not-allowed; }
 }
+
+// On mobile the page-size select and pagination wrap onto separate lines —
+// center them instead of leaving the pagination pinned to the left (space-between).
+@media (max-width: 768px) {
+  .comment-controls { justify-content: center; }
+}

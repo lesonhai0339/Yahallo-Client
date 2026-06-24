@@ -54,6 +54,12 @@
         <i class="fa-solid fa-certificate"></i>
         <span>{{ 'USER.FRAMES_TAB' | translate }}</span>
       </a>
+      <a class="nav-item" [class.active]="activeTab === 'downloads'"
+         [routerLink]="['/user', user.id, user.name, 'downloads']" *ngIf="isOwner">
+        <i class="fa-solid fa-download"></i>
+        <span>{{ 'DOWNLOAD.TAB' | translate }}</span>
+        <span class="nav-item__count" *ngIf="(download.downloads$ | async)?.length as n">{{ n }}</span>
+      </a>
       <a class="nav-item" [class.active]="activeTab === 'settings'"
          [routerLink]="['/user', user.id, user.name, 'settings']">
         <i class="fa-solid fa-gear"></i>
@@ -198,6 +204,56 @@
       <!-- Avatar frame picker -->
       <div *ngSwitchCase="'frames'">
         <app-avatar-frames></app-avatar-frames>
+      </div>
+
+      <!-- Downloads (đang/đã tải) -->
+      <div *ngSwitchCase="'downloads'" class="card">
+        <div class="card-body">
+          <h3 class="card-section-title">
+            <i class="fa-solid fa-download me-2"></i>{{ 'DOWNLOAD.TITLE' | translate }}
+          </h3>
+
+          <ng-container *ngIf="(download.downloads$ | async) as jobs">
+            <div class="dl-empty" *ngIf="jobs.length === 0">
+              <i class="fa-solid fa-inbox"></i>
+              <span>{{ 'DOWNLOAD.EMPTY' | translate }}</span>
+            </div>
+
+            <ul class="dl-list" *ngIf="jobs.length > 0">
+              <li class="dl-item" *ngFor="let j of jobs; trackBy: trackJob" [attr.data-status]="j.status">
+                <div class="dl-item__head">
+                  <div class="dl-item__info">
+                    <span class="dl-item__manga">{{ j.mangaName }}</span>
+                    <span class="dl-item__label">{{ j.label }} · {{ j.fileName }}</span>
+                  </div>
+                  <span class="dl-item__status" [attr.data-status]="j.status">
+                    {{ 'DOWNLOAD.STATUS_' + (j.status | uppercase) | translate }}
+                  </span>
+                </div>
+
+                <div class="dl-item__bar">
+                  <div class="dl-item__fill" [style.width.%]="j.percent"></div>
+                </div>
+
+                <div class="dl-item__foot">
+                  <span class="dl-item__percent">{{ j.percent | number:'1.0-0' }}%</span>
+                  <div class="dl-item__actions">
+                    <button class="dl-btn dl-btn--cancel"
+                            *ngIf="j.status === 'queued' || j.status === 'running' || j.status === 'zipping'"
+                            (click)="cancelDownload(j.id)">
+                      <i class="fa-solid fa-stop me-1"></i>{{ 'DOWNLOAD.CANCEL' | translate }}
+                    </button>
+                    <button class="dl-btn dl-btn--remove"
+                            *ngIf="j.status === 'done' || j.status === 'error' || j.status === 'cancelled'"
+                            (click)="removeDownload(j.id)">
+                      <i class="fa-solid fa-trash me-1"></i>{{ 'DOWNLOAD.REMOVE' | translate }}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </ng-container>
+        </div>
       </div>
 
       <!-- Settings (cá nhân user) -->

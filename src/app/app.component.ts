@@ -3,6 +3,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ThemeService } from './core/services/theme.service';
 import { MasterDataService } from './core/services/master-data.service';
+import { UserSettingsService } from './core/services/user-settings.service';
 
 @Component({
   selector: 'app-root',
@@ -20,7 +21,13 @@ import { MasterDataService } from './core/services/master-data.service';
 export class AppComponent implements OnInit {
   isAdminRoute = false;
 
-  constructor(private theme: ThemeService, private router: Router, private masterData: MasterDataService) {}
+  constructor(
+    private theme: ThemeService,
+    private router: Router,
+    private masterData: MasterDataService,
+    // Injected so it boots at startup and pulls the user's settings on login.
+    private userSettings: UserSettingsService,
+  ) {}
 
   ngOnInit(): void {
     this.theme.apply();

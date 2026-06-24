@@ -246,3 +246,16 @@
     border-bottom: none;
   }
 }
+
+// Mobile: action bar on a single row — drop the text labels, keep icons only.
+@media (max-width: 768px) {
+  .comment-actions {
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .action-btn {
+    padding: 4px 7px;
+    .action-label { display: none; }
+  }
+}

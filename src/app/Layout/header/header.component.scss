@@ -183,7 +183,7 @@ $header-height: 60px;
     top: calc(100% + 8px);
     right: 0;
     width: 380px;
-    background: #ffffff;
+    background: var(--bg-secondary);
     border: 2px solid #4287f5;
     border-radius: var(--radius-md);
     box-shadow: 0 4px 20px rgba(66, 135, 245, 0.15);
@@ -195,18 +195,18 @@ $header-height: 60px;
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    border-bottom: 1px solid #e0e7f1;
+    border-bottom: 1px solid var(--border-color);
 
-    i { color: #6b7b94; flex-shrink: 0; }
+    i { color: var(--text-secondary); flex-shrink: 0; }
 
     input {
       flex: 1;
       background: none;
       border: none;
       outline: none;
-      color: #1a1a2e;
+      color: var(--text-primary);
       font-size: 0.9rem;
-      &::placeholder { color: #9aa5b4; }
+      &::placeholder { color: var(--text-muted); }
     }
 
     .clear-btn {
@@ -218,7 +218,7 @@ $header-height: 60px;
       background: none;
       border: none;
       border-radius: 50%;
-      color: #9aa5b4;
+      color: var(--text-muted);
       cursor: pointer;
       padding: 0;
       flex-shrink: 0;
@@ -239,7 +239,7 @@ $header-height: 60px;
       border: none;
       padding: 4px 6px;
       cursor: pointer;
-      color: #6b7b94;
+      color: var(--text-secondary);
       border-radius: var(--radius-sm);
       transition: color 0.15s, background 0.15s;
       flex-shrink: 0;
@@ -295,7 +295,7 @@ $header-height: 60px;
       padding: 8px 14px 4px;
       font-size: 0.7rem;
       font-weight: 600;
-      color: #6b7b94;
+      color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
@@ -312,9 +312,9 @@ $header-height: 60px;
       transition: border-color 0.15s, color 0.15s;
 
       &:hover {
-        border-color: #d0d9e6;
-        color: #1a1a2e;
-        background: #f5f7fa;
+        border-color: var(--border-light);
+        color: var(--text-primary);
+        background: var(--icon-btn-bg);
       }
 
       &--hl {
@@ -340,12 +340,12 @@ $header-height: 60px;
     &__label {
       font-size: 0.84rem;
       font-weight: 500;
-      color: #1a1a2e;
+      color: var(--text-primary);
     }
 
     &__hint {
       font-size: 0.7rem;
-      color: #9aa5b4;
+      color: var(--text-muted);
       font-family: monospace;
     }
   }
@@ -358,7 +358,7 @@ $header-height: 60px;
       padding: 10px 14px 6px;
       font-size: 0.7rem;
       font-weight: 600;
-      color: #6b7b94;
+      color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.06em;
 
@@ -370,24 +370,24 @@ $header-height: 60px;
       overflow-y: auto;
 
       &::-webkit-scrollbar { width: 4px; }
-      &::-webkit-scrollbar-thumb { background: #d0d9e6; border-radius: 2px; }
+      &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
     }
 
     &__item {
       padding: 8px 14px;
       font-size: 0.85rem;
-      color: #4a5568;
+      color: var(--text-secondary);
       cursor: pointer;
-      border-bottom: 1px solid #e0e7f1;
+      border-bottom: 1px solid var(--border-color);
       border-left: 3px solid transparent;
       transition: border-color 0.15s, color 0.15s, background 0.15s;
 
       &:last-child { border-bottom: none; }
 
       &:hover {
-        border-left-color: #d0d9e6;
-        color: #1a1a2e;
-        background: #f5f7fa;
+        border-left-color: var(--border-light);
+        color: var(--text-primary);
+        background: var(--icon-btn-bg);
       }
 
       &--hl {
@@ -404,9 +404,9 @@ $header-height: 60px;
     align-items: center;
     gap: 10px;
     padding: 14px;
-    color: #6b7b94;
+    color: var(--text-secondary);
     font-size: 0.84rem;
-    border-bottom: 1px solid #e0e7f1;
+    border-bottom: 1px solid var(--border-color);
 
     i { color: var(--accent-primary); }
   }
@@ -429,8 +429,8 @@ $header-height: 60px;
       border-left: 3px solid transparent;
 
       &:hover {
-        border-left-color: #d0d9e6;
-        background: #f5f7fa;
+        border-left-color: var(--border-light);
+        background: var(--icon-btn-bg);
       }
 
       &.hl {
@@ -454,7 +454,7 @@ $header-height: 60px;
 
         .name {
           font-size: 0.85rem;
-          color: #1a1a2e;
+          color: var(--text-primary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -462,7 +462,7 @@ $header-height: 60px;
 
         .chapter {
           font-size: 0.75rem;
-          color: #9aa5b4;
+          color: var(--text-muted);
         }
       }
 
@@ -471,7 +471,7 @@ $header-height: 60px;
         justify-content: center;
         font-size: 0.82rem;
         color: #4287f5;
-        border-top: 1px solid #e8ecf1;
+        border-top: 1px solid var(--border-color);
         padding: 12px;
         font-weight: 500;
 
@@ -490,7 +490,7 @@ $header-height: 60px;
     gap: 8px;
     padding: 16px;
     font-size: 0.84rem;
-    color: #9aa5b4;
+    color: var(--text-muted);
     i { font-size: 1.1rem; }
   }
 }
@@ -713,17 +713,14 @@ $header-height: 60px;
 // Inline SVG flags — keep a fixed flag-ish size and crisp rounded corners.
 // ::ng-deep so the rules reach the SVG injected via [innerHTML] (dynamic
 // content doesn't get this component's view-encapsulation attribute).
-.lang-flag {
-  display: inline-flex;
-  align-items: center;
-
-  ::ng-deep svg {
-    display: block;
-    width: 20px;
-    height: 14px;
-    border-radius: 2px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
-  }
+img.lang-flag {
+  display: block;
+  width: 20px;
+  height: 14px;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  flex: 0 0 auto;
 }
 
 .lang-btn {
@@ -891,7 +888,7 @@ $header-height: 60px;
       justify-content: center;
       margin-bottom: 4px;
       padding-bottom: 8px;
-      border-bottom: 1px solid #e0e7f1;
+      border-bottom: 1px solid var(--border-color);
     }
 
     input {

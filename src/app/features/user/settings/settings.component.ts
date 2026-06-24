@@ -4,9 +4,12 @@ import {
   UserPreferencesService, UserPreferences, ReadProgressMode, ListView,
 } from '../../../core/services/user-preferences.service';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
-import { ThemeService, Theme, ThemeMeta } from '../../../core/services/theme.service';
+import {
+  ThemeService, Theme, ThemeMeta, FONT_FAMILY_OPTIONS, FONT_WEIGHT_OPTIONS,
+} from '../../../core/services/theme.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { TranslationService } from '../../../core/services/translation.service';
+import { TranslationService, SupportedLang } from '../../../core/services/translation.service';
+import { UserSettingsService } from '../../../core/services/user-settings.service';
 
 @Component({
   selector: 'app-settings',
@@ -25,6 +28,23 @@ export class SettingsComponent implements OnInit {
   syncing = false;
   localCount = 0;
 
+  // Language
+  langs: SupportedLang[] = [];
+  currentLang: SupportedLang = 'vi';
+
+  // Fonts
+  readonly fontFamilyOptions = FONT_FAMILY_OPTIONS;
+  readonly fontWeightOptions = FONT_WEIGHT_OPTIONS;
+  fontFamily = '';
+  fontSize = 16;
+  fontWeight = '400';
+  fontColor = '';
+
+  // Server save
+  saving = false;
+  /** Background file picked in this session, uploaded to S3 on save. */
+  private pendingBgFile: File | null = null;
+
   readonly modeOptions: { value: ReadProgressMode; labelKey: string; descKey: string; icon: string }[] = [
     { value: 'off',    labelKey: 'SETTINGS.MODE_OFF',    descKey: 'SETTINGS.MODE_OFF_DESC',    icon: 'block' },
     { value: 'ask',    labelKey: 'SETTINGS.MODE_ASK',    descKey: 'SETTINGS.MODE_ASK_DESC',    icon: 'help_outline' },
@@ -38,6 +58,7 @@ export class SettingsComponent implements OnInit {
     private auth: AuthService,
     private toastr: ToastrService,
     private i18n: TranslationService,
+    private userSettings: UserSettingsService,
   ) {}
 
   private t(key: string, params?: Record<string, string>): string {
@@ -54,6 +75,73 @@ export class SettingsComponent implements OnInit {
     this.bgBlur = this.themeService.backgroundBlur;
     this.bgCoverMain = this.themeService.backgroundCoverMain;
     this.localCount = this.readingProgress.getAllLocal().length;
+
+    this.langs = this.i18n.getAvailableLangs();
+    this.currentLang = this.i18n.currentLang;
+    this.fontFamily = this.themeService.fontFamily;
+    this.fontSize = this.themeService.fontSize;
+    this.fontWeight = this.themeService.fontWeight;
+    this.fontColor = this.themeService.fontColor;
+  }
+
+  // ── Language ─────────────────────────────────────────────────────────────────
+  setLanguage(lang: SupportedLang): void {
+    this.currentLang = lang;
+    this.i18n.setLanguage(lang);
+  }
+
+  // ── Fonts (live preview; persisted to server on Save) ────────────────────────
+  onFontFamilyChange(): void { this.themeService.setFontFamily(this.fontFamily); }
+  onFontSizeChange(): void { this.themeService.setFontSize(this.fontSize); this.fontSize = this.themeService.fontSize; }
+  onFontWeightChange(): void { this.themeService.setFontWeight(this.fontWeight); }
+  onFontColorChange(): void { this.themeService.setFontColor(this.fontColor); }
+
+  resetFontColor(): void { this.fontColor = ''; this.themeService.setFontColor(''); }
+
+  /**
+   * Revert appearance/behaviour settings to the built-in defaults (the state
+   * before this entity existed). Applied locally; press "Save to server" to
+   * persist, otherwise the next login pulls the server values back.
+   */
+  resetDefaults(): void {
+    this.themeService.resetToDefaults();
+    this.prefsService.reset();
+    this.i18n.setLanguage('vi');
+    this.pendingBgFile = null;
+
+    // Re-read the now-default values back into the form.
+    this.prefs = { ...this.prefsService.current };
+    this.currentTheme = this.themeService.currentTheme;
+    this.currentLang = this.i18n.currentLang;
+    this.bgImage = this.themeService.backgroundImage;
+    this.bgImageInput = '';
+    this.bgOpacity = this.themeService.backgroundOpacity;
+    this.bgBlur = this.themeService.backgroundBlur;
+    this.bgCoverMain = this.themeService.backgroundCoverMain;
+    this.fontFamily = this.themeService.fontFamily;
+    this.fontSize = this.themeService.fontSize;
+    this.fontWeight = this.themeService.fontWeight;
+    this.fontColor = this.themeService.fontColor;
+
+    this.toastr.info(this.t('SETTINGS.T_RESET_DONE'));
+  }
+
+  // ── Persist everything to the server ─────────────────────────────────────────
+  saveToServer(): void {
+    if (!this.auth.currentUser?.id) { this.toastr.warning(this.t('SETTINGS.T_NEED_LOGIN')); return; }
+    this.saving = true;
+    this.userSettings.save(this.pendingBgFile).subscribe({
+      next: () => {
+        this.saving = false;
+        this.pendingBgFile = null;
+        this.bgImage = this.themeService.backgroundImage;
+        this.toastr.success(this.t('SETTINGS.T_SAVED_SERVER'));
+      },
+      error: () => {
+        this.saving = false;
+        this.toastr.error(this.t('SETTINGS.T_SAVE_ERR'));
+      },
+    });
   }
 
   // ── Read progress ────────────────────────────────────────────────────────────
@@ -150,6 +238,8 @@ export class SettingsComponent implements OnInit {
     if (file.size > 3 * 1024 * 1024) {
       this.toastr.warning(this.t('SETTINGS.T_IMG_LARGE'));
     }
+    // Keep the File so "Save to server" can upload it to S3.
+    this.pendingBgFile = file;
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
@@ -165,6 +255,7 @@ export class SettingsComponent implements OnInit {
 
   clearBackground(): void {
     this.bgImageInput = '';
+    this.pendingBgFile = null;
     this.themeService.setBackgroundImage(null);
     this.bgImage = null;
   }

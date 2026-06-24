@@ -306,3 +306,79 @@
 
 .history-title { font-size: 0.9rem; font-weight: 500; color: var(--accent-primary); text-decoration: none; }
 .history-meta { display: flex; gap: 12px; margin-top: 4px; font-size: 0.78rem; color: var(--text-muted); }
+
+// === Downloads tab ===
+.dl-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text-muted);
+  i { font-size: 2.6rem; display: block; margin-bottom: 10px; }
+  span { font-size: 0.88rem; }
+}
+
+.dl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+
+.dl-item {
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+
+  &__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  &__info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  &__manga { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+  &__label {
+    font-size: 0.76rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  &__status {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--icon-btn-bg);
+    color: var(--text-secondary);
+
+    &[data-status="done"]      { color: #28c76f; }
+    &[data-status="error"]     { color: var(--accent-primary); }
+    &[data-status="cancelled"] { color: var(--text-muted); }
+    &[data-status="running"], &[data-status="zipping"] { color: var(--accent-primary); }
+  }
+
+  &__bar {
+    height: 6px;
+    margin: 10px 0 8px;
+    border-radius: 3px;
+    background: var(--icon-btn-bg);
+    overflow: hidden;
+  }
+  &__fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent-gradient);
+    transition: width 0.25s ease;
+  }
+  &[data-status="error"] .dl-item__fill { background: var(--accent-primary); opacity: 0.5; }
+
+  &__foot { display: flex; align-items: center; justify-content: space-between; }
+  &__percent { font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; }
+  &__actions { display: flex; gap: 8px; }
+}
+
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.76rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+
+  &--cancel:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+  &--remove:hover { color: var(--text-primary); border-color: var(--border-light); }
+}

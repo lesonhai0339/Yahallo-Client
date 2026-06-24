@@ -45,6 +45,25 @@
     <p class="mock-note">{{ 'SETTINGS.MOCK_NOTE' | translate }}</p>
   </section>
 
+  <!-- ── Language ──────────────────────────────────────────────────────────── -->
+  <section class="settings-card">
+    <header class="settings-card__head">
+      <h2><i class="fa-solid fa-language me-2"></i>{{ 'SETTINGS.LANG_TITLE' | translate }}</h2>
+      <p>{{ 'SETTINGS.LANG_DESC' | translate }}</p>
+    </header>
+    <div class="inline-fields">
+      <div class="field">
+        <label>{{ 'SETTINGS.LANG_LABEL' | translate }}</label>
+        <div class="view-toggle">
+          <button *ngFor="let l of langs" class="view-toggle__btn" [class.active]="currentLang === l"
+            (click)="setLanguage(l)">
+            {{ (l === 'vi' ? 'SETTINGS.LANG_VI' : 'SETTINGS.LANG_EN') | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Lists & pagination ────────────────────────────────────────────────── -->
   <section class="settings-card">
     <header class="settings-card__head">
@@ -134,4 +153,62 @@
       </small>
     </div>
   </section>
+
+  <!-- ── Typography ────────────────────────────────────────────────────────── -->
+  <section class="settings-card">
+    <header class="settings-card__head">
+      <h2><i class="fa-solid fa-font me-2"></i>{{ 'SETTINGS.FONT_TITLE' | translate }}</h2>
+      <p>{{ 'SETTINGS.FONT_DESC' | translate }}</p>
+    </header>
+
+    <div class="inline-fields">
+      <div class="field">
+        <label>{{ 'SETTINGS.FONT_FAMILY' | translate }}</label>
+        <select [(ngModel)]="fontFamily" (ngModelChange)="onFontFamilyChange()">
+          <option *ngFor="let f of fontFamilyOptions" [ngValue]="f.value">
+            {{ f.value ? f.label : ('SETTINGS.FONT_DEFAULT' | translate) }}
+          </option>
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ 'SETTINGS.FONT_WEIGHT' | translate }}</label>
+        <select [(ngModel)]="fontWeight" (ngModelChange)="onFontWeightChange()">
+          <option *ngFor="let w of fontWeightOptions" [ngValue]="w">{{ w }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ 'SETTINGS.FONT_COLOR' | translate }}</label>
+        <div class="color-row">
+          <input type="color" [(ngModel)]="fontColor" (ngModelChange)="onFontColorChange()" />
+          <button class="btn" (click)="resetFontColor()" *ngIf="fontColor">
+            {{ 'SETTINGS.FONT_COLOR_DEFAULT' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="slider-field">
+      <label>{{ 'SETTINGS.FONT_SIZE' | translate }} <span>{{ fontSize }}px</span></label>
+      <input type="range" min="11" max="28" step="1"
+        [(ngModel)]="fontSize" (ngModelChange)="onFontSizeChange()" />
+    </div>
+
+    <p class="font-preview" [style.font-family]="fontFamily || null"
+      [style.font-size.px]="fontSize" [style.font-weight]="fontWeight"
+      [style.color]="fontColor || null">
+      {{ 'SETTINGS.FONT_PREVIEW' | translate }}
+    </p>
+  </section>
+
+  <!-- ── Save to server ────────────────────────────────────────────────────── -->
+  <div class="save-bar">
+    <button class="btn save-bar__reset" (click)="resetDefaults()" [disabled]="saving">
+      <i class="fa-solid fa-rotate-left me-1"></i>{{ 'SETTINGS.RESET_DEFAULTS' | translate }}
+    </button>
+    <button class="btn btn--primary save-bar__btn" (click)="saveToServer()" [disabled]="saving">
+      <i class="fa-solid" [class.fa-cloud-arrow-up]="!saving" [class.fa-spinner]="saving"
+        [class.fa-spin]="saving"></i>
+      {{ (saving ? 'SETTINGS.SAVING' : 'SETTINGS.SAVE_SERVER') | translate }}
+    </button>
+  </div>
 </div>

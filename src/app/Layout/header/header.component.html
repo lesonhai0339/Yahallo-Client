@@ -164,7 +164,8 @@
       <!-- Language Switcher -->
       <div class="lang-wrapper">
         <button class="lang-btn" (click)="isLangOpen = !isLangOpen" [title]="'LANG.LABEL' | translate">
-          <span class="lang-flag" [innerHTML]="flagHtml(currentLang)"></span>
+          <img class="lang-flag" [src]="flagUrl(currentLang)" alt=""
+            (error)="$any($event.target).style.display='none'">
           <span class="lang-code">{{ langLabels[currentLang].label }}</span>
           <i class="fa-solid fa-chevron-down lang-arrow" [class.rotated]="isLangOpen"></i>
         </button>
@@ -173,7 +174,8 @@
             class="lang-option"
             [class.active]="lang === currentLang"
             (click)="switchLang(lang)">
-            <span class="lang-flag" [innerHTML]="flagHtml(lang)"></span>
+            <img class="lang-flag" [src]="flagUrl(lang)" alt=""
+              (error)="$any($event.target).style.display='none'">
             <span>{{ 'LANG.' + lang.toUpperCase() | translate }}</span>
             <i class="fa-solid fa-check ms-auto" *ngIf="lang === currentLang"></i>
           </button>
@@ -202,6 +204,9 @@
             </a>
             <a [routerLink]="['/user', user?.id, user?.name, 'history']" (click)="isUserMenuOpen=false">
               <i class="fa-solid fa-history me-2"></i>{{ 'NAV.HISTORY' | translate }}
+            </a>
+            <a routerLink="/offline" (click)="isUserMenuOpen=false">
+              <i class="fa-solid fa-download me-2"></i>{{ 'NAV.READ_OFFLINE' | translate }}
             </a>
             <a *ngIf="isAdmin" routerLink="/admin" (click)="isUserMenuOpen=false" class="admin-link">
               <i class="fa-solid fa-shield-halved me-2"></i>Admin Panel
@@ -264,7 +269,8 @@
           class="lang-option-mobile"
           [class.active]="lang === currentLang"
           (click)="switchLang(lang)">
-          <span class="lang-flag" [innerHTML]="flagHtml(lang)"></span>
+          <img class="lang-flag" [src]="flagUrl(lang)" alt=""
+            (error)="$any($event.target).style.display='none'">
           {{ 'LANG.' + lang.toUpperCase() | translate }}
         </button>
       </div>

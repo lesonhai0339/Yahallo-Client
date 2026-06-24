@@ -14,6 +14,7 @@ import { TopMangaComponent } from './features/manga/top-manga/top-manga.componen
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { AuthGuard } from './core/guards/auth.guard';
 import { ServerErrorComponent } from './features/error/server-error.component';
+import { OfflineReaderComponent } from './features/offline-reader/offline-reader.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -34,6 +35,7 @@ const routes: Routes = [
   // Profile tab deep-links (info | following | history | settings). Phải đứng sau 'notifications'.
   { path: 'user/:id/:name/:tab', component: ProfileComponent, canActivate: [AuthGuard] },
   { path: 'settings', component: SettingsComponent },
+  { path: 'offline', component: OfflineReaderComponent },
   {
     path: 'admin',
     loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)

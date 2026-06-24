@@ -17,7 +17,8 @@
     "VIEW_ALL": "Xem tất cả",
     "CLEAR": "Xóa",
     "SWITCH_DARK": "Chuyển giao diện tối",
-    "SWITCH_LIGHT": "Chuyển giao diện sáng"
+    "SWITCH_LIGHT": "Chuyển giao diện sáng",
+    "READ_OFFLINE": "Đọc offline"
   },
   "HOME": {
     "TRENDING": "Đang thịnh hành",
@@ -68,7 +69,15 @@
     "NA": "N/A",
     "LATEST_CHAPTER": "Chương mới nhất",
     "SAME_AUTHOR": "Cùng tác giả",
-    "SAME_ARTIST": "Cùng họa sĩ"
+    "SAME_ARTIST": "Cùng họa sĩ",
+    "DOWNLOAD_ALL": "Tải nhiều chương",
+    "DOWNLOAD_CHAPTER": "Tải chương này",
+    "DOWNLOAD_RANGE": "Chọn khoảng chương để tải",
+    "FROM": "Từ",
+    "TO": "Đến",
+    "MAX": "tối đa",
+    "DOWNLOAD": "Tải",
+    "DL_CANCEL": "Hủy"
   },
   "READER": {
     "BACK": "Quay lại",
@@ -141,7 +150,7 @@
     "AVATAR": "Ảnh đại diện",
     "BACKGROUND": "Ảnh nền",
     "CHOOSE_FILE": "Chọn tệp",
-    "NO_FILE": "Chưa chọn tệp", 
+    "NO_FILE": "Chưa chọn tệp",
     "PASSWORD": "Mật khẩu",
     "PASSWORD_PLACEHOLDER": "Nhập mật khẩu",
     "FORGOT_PASSWORD": "Quên mật khẩu?",
@@ -342,6 +351,26 @@
     "BG_BLUR": "Làm nhòe (blur)",
     "BG_COVER_MAIN": "Phủ ảnh lên cả nội dung chính",
     "BG_COVER_MAIN_HINT": "Bật: ảnh xuyên qua vùng nội dung. Tắt: vùng nội dung giữ nền theo theme.",
+    "LANG_TITLE": "Ngôn ngữ",
+    "LANG_DESC": "Ngôn ngữ hiển thị của giao diện.",
+    "LANG_LABEL": "Ngôn ngữ",
+    "LANG_VI": "Tiếng Việt",
+    "LANG_EN": "English",
+    "FONT_TITLE": "Phông chữ",
+    "FONT_DESC": "Tùy chỉnh phông, cỡ chữ, độ đậm và màu chữ cho toàn trang.",
+    "FONT_FAMILY": "Phông chữ",
+    "FONT_DEFAULT": "Mặc định",
+    "FONT_SIZE": "Cỡ chữ",
+    "FONT_WEIGHT": "Độ đậm",
+    "FONT_COLOR": "Màu chữ",
+    "FONT_COLOR_DEFAULT": "Theo theme",
+    "FONT_PREVIEW": "Xem trước phông chữ — The quick brown fox.",
+    "SAVE_SERVER": "Lưu lên máy chủ",
+    "SAVING": "Đang lưu…",
+    "RESET_DEFAULTS": "Khôi phục mặc định",
+    "T_RESET_DONE": "Đã đưa cấu hình về mặc định — bấm “Lưu lên máy chủ” để áp dụng vĩnh viễn",
+    "T_SAVED_SERVER": "Đã lưu cấu hình lên máy chủ",
+    "T_SAVE_ERR": "Lưu cấu hình thất bại",
     "T_SAVED_LIMITS": "Đã lưu cấu hình tiến trình đọc",
     "T_NEED_LOGIN": "Cần đăng nhập để đồng bộ",
     "T_CLEARED_LOCAL": "Đã xóa tiến trình đọc cục bộ",
@@ -356,5 +385,30 @@
     "T_SYNC_PULLED": "Đã tải tiến trình từ máy chủ",
     "T_SYNC_INSYNC": "Đã đồng bộ, không có thay đổi",
     "T_SYNC_SKIPPED": "Bỏ qua đồng bộ"
+  },
+  "DOWNLOAD": {
+    "TAB": "Tải xuống",
+    "TITLE": "Chương đang tải",
+    "EMPTY": "Chưa có chương nào đang tải.",
+    "CANCEL": "Hủy",
+    "REMOVE": "Xóa",
+    "STATUS_QUEUED": "Chờ",
+    "STATUS_RUNNING": "Đang tải",
+    "STATUS_ZIPPING": "Đang nén",
+    "STATUS_DONE": "Hoàn tất",
+    "STATUS_ERROR": "Lỗi",
+    "STATUS_CANCELLED": "Đã hủy"
+  },
+  "OFFLINE": {
+    "CHAPTER_LIST": "Danh sách chương",
+    "IMPORT": "Import từ máy",
+    "IMPORT_HINT": "Chọn thư mục đã giải nén từ file .zip tải về. Hệ thống tự nhận diện qua manifest.json.",
+    "HIDE_LIST": "Ẩn danh sách",
+    "SHOW_LIST": "Hiện danh sách",
+    "EMPTY": "Chưa có chương nào. Bấm “Import từ máy” để chọn thư mục.",
+    "PICK_HINT": "Chọn một chương ở danh sách bên trái để bắt đầu đọc.",
+    "T_NO_MANIFEST": "Không tìm thấy manifest.json trong thư mục",
+    "T_INVALID": "Thư mục không hợp lệ hoặc không phải do trang tạo",
+    "T_IMPORTED": "Đã import {{count}} chương"
   }
 }

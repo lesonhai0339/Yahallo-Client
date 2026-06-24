@@ -15,6 +15,7 @@ export const environment = {
   userRoleApi: 'https://localhost:7181/user-role',
   serviceApi: 'https://localhost:7181/services',
   readingProgressApi: 'https://localhost:7181/reading-progress',
+  userSettingsApi: 'https://localhost:7181',
   notificationApi: 'https://localhost:7181/notification',
   subscriptionApi: 'https://localhost:7181/subscription',
   securityApi: 'https://localhost:7181/security',

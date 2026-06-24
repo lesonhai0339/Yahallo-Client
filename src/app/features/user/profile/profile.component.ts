@@ -7,6 +7,7 @@ import { UserService } from '../../../core/services/user.service';
 import { UserInteractionService } from '../../../core/services/user-interaction.service';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
 import { TranslationService } from '../../../core/services/translation.service';
+import { DownloadService } from '../../../core/services/download.service';
 import { UserProfile } from '../../../core/models/interfaces';
 
 @Component({
@@ -24,7 +25,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   followingTotal = 0;
   readingHistory: any[] = [];
   activeTab = 'info';
-  readonly validTabs = ['info', 'following', 'history', 'frames', 'settings'];
+  readonly validTabs = ['info', 'following', 'history', 'frames', 'downloads', 'settings'];
   isLoading = true;
 
   // Temp profile cover until a per-user background field exists on the backend.
@@ -57,9 +58,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private readingProgress: ReadingProgressService,
     private toastr: ToastrService,
     private i18n: TranslationService,
+    public download: DownloadService,
   ) {}
 
   private t(key: string): string { return this.i18n.get(key); }
+
+  // ── Downloads tab ────────────────────────────────────────────────────────────
+  cancelDownload(id: string): void { this.download.cancel(id); }
+  removeDownload(id: string): void { this.download.remove(id); }
+  trackJob = (_: number, j: { id: string }) => j.id;
 
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(pm => {

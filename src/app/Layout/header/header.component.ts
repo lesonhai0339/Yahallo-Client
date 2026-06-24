@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { Subject, of, debounceTime, distinctUntilChanged, switchMap, takeUntil, finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -75,29 +74,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
   availableLangs: SupportedLang[] = [];
   currentLang: SupportedLang = 'vi';
 
-  // Inline SVG flags instead of emoji — Windows desktop browsers have no glyphs
-  // for regional-indicator (emoji) flags, so the emoji versions render blank.
-  readonly langLabels: Record<SupportedLang, { label: string; flag: string }> = {
-    vi: {
-      label: 'VI',
-      flag: '<svg width="20" height="14" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#da251d"/><path fill="#ff0" d="M15 4l1.76 5.42h5.7l-4.61 3.35 1.76 5.42L15 14.84l-4.61 3.35 1.76-5.42-4.61-3.35h5.7z"/></svg>',
-    },
-    en: {
-      label: 'EN',
-      flag: '<svg width="20" height="14" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30 M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30 M60,0 0,30" stroke="#c8102e" stroke-width="3"/><path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/><path d="M30,0 V30 M0,15 H60" stroke="#c8102e" stroke-width="6"/></svg>',
-    },
+  // Flag images from flagcdn (same source as the phone-country flag in register)
+  // — emoji flags render blank on Windows desktop browsers.
+  readonly langLabels: Record<SupportedLang, { label: string; iso: string }> = {
+    vi: { label: 'VI', iso: 'vn' },
+    en: { label: 'EN', iso: 'gb' },
   };
 
-  private readonly flagCache = new Map<SupportedLang, SafeHtml>();
-
-  /** Sanitized inline SVG flag for the given language (cached). */
-  flagHtml(lang: SupportedLang): SafeHtml {
-    let html = this.flagCache.get(lang);
-    if (!html) {
-      html = this.sanitizer.bypassSecurityTrustHtml(this.langLabels[lang].flag);
-      this.flagCache.set(lang, html);
-    }
-    return html;
+  /** URL ảnh cờ quốc gia (flagcdn) cho ngôn ngữ — giống flagUrl bên register. */
+  flagUrl(lang: SupportedLang): string {
+    return `https://flagcdn.com/h20/${this.langLabels[lang].iso}.png`;
   }
 
   private searchSubject = new Subject<string>();
@@ -114,7 +100,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private adminState: AdminStateService,
     private masterData: MasterDataService,
     private router: Router,
-    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {

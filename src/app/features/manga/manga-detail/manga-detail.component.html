@@ -159,19 +159,53 @@
         <!-- Chapter List -->
         <div class="card mb-4">
           <div class="card-body">
-            <h3 class="card-section-title">
-              <i class="fa-solid fa-list me-2"></i>{{ 'MANGA.CHAPTER_LIST' | translate }} ({{ chapters.length }})
-            </h3>
+            <div class="chapter-section-head">
+              <h3 class="card-section-title mb-0">
+                <i class="fa-solid fa-list me-2"></i>{{ 'MANGA.CHAPTER_LIST' | translate }} ({{ chapters.length }})
+              </h3>
+              <div class="download-all" *ngIf="chapters.length > 0">
+                <button class="dl-icon-btn" (click)="toggleDownloadPanel()"
+                        [class.active]="showDownloadPanel" [title]="'MANGA.DOWNLOAD_ALL' | translate">
+                  <i class="fa-solid fa-download"></i>
+                </button>
+                <div class="download-panel" *ngIf="showDownloadPanel">
+                  <div class="download-panel__title">{{ 'MANGA.DOWNLOAD_RANGE' | translate }}</div>
+                  <div class="download-panel__row">
+                    <label>{{ 'MANGA.FROM' | translate }}</label>
+                    <input type="number" [(ngModel)]="rangeStart" [min]="chapterIndexMin" [max]="chapterIndexMax">
+                    <label>{{ 'MANGA.TO' | translate }}</label>
+                    <input type="number" [(ngModel)]="rangeEnd" [min]="chapterIndexMin" [max]="chapterIndexMax">
+                  </div>
+                  <div class="download-panel__hint" [class.invalid]="!rangeValid">
+                    {{ rangeCount }} {{ 'MANGA.CHAPTERS' | translate }} · {{ 'MANGA.MAX' | translate }} {{ MAX_RANGE }}
+                  </div>
+                  <div class="download-panel__actions">
+                    <button class="btn btn-secondary btn-sm" (click)="showDownloadPanel=false">
+                      {{ 'MANGA.DL_CANCEL' | translate }}
+                    </button>
+                    <button class="btn btn-primary btn-sm" [disabled]="!rangeValid" (click)="confirmDownloadRange()">
+                      <i class="fa-solid fa-download me-1"></i>{{ 'MANGA.DOWNLOAD' | translate }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="chapter-header-row">
               <span>{{ 'MANGA.CHAPTER_COL' | translate }}</span>
               <span>{{ 'MANGA.TITLE_COL' | translate }}</span>
               <span>{{ 'MANGA.DATE_COL' | translate }}</span>
+              <span class="dl-col"></span>
             </div>
             <div class="chapter-list">
               <a class="chapter-item" *ngFor="let ch of visibleChapters" [routerLink]="readChapterLink(ch)">
                 <span class="chapter-name">{{ ch.title }}</span>
                 <span class="chapter-title">Không</span>
-                <span class="chapter-date">{{ toUtcIso(ch.chapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>              </a>
+                <span class="chapter-date">{{ toUtcIso(ch.chapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
+                <button class="row-dl-btn" (click)="downloadChapter(ch, $event)"
+                        [title]="'MANGA.DOWNLOAD_CHAPTER' | translate">
+                  <i class="fa-solid fa-download"></i>
+                </button>
+              </a>
             </div>
             <div class="chapter-toggle" *ngIf="chapters.length > 5">
               <button class="btn btn-secondary btn-sm" (click)="showAllChapters = !showAllChapters">
