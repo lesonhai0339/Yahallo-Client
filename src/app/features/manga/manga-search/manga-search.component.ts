@@ -80,6 +80,15 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   private _skipInput = false;
   private pendingQueryParams: any = null;
 
+  /**
+   * Keep the loading skeleton on screen for at least this long. The API on a
+   * warm/local backend often answers in a few ms, so without a floor the
+   * skeleton just flickers gray and is gone before it can be perceived.
+   */
+  private static readonly MIN_SKELETON_MS = 450;
+  private loadStartedAt = 0;
+  private skeletonTimer: any = null;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -133,10 +142,10 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
           this.hasSearched = false;
           return of(null);
         }
-        this.isLoading = true;
+        this.startLoading();
         this.currentPage = 1;
         return this.executeSearchByPrefix(q, 1).pipe(
-          finalize(() => this.isLoading = false)
+          finalize(() => this.stopLoading())
         );
       }),
       takeUntil(this.destroy$)
@@ -150,8 +159,26 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.skeletonTimer) clearTimeout(this.skeletonTimer);
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** Show the skeleton and remember when it started (see MIN_SKELETON_MS). */
+  private startLoading(): void {
+    if (this.skeletonTimer) { clearTimeout(this.skeletonTimer); this.skeletonTimer = null; }
+    this.loadStartedAt = Date.now();
+    this.isLoading = true;
+  }
+
+  /** Hide the skeleton, but not before it has been visible for the minimum. */
+  private stopLoading(): void {
+    const remaining = MangaSearchComponent.MIN_SKELETON_MS - (Date.now() - this.loadStartedAt);
+    if (remaining > 0) {
+      this.skeletonTimer = setTimeout(() => { this.isLoading = false; this.skeletonTimer = null; }, remaining);
+    } else {
+      this.isLoading = false;
+    }
   }
 
   private applyPendingParams(): void {
@@ -355,11 +382,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   doSearch(): void {
     if (!this.searchQuery.trim()) return;
-    this.isLoading = true;
+    this.startLoading();
     this.currentPage = 1;
     this.executeSearchByPrefix(this.searchQuery, 1).pipe(
       takeUntil(this.destroy$),
-      finalize(() => this.isLoading = false)
+      finalize(() => this.stopLoading())
     ).subscribe(r => {
       this.results = r.data;
       this.totalPages = r.totalPages;
@@ -369,11 +396,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   private executeSearch(query: string): void {
-    this.isLoading = true;
+    this.startLoading();
     this.currentPage = 1;
     this.executeSearchByPrefix(query, 1).pipe(
       takeUntil(this.destroy$),
-      finalize(() => this.isLoading = false)
+      finalize(() => this.stopLoading())
     ).subscribe(r => {
       this.results = r.data;
       this.totalPages = r.totalPages;
@@ -463,10 +490,10 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     if (this.hasActiveFilter) {
       this.searchByCategories();
     } else if (this.searchQuery.trim()) {
-      this.isLoading = true;
+      this.startLoading();
       this.executeSearchByPrefix(this.searchQuery, this.currentPage).pipe(
         takeUntil(this.destroy$),
-        finalize(() => this.isLoading = false)
+        finalize(() => this.stopLoading())
       ).subscribe(r => {
         this.results = r.data;
         this.totalPages = r.totalPages;
@@ -555,6 +582,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.hasSearched = false;
   }
 
+  /** Clear the active author/artist/year filter straight from its badge. */
+  clearAuthor(): void { if (this.selectedAuthor) this.selectAuthorChip(this.selectedAuthor); }
+  clearArtist(): void { if (this.selectedArtist) this.selectArtistChip(this.selectedArtist); }
+  clearYear(): void { this.selectYear(null); }
+
   private removeLastCategory(): void {
     this.selectedCategories = this.selectedCategories.slice(0, -1);
     if (this.selectedCategories.length > 0) {
@@ -631,11 +663,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.selectedCategories = [];
     this.currentPage = 1;
     if (this.selectedAuthor) {
-      this.isLoading = true;
+      this.startLoading();
       this.results = [];
       this.mangaService.filterPaginated({ authorId: author.id, pageNo: 1, pageSize: this.pageSize }).pipe(
         takeUntil(this.destroy$),
-        finalize(() => this.isLoading = false)
+        finalize(() => this.stopLoading())
       ).subscribe(r => {
         this.results = r.data;
         this.totalPages = r.totalPages;
@@ -654,11 +686,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.selectedCategories = [];
     this.currentPage = 1;
     if (this.selectedArtist) {
-      this.isLoading = true;
+      this.startLoading();
       this.results = [];
       this.mangaService.filterPaginated({ artistId: artist.id, pageNo: 1, pageSize: this.pageSize }).pipe(
         takeUntil(this.destroy$),
-        finalize(() => this.isLoading = false)
+        finalize(() => this.stopLoading())
       ).subscribe(r => {
         this.results = r.data;
         this.totalPages = r.totalPages;
@@ -682,7 +714,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   searchByCategories(): void {
-    this.isLoading = true;
+    this.startLoading();
     this.results = [];
     this.mangaService.filterPaginated({
       tagIds: this.selectedCategories.length ? this.selectedCategories : undefined,
@@ -691,7 +723,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       pageSize: this.pageSize,
     }).pipe(
       takeUntil(this.destroy$),
-      finalize(() => this.isLoading = false)
+      finalize(() => this.stopLoading())
     ).subscribe(r => {
       this.results = r.data;
       this.totalPages = r.totalPages;

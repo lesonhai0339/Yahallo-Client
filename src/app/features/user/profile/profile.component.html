@@ -75,13 +75,18 @@
         <div class="card-body">
           <h3 class="card-section-title">
             <i class="fa-regular fa-id-card me-2"></i>{{ 'USER.PERSONAL_INFO' | translate }}
-            <button *ngIf="isOwner && !editing" class="edit-profile-btn" (click)="startEdit()">
-              <i class="fa-solid fa-pen me-1"></i>{{ 'USER.EDIT_PROFILE' | translate }}
-            </button>
+            <div class="title-actions" *ngIf="isOwner && !editing && !changingPassword">
+              <button class="edit-profile-btn" (click)="startEdit()" [title]="'USER.EDIT_PROFILE' | translate">
+                <i class="fa-solid fa-pen"></i><span class="btn-label">{{ 'USER.EDIT_PROFILE' | translate }}</span>
+              </button>
+              <button class="edit-profile-btn" (click)="startChangePassword()" [title]="'USER.CHANGE_PASSWORD' | translate">
+                <i class="fa-solid fa-key"></i><span class="btn-label">{{ 'USER.CHANGE_PASSWORD' | translate }}</span>
+              </button>
+            </div>
           </h3>
 
           <!-- Read-only -->
-          <div class="info-list" *ngIf="!editing">
+          <div class="info-list" *ngIf="!editing && !changingPassword">
             <div class="info-row">
               <span class="info-label">{{ 'USER.DISPLAY_NAME' | translate }}</span>
               <span>{{ profile?.displayName || user.name }}</span>
@@ -89,6 +94,10 @@
             <div class="info-row">
               <span class="info-label">{{ 'USER.EMAIL_LABEL' | translate }}</span>
               <span>{{ profile?.email || user.email }}</span>
+            </div>
+            <div class="info-row" *ngIf="isOwner">
+              <span class="info-label">{{ 'USER.PASSWORD_LABEL' | translate }}</span>
+              <span class="info-password__dots">••••••••</span>
             </div>
             <div class="info-row" *ngIf="profile?.phoneNumber">
               <span class="info-label">{{ 'USER.PHONE_LABEL' | translate }}</span>
@@ -130,6 +139,12 @@
             </div>
 
             <div class="edit-field">
+              <label>{{ 'USER.DISPLAY_NAME' | translate }}</label>
+              <input type="text" [(ngModel)]="displayNameInput" [ngModelOptions]="{ standalone: true }"
+                     [placeholder]="'USER.DISPLAY_NAME' | translate">
+            </div>
+
+            <div class="edit-field">
               <label>{{ 'USER.PHONE_LABEL' | translate }}</label>
               <input type="text" [(ngModel)]="phoneInput" [ngModelOptions]="{ standalone: true }"
                      [placeholder]="'USER.PHONE_LABEL' | translate">
@@ -140,6 +155,36 @@
                 <i class="fa-solid fa-check me-1"></i>{{ 'USER.SAVE' | translate }}
               </button>
               <button class="btn" [disabled]="saving" (click)="cancelEdit()">{{ 'USER.CANCEL' | translate }}</button>
+            </div>
+          </div>
+
+          <!-- Change-password form (owner) -->
+          <div class="edit-form" *ngIf="changingPassword">
+            <div class="edit-field">
+              <label>{{ 'USER.OLD_PASSWORD' | translate }}</label>
+              <input type="password" autocomplete="current-password"
+                     [(ngModel)]="oldPassword" [ngModelOptions]="{ standalone: true }"
+                     [placeholder]="'USER.OLD_PASSWORD' | translate">
+            </div>
+            <div class="edit-field">
+              <label>{{ 'USER.NEW_PASSWORD' | translate }}</label>
+              <input type="password" autocomplete="new-password"
+                     [(ngModel)]="newPassword" [ngModelOptions]="{ standalone: true }"
+                     [placeholder]="'USER.NEW_PASSWORD' | translate">
+            </div>
+            <div class="edit-field">
+              <label>{{ 'USER.CONFIRM_PASSWORD' | translate }}</label>
+              <input type="password" autocomplete="new-password"
+                     [(ngModel)]="confirmPassword" [ngModelOptions]="{ standalone: true }"
+                     [placeholder]="'USER.CONFIRM_PASSWORD' | translate"
+                     (keydown.enter)="submitChangePassword()">
+            </div>
+
+            <div class="edit-actions">
+              <button class="btn btn-primary" [disabled]="savingPassword" (click)="submitChangePassword()">
+                <i class="fa-solid fa-check me-1"></i>{{ 'USER.SAVE' | translate }}
+              </button>
+              <button class="btn" [disabled]="savingPassword" (click)="cancelChangePassword()">{{ 'USER.CANCEL' | translate }}</button>
             </div>
           </div>
         </div>
@@ -176,24 +221,31 @@
 
       <!-- History -->
       <div *ngSwitchCase="'history'">
-        <div class="history-list" *ngIf="readingHistory.length > 0">
-          <div class="history-item card mb-2" *ngFor="let h of readingHistory">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="history-info flex-grow-1">
-                <a [routerLink]="['/manga', h.mangaId]" class="history-title">{{ h.mangaId }}</a>
-                <div class="history-meta">
-                  <span>{{ 'USER.CHAPTER_LABEL' | translate }}: {{ h.chapterId }}</span>
-                  <span>{{ 'USER.PAGE_LABEL' | translate }} {{ h.lastPage }}</span>
-                  <span>{{ h.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
-                </div>
+        <div class="card-list" *ngIf="readingHistory.length > 0">
+          <a class="follow-card" *ngFor="let h of readingHistory"
+             [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ?? 0]"
+             [title]="'USER.CONTINUE_READING' | translate">
+            <img class="follow-card__thumb" [src]="h.mangaThumbnail" [alt]="h.mangaName"
+                 appImageFallback loading="lazy">
+            <div class="follow-card__body">
+              <div class="follow-card__title">{{ h.mangaName || h.mangaId }}</div>
+              <div class="follow-card__meta">
+                <i class="fa-solid fa-bookmark me-1"></i>{{ chapterName(h) }}
               </div>
-              <a class="btn btn-secondary btn-sm"
-                 [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ?? 0]">
-                {{ 'USER.CONTINUE_READING' | translate }}
-              </a>
+              <div class="follow-card__meta">
+                <i class="fa-regular fa-clock me-1"></i>{{ h.lastReadAt ? (h.lastReadAt | date:'dd/MM/yyyy HH:mm') : '—' }}
+              </div>
             </div>
-          </div>
+            <i class="fa-solid fa-chevron-right follow-card__chev"></i>
+          </a>
         </div>
+
+        <app-pagination *ngIf="historyTotal > historyPageSize"
+          [currentPage]="historyPage"
+          [totalCount]="historyTotal"
+          [pageSize]="historyPageSize"
+          (pageChange)="onHistoryPageChange($event)"></app-pagination>
+
         <div class="empty-state" *ngIf="readingHistory.length === 0">
           <i class="fa-solid fa-book-open"></i>
           <p>{{ 'USER.NO_HISTORY' | translate }}</p>

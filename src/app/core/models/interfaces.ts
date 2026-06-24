@@ -196,6 +196,18 @@ export interface ReadingProgress {
   lastReadAt: string;
 }
 
+/** Enriched reading-history row from GET /reading-progress/get-pagination. */
+export interface ReadingHistoryItem {
+  mangaId: string;
+  mangaName?: string;
+  mangaThumbnail?: string;
+  chapterId: string;
+  chapterTitle?: string;
+  chapterIndex?: number | null;
+  lastPage: number;
+  lastReadAt: string;
+}
+
 export interface Notification {
   id: string;
   type: string;

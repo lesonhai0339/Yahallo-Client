@@ -73,6 +73,8 @@ export class UserSettingsService {
   /** Bypasses interceptors so the S3 PUT isn't given an Authorization header. */
   private readonly s3Http: HttpClient;
   private loaded = false;
+  /** True once GET /get returns an existing settings row → Save must UPDATE, not CREATE. */
+  private hasServerSettings = false;
 
   constructor(
     private http: HttpClient,
@@ -89,15 +91,20 @@ export class UserSettingsService {
         if (!this.loaded) this.loadFromServer().subscribe();
       } else {
         this.loaded = false;
+        this.hasServerSettings = false;
       }
     });
   }
 
   /** GET the settings and apply them locally. Safe to call when logged out (no-op on error). */
   loadFromServer(): Observable<UserSettingsDto | null> {
-    return this.http.get<any>(`${this.base}/user-settings-get`).pipe(
+    return this.http.get<any>(`${this.base}/get`).pipe(
       map(res => (res?.value ?? res) as UserSettingsDto | null),
-      tap(dto => { if (dto) this.applyDto(dto); this.loaded = true; }),
+      tap(dto => {
+        // A returned row means the user already has settings → Save should update.
+        if (dto) { this.applyDto(dto); this.hasServerSettings = true; }
+        this.loaded = true;
+      }),
       catchError(() => { this.loaded = true; return of(null); }),
     );
   }
@@ -106,7 +113,7 @@ export class UserSettingsService {
     const theme = parseEnum(dto.theme, THEME_NAMES, THEME_VALUES);
     if (theme) this.theme.setTheme(theme);
 
-    if (dto.bgImageUrl != null) this.theme.setBackgroundImage(dto.bgImageUrl);
+    if (dto.bgImageUrl != null) this.theme.setBackgroundImage(dto.bgImageUrl, false);
     if (dto.bgOpacity != null) this.theme.setBackgroundOpacity(dto.bgOpacity);
     if (dto.bgBlur != null) this.theme.setBackgroundBlur(dto.bgBlur);
 
@@ -163,7 +170,15 @@ export class UserSettingsService {
     form.append('RetentionDays', String(p.retentionDays));
     form.append('MaxEntries', String(p.maxEntries));
 
-    return this.http.post<any>(`${this.base}/user-settings-create`, form).pipe(
+    // First save creates the row; every save afterwards (and after a successful
+    // GET) updates it. Both endpoints take the same multipart body and reply
+    // with a pre-signed S3 URL when a new background was uploaded.
+    const request$ = this.hasServerSettings
+      ? this.http.put<any>(`${this.base}/update`, form)
+      : this.http.post<any>(`${this.base}/create`, form);
+
+    return request$.pipe(
+      tap(() => { this.hasServerSettings = true; }),
       switchMap(res => {
         const signedUrl = typeof res === 'string' ? res : (res?.value ?? res?.url ?? null);
         if (bgFile && typeof signedUrl === 'string' && /^https?:\/\//.test(signedUrl)) {

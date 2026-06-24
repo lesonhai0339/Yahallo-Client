@@ -82,6 +82,8 @@
       <div class="year-dd" [class.year-dd--open]="yearOpen">
         <button type="button" class="year-dd__trigger" (click)="yearOpen = !yearOpen">
           <span>{{ selectedYear ?? ('SEARCH.YEAR_ALL' | translate) }}</span>
+          <span class="badge-x" *ngIf="selectedYear !== null" role="button" tabindex="-1"
+                aria-label="clear" (click)="$event.stopPropagation(); clearYear()">&times;</span>
           <i class="fa-solid fa-chevron-down"></i>
         </button>
         <div class="year-dd__panel" *ngIf="yearOpen">
@@ -100,7 +102,11 @@
         [class.tag-grid-toggle--active]="!!selectedAuthor"
         (click)="showAuthorGrid = !showAuthorGrid">
         <i class="fa-solid fa-user-pen me-1"></i>{{ 'SEARCH.AUTHOR_LIST' | translate }}
-        <span class="tag-grid-toggle__badge" *ngIf="selectedAuthor">{{ selectedAuthor.name }}</span>
+        <span class="tag-grid-toggle__badge" *ngIf="selectedAuthor">
+          <span class="tag-grid-toggle__badge-text">{{ selectedAuthor.name }}</span>
+          <span class="badge-x" role="button" tabindex="-1" aria-label="clear"
+                (click)="$event.stopPropagation(); clearAuthor()">&times;</span>
+        </span>
         <i class="fa-solid" [class.fa-angles-down]="!showAuthorGrid" [class.fa-angles-up]="showAuthorGrid"></i>
       </button>
     </div>
@@ -129,7 +135,11 @@
         [class.tag-grid-toggle--active]="!!selectedArtist"
         (click)="showArtistGrid = !showArtistGrid">
         <i class="fa-solid fa-pen-nib me-1"></i>{{ 'SEARCH.ARTIST_LIST' | translate }}
-        <span class="tag-grid-toggle__badge" *ngIf="selectedArtist">{{ selectedArtist.name }}</span>
+        <span class="tag-grid-toggle__badge" *ngIf="selectedArtist">
+          <span class="tag-grid-toggle__badge-text">{{ selectedArtist.name }}</span>
+          <span class="badge-x" role="button" tabindex="-1" aria-label="clear"
+                (click)="$event.stopPropagation(); clearArtist()">&times;</span>
+        </span>
         <i class="fa-solid" [class.fa-angles-down]="!showArtistGrid" [class.fa-angles-up]="showArtistGrid"></i>
       </button>
     </div>
@@ -158,7 +168,11 @@
         [class.tag-grid-toggle--active]="selectedCategories.length > 0"
         (click)="showCategoryGrid = !showCategoryGrid">
         <i class="fa-solid fa-tags me-1"></i>{{ 'SEARCH.TAG_LIST' | translate }}
-        <span class="tag-grid-toggle__badge" *ngIf="selectedCategories.length > 0">{{ selectedCategories.length }}</span>
+        <span class="tag-grid-toggle__badge" *ngIf="selectedCategories.length > 0">
+          <span class="tag-grid-toggle__badge-text">{{ selectedCategories.length }}</span>
+          <span class="badge-x" role="button" tabindex="-1" aria-label="clear all"
+                (click)="$event.stopPropagation(); clearAllCategories()">&times;</span>
+        </span>
         <i class="fa-solid" [class.fa-angles-down]="!showCategoryGrid" [class.fa-angles-up]="showCategoryGrid"></i>
       </button>
     </div>

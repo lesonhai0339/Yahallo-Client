@@ -99,6 +99,13 @@ export class ThemeService {
   /** The custom background is a logged-in personalization — hidden when out. */
   private loggedIn = false;
 
+  /**
+   * True once the user has explicitly picked/cleared a background this session.
+   * A (possibly slow, cold-start) server sync must not clobber that choice when
+   * its response lands afterwards.
+   */
+  private bgTouchedByUser = false;
+
   constructor(private auth: AuthService) {
     this.auth.auth$.subscribe(state => {
       this.loggedIn = !!state?.status;
@@ -133,8 +140,14 @@ export class ThemeService {
    * Set (or clear with null/'') a custom page background image — either a URL
    * or a data URL from a local file. Returns false if it couldn't be persisted
    * (e.g. localStorage quota for a large image) — it's still applied in-memory.
+   *
+   * `fromUser` is true for explicit user actions (picking/clearing in Settings)
+   * and false for a server sync (`GET /user-settings-get`). A server sync is
+   * ignored once the user has touched the background this session, so a slow
+   * cold-start response can't overwrite a freshly-picked image.
    */
-  setBackgroundImage(url: string | null): boolean {
+  setBackgroundImage(url: string | null, fromUser = true): boolean {
+    if (!fromUser && this.bgTouchedByUser) return true; // user's choice wins
     const clean = url?.trim() || null;
     let persisted = true;
     try {
@@ -143,6 +156,7 @@ export class ThemeService {
     } catch {
       persisted = false; // quota exceeded — apply anyway, just won't survive reload
     }
+    if (fromUser) this.bgTouchedByUser = true;
     this.bgSubject.next(clean);
     this.applyBackground();
     return persisted;

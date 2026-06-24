@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { ReadingProgress } from '../models/interfaces';
+import { ReadingProgress, ReadingHistoryItem } from '../models/interfaces';
 import { UserPreferencesService } from './user-preferences.service';
 
 /** A single manga's local read position. */
@@ -37,6 +37,30 @@ export class ReadingProgressService {
 
   getForManga(userId: string, mangaId: string): Observable<ReadingProgress | null> {
     return this.http.get<ReadingProgress | null>(`${this.base}/get/${userId}/${mangaId}`);
+  }
+
+  /**
+   * Server-paginated reading history for a user (GET /reading-progress/get-pagination).
+   * Maps the `{ value: PagedResult<ReadingProgressDto> }` envelope into a flat shape.
+   */
+  getPaginated(
+    userId: string, pageNumber: number, pageSize: number, mangaId?: string,
+  ): Observable<{ data: ReadingHistoryItem[]; totalCount: number; pageCount: number; pageNumber: number; pageSize: number }> {
+    const params: any = { PageNumber: pageNumber, PageSize: pageSize, UserId: userId };
+    if (mangaId) params['MangaId'] = mangaId;
+    return this.http.get<any>(`${this.base}/get-pagination`, { params }).pipe(
+      map(res => {
+        const v = res?.value ?? res ?? {};
+        return {
+          data: (v.data ?? []) as ReadingHistoryItem[],
+          totalCount: v.totalCount ?? 0,
+          pageCount: v.pageCount ?? 0,
+          pageNumber: v.pageNumber ?? pageNumber,
+          pageSize: v.pageSize ?? pageSize,
+        };
+      }),
+      catchError(() => of({ data: [], totalCount: 0, pageCount: 0, pageNumber, pageSize })),
+    );
   }
 
   // ── Local storage (process 1: updated on every new image) ───────────────────

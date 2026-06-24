@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
 import { UserInteractionService } from '../../../core/services/user-interaction.service';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
+import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { TranslationService } from '../../../core/services/translation.service';
 import { DownloadService } from '../../../core/services/download.service';
 import { UserProfile } from '../../../core/models/interfaces';
@@ -24,6 +25,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
   followingPageSize = 24;
   followingTotal = 0;
   readingHistory: any[] = [];
+  historyPage = 1;
+  historyPageSize = 20;
+  historyTotal = 0;
   activeTab = 'info';
   readonly validTabs = ['info', 'following', 'history', 'frames', 'downloads', 'settings'];
   isLoading = true;
@@ -37,11 +41,19 @@ export class ProfileComponent implements OnInit, OnDestroy {
   // ── Edit-profile state (owner only) ──────────────────────────────────────────
   editing = false;
   saving = false;
+  displayNameInput = '';
   phoneInput = '';
   avatarFile: File | null = null;
   backgroundFile: File | null = null;
   avatarPreview: string | null = null;
   backgroundPreview: string | null = null;
+
+  // ── Change-password state (owner only) ───────────────────────────────────────
+  changingPassword = false;
+  savingPassword = false;
+  oldPassword = '';
+  newPassword = '';
+  confirmPassword = '';
 
   get isOwner(): boolean {
     const uid = this.auth.currentUser?.id;
@@ -56,6 +68,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private userInteraction: UserInteractionService,
     private readingProgress: ReadingProgressService,
+    private prefs: UserPreferencesService,
     private toastr: ToastrService,
     private i18n: TranslationService,
     public download: DownloadService,
@@ -69,6 +82,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
   trackJob = (_: number, j: { id: string }) => j.id;
 
   ngOnInit(): void {
+    // History pagination follows the user's effective page-size preference
+    // (includes the local "temp" override from settings).
+    this.historyPageSize = this.prefs.current.defaultPageSize;
+
     this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(pm => {
       // Mở đúng tab theo route param (info | following | history | frames | settings).
       const tab = pm.get('tab') ?? 'info';
@@ -133,11 +150,27 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.loadFollowing(page);
   }
 
-  loadHistory(): void {
+  loadHistory(page: number = this.historyPage): void {
     if (!this.user) return;
-    this.readingProgress.get(this.user.id).pipe(takeUntil(this.destroy$)).subscribe(h => {
-      this.readingHistory = h || [];
-    });
+    this.historyPage = page;
+    this.readingProgress.getPaginated(this.user.id, page, this.historyPageSize)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.readingHistory = res.data;
+        this.historyTotal = res.totalCount;
+      });
+  }
+
+  onHistoryPageChange(page: number): void {
+    this.loadHistory(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** Chapter display name: title if present, else "Chương {index}" (i18n). */
+  chapterName(h: any): string {
+    if (h?.chapterTitle) return h.chapterTitle;
+    if (h?.chapterIndex != null) return `${this.t('USER.CHAPTER_LABEL')} ${h.chapterIndex}`;
+    return '—';
   }
 
   setTab(tab: string): void {
@@ -147,6 +180,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   // ── Edit profile ─────────────────────────────────────────────────────────────
   startEdit(): void {
     this.editing = true;
+    this.displayNameInput = this.profile?.displayName ?? this.user?.name ?? '';
     this.phoneInput = this.profile?.phoneNumber ?? '';
     this.clearPicks();
   }
@@ -184,7 +218,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (!id) return;
     this.saving = true;
     this.auth.updateProfile(
-      { id, phoneNumber: this.phoneInput?.trim() || undefined },
+      {
+        id,
+        displayName: this.displayNameInput?.trim() || undefined,
+        phoneNumber: this.phoneInput?.trim() || undefined,
+      },
       this.avatarFile ?? undefined,
       this.backgroundFile ?? undefined,
     ).pipe(takeUntil(this.destroy$)).subscribe({
@@ -199,6 +237,42 @@ export class ProfileComponent implements OnInit, OnDestroy {
       error: () => {
         this.saving = false;
         this.toastr.error(this.t('USER.T_PROFILE_ERR'));
+      },
+    });
+  }
+
+  // ── Change password ──────────────────────────────────────────────────────────
+  startChangePassword(): void {
+    this.changingPassword = true;
+    this.oldPassword = this.newPassword = this.confirmPassword = '';
+  }
+
+  cancelChangePassword(): void {
+    this.changingPassword = false;
+    this.oldPassword = this.newPassword = this.confirmPassword = '';
+  }
+
+  submitChangePassword(): void {
+    const email = this.profile?.email ?? this.user?.email;
+    if (!email) return;
+
+    const oldPwd = this.oldPassword;
+    const newPwd = this.newPassword;
+    if (!oldPwd || !newPwd || !this.confirmPassword) { this.toastr.warning(this.t('USER.T_PWD_FILL_ALL')); return; }
+    if (newPwd.length < 6) { this.toastr.warning(this.t('USER.T_PWD_TOO_SHORT')); return; }
+    if (newPwd !== this.confirmPassword) { this.toastr.warning(this.t('USER.T_PWD_MISMATCH')); return; }
+    if (newPwd === oldPwd) { this.toastr.warning(this.t('USER.T_PWD_SAME')); return; }
+
+    this.savingPassword = true;
+    this.auth.changePassword(email, oldPwd, newPwd).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.savingPassword = false;
+        this.cancelChangePassword();
+        this.toastr.success(this.t('USER.T_PWD_CHANGED'));
+      },
+      error: () => {
+        this.savingPassword = false;
+        this.toastr.error(this.t('USER.T_PWD_ERR'));
       },
     });
   }

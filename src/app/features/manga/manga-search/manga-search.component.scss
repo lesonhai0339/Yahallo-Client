@@ -373,6 +373,9 @@
     cursor: pointer;
 
     i { font-size: 0.7rem; color: var(--text-muted); transition: transform 0.15s; }
+
+    // Year label grows so the clear "×" sits beside the chevron on the right.
+    > span:first-child { flex: 1; text-align: left; }
   }
   &--open &__trigger { border-color: var(--accent-primary); i { transform: rotate(180deg); } }
 
@@ -467,11 +470,12 @@
 // count). Sits between the label and the chevron, which is pinned right.
 .tag-grid-toggle__badge {
   margin-left: auto;
+  min-width: 4.5rem;
   max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 1px 8px;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;            // clip the "×" region's outer corners to the pill
+  padding: 0;
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 600;
@@ -479,9 +483,57 @@
   color: #fff;
   background: var(--accent-primary);
 
+  // 7 : 3 split — name (truncates) on the left, clear "×" region on the right.
+  &-text {
+    flex: 7 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 4px 1px 10px;
+  }
+
   // Badge takes over the right-side push, so the chevron sits next to it.
   & + i:last-child { margin-left: 8px; }
 }
+
+// Inline "×" to clear a selection directly from its badge (author / artist /
+// tag count) or the year trigger — no need to reopen the dropdown.
+// A literal "×" centered with flexbox — avoids the icon-font baseline offset
+// that pushed the glyph off-centre inside this tiny circle.
+.badge-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(0, 0, 0, 0.32); }
+}
+
+// The "×" is the right 3/10 of the badge, filling its full height; the pill's
+// `overflow: hidden` clips its outer corners to the rounded end so it sits flush.
+.tag-grid-toggle__badge .badge-x {
+  flex: 3 1 0;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  &:hover { background: rgba(255, 255, 255, 0.35); }
+}
+
+// On the year trigger (neutral surface): use the trigger's text color.
+.year-dd__trigger .badge-x { color: var(--text-secondary); }
 
 .tag-grid-filter-input {
   // Pin to the top of the scrollable grid so it stays visible while the

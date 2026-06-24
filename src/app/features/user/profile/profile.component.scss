@@ -40,6 +40,9 @@
 
 .edit-profile-btn {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.78rem;
   font-weight: 600;
   padding: 5px 12px;
@@ -290,7 +293,36 @@
   display: flex;
   gap: 16px;
   font-size: 0.9rem;
-  .info-label { color: var(--text-muted); min-width: 120px; }
+  min-width: 0;
+  .info-label { color: var(--text-muted); min-width: 120px; flex: none; }
+  // Long unbroken values (e.g. email) must wrap instead of overflowing.
+  > span:last-child { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+
+  // Narrow screens: stack label over value so the value gets the full width.
+  @media (max-width: 576px) {
+    flex-direction: column;
+    gap: 2px;
+    .info-label { min-width: 0; }
+  }
+}
+
+// Masked password row: just the dots; the "Change password" action lives in
+// the section header (.title-actions), styled like the edit-profile button.
+.info-password__dots { letter-spacing: 2px; color: var(--text-secondary); }
+
+// Right-aligned group of header actions (edit profile / change password).
+// On mobile the buttons collapse to icon-only to save horizontal space.
+.title-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+
+  @media (max-width: 768px) {
+    .edit-profile-btn { padding: 6px 9px; }
+    .edit-profile-btn .btn-label { display: none; }
+  }
+
+  .edit-profile-btn { margin-left: 0; }
 }
 
 .manga-grid {
@@ -304,8 +336,7 @@
 
 .empty-state { text-align: center; padding: 48px 16px; color: var(--text-muted); i { font-size: 3rem; display: block; margin-bottom: 12px; } p { font-size: 0.88rem; } }
 
-.history-title { font-size: 0.9rem; font-weight: 500; color: var(--accent-primary); text-decoration: none; }
-.history-meta { display: flex; gap: 12px; margin-top: 4px; font-size: 0.78rem; color: var(--text-muted); }
+// History reuses the Following card styles (.card-list / .follow-card).
 
 // === Downloads tab ===
 .dl-empty {
