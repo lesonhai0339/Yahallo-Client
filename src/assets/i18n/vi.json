@@ -225,7 +225,12 @@
     "CHAPTER_LABEL": "Chương",
     "PAGE_LABEL": "Trang",
     "FOLLOWING_COUNT": "Đang theo dõi",
-    "READ_COUNT": "Đã đọc"
+    "READ_COUNT": "Đã đọc",
+    "CROP_TITLE": "Cắt ảnh",
+    "CROP_TITLE_AVATAR": "Cắt ảnh đại diện",
+    "CROP_TITLE_BG": "Cắt ảnh nền",
+    "CROP_HINT": "Kéo ảnh để di chuyển, dùng nút phóng to/thu nhỏ và xoay để chọn vùng cắt.",
+    "CROP_APPLY": "Cắt & dùng"
   },
   "NOTIF": {
     "TITLE": "Thông báo",

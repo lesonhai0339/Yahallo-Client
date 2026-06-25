@@ -1,0 +1,60 @@
+<div class="crop-backdrop" (click)="cancel()"></div>
+
+<div class="crop-modal" role="dialog" aria-modal="true">
+  <header class="crop-modal__head">
+    <h3>{{ titleKey | translate }}</h3>
+    <button type="button" class="crop-icon-btn" (click)="cancel()" aria-label="Close">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </header>
+
+  <p class="crop-modal__hint">{{ 'USER.CROP_HINT' | translate }}</p>
+
+  <div class="crop-stage">
+    <image-cropper
+      class="fixed-frame"
+      [imageFile]="file"
+      [maintainAspectRatio]="true"
+      [aspectRatio]="aspectRatio"
+      [roundCropper]="round"
+      [transform]="transform"
+      [allowMoveImage]="true"
+      [hideResizeSquares]="true"
+      [onlyScaleDown]="false"
+      [output]="'blob'"
+      format="png"
+      [imageQuality]="92"
+      [backgroundColor]="'rgba(0,0,0,0)'"
+      (imageCropped)="imageCropped($event)"
+      (imageLoaded)="imageLoaded()"
+      (loadImageFailed)="loadFailed()">
+    </image-cropper>
+
+    <p class="crop-error" *ngIf="failed">{{ 'USER.T_IMG_ONLY' | translate }}</p>
+  </div>
+
+  <div class="crop-tools">
+    <button type="button" class="crop-icon-btn" (click)="zoomOut()" title="Zoom out">
+      <i class="fa-solid fa-magnifying-glass-minus"></i>
+    </button>
+    <button type="button" class="crop-icon-btn" (click)="zoomIn()" title="Zoom in">
+      <i class="fa-solid fa-magnifying-glass-plus"></i>
+    </button>
+    <button type="button" class="crop-icon-btn" (click)="rotateLeft()" title="Rotate left">
+      <i class="fa-solid fa-rotate-left"></i>
+    </button>
+    <button type="button" class="crop-icon-btn" (click)="rotateRight()" title="Rotate right">
+      <i class="fa-solid fa-rotate-right"></i>
+    </button>
+    <button type="button" class="crop-icon-btn" (click)="reset()" title="Reset">
+      <i class="fa-solid fa-arrows-rotate"></i>
+    </button>
+  </div>
+
+  <footer class="crop-modal__foot">
+    <button type="button" class="btn" (click)="cancel()">{{ 'USER.CANCEL' | translate }}</button>
+    <button type="button" class="btn btn--primary" (click)="apply()" [disabled]="!loaded">
+      <i class="fa-solid fa-crop me-1"></i>{{ 'USER.CROP_APPLY' | translate }}
+    </button>
+  </footer>
+</div>

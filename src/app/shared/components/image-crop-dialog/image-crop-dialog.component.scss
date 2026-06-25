@@ -1,0 +1,166 @@
+// Milky-white palette for this dialog (white form + cream buttons).
+$milk: #f7f3ea;
+$milk-hover: #efe6d4;
+$milk-border: #e2dccd;
+$ink: #25252b;
+$ink-muted: #6b6b73;
+
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crop-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.crop-modal {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 92vw);
+  // Definite height budget so the flexible stage can't push the footer / crop
+  // frame off-screen (was clipping the bottom of the frame before).
+  height: min(88vh, 700px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  background: #ffffff;
+  color: $ink;
+  border: 1px solid $milk-border;
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    h3 { margin: 0; font-size: 1.05rem; font-weight: 700; color: $ink; }
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: 0.82rem;
+    color: $ink-muted;
+  }
+
+  &__foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  // Footer buttons in milky white; primary keeps the accent text/border to stay
+  // recognisable while still being cream-coloured.
+  .btn {
+    background: $milk;
+    color: $ink;
+    border: 1px solid $milk-border;
+    border-radius: var(--radius-sm, 8px);
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:hover:not(:disabled) { background: $milk-hover; }
+    &:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    &--primary {
+      color: var(--accent-primary, #e94560);
+      border-color: var(--accent-primary, #e94560);
+    }
+  }
+}
+
+.crop-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;          // containing block for the absolute cropper
+  overflow: hidden;
+  border-radius: var(--radius-sm, 8px);
+  background: #f0f0f3;
+
+  // Fill the stage via absolute inset:0 so the cropper gets a *definite* height
+  // (= the stage's flex height). A percentage height would not resolve through
+  // the flex chain, leaving the image unconstrained — the round crop then grew
+  // past the stage and was clipped to a half-circle.
+  image-cropper {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  // The library's inner wrapper is a stretched flex item with no *explicit*
+  // height, so the source image's `max-height: 100%` had no definite base to
+  // resolve against and the image overflowed the stage — pushing the centred
+  // round crop below the visible area (the half-circle bug). Give the wrapper an
+  // explicit 100% height (its host is now definite) so the image is bounded by
+  // the stage and the whole circle stays inside the frame. Don't re-center the
+  // image: the library anchors the overlay/crop frame to the wrapper's top, so
+  // the image must stay top-aligned for them to line up.
+  ::ng-deep image-cropper > div {
+    height: 100%;
+  }
+
+  // Facebook-style behaviour: the crop frame is fixed and purely visual, so
+  // dragging anywhere moves the IMAGE underneath (not the crop box). Making the
+  // cropper overlay non-interactive lets every mousedown/touch fall through to
+  // the <img>, whose own handler pans the image. Resize handles are hidden via
+  // [hideResizeSquares], leaving only the dashed frame + dark surround.
+  ::ng-deep .ngx-ic-cropper {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  // The source image is the only thing that should grab the pointer → grab cursor.
+  ::ng-deep .ngx-ic-source-image.ngx-ic-draggable {
+    cursor: grab;
+    &:active { cursor: grabbing; }
+  }
+
+  // Dim outside the crop frame so the kept area stands out on the white form.
+  ::ng-deep image-cropper {
+    --cropper-outline-color: rgba(0, 0, 0, 0.55);
+    --cropper-overlay-color: rgba(0, 0, 0, 0.55);
+  }
+}
+
+.crop-error {
+  margin: 8px 0 0;
+  text-align: center;
+  color: var(--accent-primary, #e94560);
+  font-size: 0.85rem;
+}
+
+.crop-tools {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.crop-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid $milk-border;
+  background: $milk;
+  color: $ink;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: $milk-hover;
+    border-color: $milk-border;
+    color: $ink;
+  }
+}

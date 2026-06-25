@@ -225,7 +225,12 @@
     "CHAPTER_LABEL": "Chapter",
     "PAGE_LABEL": "Page",
     "FOLLOWING_COUNT": "Following",
-    "READ_COUNT": "Read"
+    "READ_COUNT": "Read",
+    "CROP_TITLE": "Crop image",
+    "CROP_TITLE_AVATAR": "Crop avatar",
+    "CROP_TITLE_BG": "Crop background",
+    "CROP_HINT": "Drag the image to move it; use zoom and rotate to choose the crop area.",
+    "CROP_APPLY": "Crop & use"
   },
   "NOTIF": {
     "TITLE": "Notifications",

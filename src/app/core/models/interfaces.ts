@@ -5,6 +5,8 @@ export interface User {
   avatar: string;
   name: string;
   email: string;
+  /** Readable URL of the user's profile background (cover). */
+  background?: string;
   /** Role names (e.g. Admin | Mod | Trans | User), highest-privilege first. */
   roles?: string[];
   /** User level 1–9. */

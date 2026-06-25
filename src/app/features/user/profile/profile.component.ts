@@ -48,6 +48,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
   avatarPreview: string | null = null;
   backgroundPreview: string | null = null;
 
+  // ── Image crop dialog state ──────────────────────────────────────────────────
+  /** Aspect ratios of the crop frame per target (1 = square avatar, 3 = banner). */
+  private static readonly CROP_ASPECT = { avatar: 1, background: 3 } as const;
+  /** The freshly-picked file awaiting crop; null when the dialog is closed. */
+  cropFile: File | null = null;
+  cropKind: 'avatar' | 'background' | null = null;
+  cropAspect = 1;
+  cropRound = false;
+  cropTitleKey = 'USER.CROP_TITLE';
+
   // ── Change-password state (owner only) ───────────────────────────────────────
   changingPassword = false;
   savingPassword = false;
@@ -203,14 +213,31 @@ export class ProfileComponent implements OnInit, OnDestroy {
     input.value = '';
     if (!file) return;
     if (!file.type.startsWith('image/')) { this.toastr.error(this.t('USER.T_IMG_ONLY')); return; }
+    // Open the crop dialog instead of using the raw file — the user pans/zooms to
+    // pick the area, and onCropConfirmed receives the cropped File.
+    this.cropKind = kind;
+    this.cropAspect = ProfileComponent.CROP_ASPECT[kind];
+    this.cropRound = kind === 'avatar';
+    this.cropTitleKey = kind === 'avatar' ? 'USER.CROP_TITLE_AVATAR' : 'USER.CROP_TITLE_BG';
+    this.cropFile = file;
+  }
+
+  onCropConfirmed(file: File): void {
+    const kind = this.cropKind;
     const url = URL.createObjectURL(file);
     if (kind === 'avatar') {
       if (this.avatarPreview) URL.revokeObjectURL(this.avatarPreview);
       this.avatarFile = file; this.avatarPreview = url;
-    } else {
+    } else if (kind === 'background') {
       if (this.backgroundPreview) URL.revokeObjectURL(this.backgroundPreview);
       this.backgroundFile = file; this.backgroundPreview = url;
     }
+    this.closeCrop();
+  }
+
+  closeCrop(): void {
+    this.cropFile = null;
+    this.cropKind = null;
   }
 
   saveProfile(): void {

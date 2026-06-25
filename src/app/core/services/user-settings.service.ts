@@ -39,6 +39,19 @@ export interface UserSettingsDto {
   maxEntries?: number | null;
 }
 
+/**
+ * Reply of both POST /create (`CreateUserSettingResult`) and PUT /update
+ * (`UpdateUserSettingResult`) — same shape:
+ *  - `uploadUrl` — pre-signed S3 *PUT* URL the client uploads the new bg to.
+ *  - `accessUrl` — readable URL to display the bg afterwards (don't derive it
+ *    from `uploadUrl`; a private bucket won't serve the PUT URL on GET).
+ * Either may be null when no background file was sent.
+ */
+export interface UserSettingResult {
+  uploadUrl?: string | null;
+  accessUrl?: string | null;
+}
+
 /** Read a C# enum that may serialize as a number (index) or a string (name). */
 function parseEnum<T>(value: string | number | null | undefined, names: string[], values: T[]): T | null {
   if (value === null || value === undefined || value === '') return null;
@@ -144,10 +157,11 @@ export class UserSettingsService {
 
   /**
    * Push the current settings to the server. Pass `bgFile` when the user picked
-   * a new background image — it's uploaded to the returned pre-signed S3 URL and
-   * its clean URL adopted as the stored background.
+   * a new background image — it's PUT to the returned pre-signed `uploadUrl`, and
+   * the server's readable `accessUrl` is adopted as the background and emitted so
+   * the caller can show it. Emits null when no new background was sent.
    */
-  save(bgFile?: File | null): Observable<unknown> {
+  save(bgFile?: File | null): Observable<string | null> {
     const form = new FormData();
     const p = this.prefs.current;
 
@@ -177,17 +191,25 @@ export class UserSettingsService {
       ? this.http.put<any>(`${this.base}/update`, form)
       : this.http.post<any>(`${this.base}/create`, form);
 
+    // Emits the readable `accessUrl` of the freshly-uploaded background (or null
+    // when no new file was sent) so the caller can show it in the URL field.
     return request$.pipe(
       tap(() => { this.hasServerSettings = true; }),
       switchMap(res => {
-        const signedUrl = typeof res === 'string' ? res : (res?.value ?? res?.url ?? null);
-        if (bgFile && typeof signedUrl === 'string' && /^https?:\/\//.test(signedUrl)) {
-          return this.uploadToS3(signedUrl, bgFile).pipe(
-            tap(() => this.theme.setBackgroundImage(signedUrl.split('?')[0])),
-            map(() => res),
+        const result = (res?.value ?? res) as UserSettingResult | null;
+        const uploadUrl = result?.uploadUrl ?? null;
+        const accessUrl = result?.accessUrl ?? null;
+        if (bgFile && typeof uploadUrl === 'string' && /^https?:\/\//.test(uploadUrl)) {
+          // PUT to S3, then adopt the server's readable `accessUrl` (forced —
+          // the pick is now committed server-side, so it overrides this
+          // session's "user touched it" guard). Never display `uploadUrl`: it's
+          // a PUT URL a private bucket won't serve on GET.
+          return this.uploadToS3(uploadUrl, bgFile).pipe(
+            tap(() => { if (accessUrl) this.theme.setBackgroundImage(accessUrl, true); }),
+            map(() => accessUrl),
           );
         }
-        return of(res);
+        return of(accessUrl);
       }),
     );
   }

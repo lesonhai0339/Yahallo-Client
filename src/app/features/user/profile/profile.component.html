@@ -316,3 +316,14 @@
     </section>
   </div>
 </div>
+
+<!-- Crop dialog: pan/zoom to choose the avatar/background crop before upload -->
+<app-image-crop-dialog
+  *ngIf="cropFile"
+  [file]="cropFile"
+  [aspectRatio]="cropAspect"
+  [round]="cropRound"
+  [titleKey]="cropTitleKey"
+  (confirmed)="onCropConfirmed($event)"
+  (cancelled)="closeCrop()">
+</app-image-crop-dialog>

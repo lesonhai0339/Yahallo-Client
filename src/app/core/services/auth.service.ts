@@ -61,6 +61,19 @@ export class AuthService {
     return this.loginState.value.status;
   }
 
+  /**
+   * Merge a patch into the cached (AES-encrypted) current user, persist it and
+   * re-emit the auth state so subscribers (e.g. the header avatar) update live.
+   */
+  private updateCachedUser(patch: Partial<User>): void {
+    const current = this.currentUser;
+    if (!current) return;
+    const updated = { ...current, ...patch };
+    const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(updated), ENCRYPT_KEY).toString();
+    localStorage.setItem(USER, encryptedUser);
+    this.loginState.next({ ...this.loginState.value, user: encryptedUser });
+  }
+
   get token(): string {
     return this.loginState.value.accessToken;
   }
@@ -168,10 +181,15 @@ export class AuthService {
   }
 
   /**
-   * Update profile (phone / avatar / background). Same flow as register: send
-   * metadata + files, server replies with pre-signed S3 URLs, then the client
-   * PUTs each file straight to S3. Returns the update DTO (with `uploadFailed`
-   * if an S3 upload failed but the profile row was saved).
+   * Update profile (phone / displayName / avatar / background). The server reply
+   * is `UpdateUserResult { id, displayName, uploadAvatarUrl, accessAvatarUrl,
+   * updaloadBackgroundUrl, accessBackgroundUrl }`:
+   *  - `upload*Url` — pre-signed S3 PUT URL the client uploads the file to.
+   *  - `access*Url` — readable URL adopted into the cached current user so the
+   *    header avatar / cover refresh immediately.
+   * Returns the result DTO (with `uploadFailed` if an S3 upload failed but the
+   * profile row was saved). NOTE: `updaloadBackgroundUrl` is misspelled on the
+   * backend — we read both spellings so a future fix won't break this.
    */
   updateProfile(
     fields: { id: string; phoneNumber?: string; displayName?: string },
@@ -188,12 +206,25 @@ export class AuthService {
     return this.http.put<any>(`${this.base}/update`, form).pipe(
       switchMap((res: any) => {
         const t = res?.value ?? res;
+        const bgUploadUrl = t?.uploadBackgroundUrl ?? t?.updaloadBackgroundUrl ?? null;
+
         const uploads: Observable<unknown>[] = [];
-        if (t?.avatarUrl && avatar) uploads.push(this.uploadToS3(t.avatarUrl, avatar));
-        if (t?.backgroundUrl && background) uploads.push(this.uploadToS3(t.backgroundUrl, background));
+        if (avatar && t?.uploadAvatarUrl) uploads.push(this.uploadToS3(t.uploadAvatarUrl, avatar));
+        if (background && bgUploadUrl) uploads.push(this.uploadToS3(bgUploadUrl, background));
+
+        // The PUT itself persisted the displayName → reflect it regardless of S3.
+        if (fields.displayName != null) this.updateCachedUser({ name: fields.displayName });
+
         if (!uploads.length) return of(t);
         return forkJoin(uploads).pipe(
-          map(() => t),
+          map(() => {
+            // Uploads succeeded → adopt the readable URLs into the cached user.
+            const patch: Partial<User> = {};
+            if (avatar && t?.accessAvatarUrl) patch.avatar = t.accessAvatarUrl;
+            if (background && t?.accessBackgroundUrl) patch.background = t.accessBackgroundUrl;
+            if (Object.keys(patch).length) this.updateCachedUser(patch);
+            return t;
+          }),
           catchError(() => of({ ...t, uploadFailed: true })),
         );
       })

@@ -131,10 +131,12 @@ export class SettingsComponent implements OnInit {
     if (!this.auth.currentUser?.id) { this.toastr.warning(this.t('SETTINGS.T_NEED_LOGIN')); return; }
     this.saving = true;
     this.userSettings.save(this.pendingBgFile).subscribe({
-      next: () => {
+      next: (accessUrl) => {
         this.saving = false;
         this.pendingBgFile = null;
         this.bgImage = this.themeService.backgroundImage;
+        // Surface the cloud (readable) URL in the input once the upload lands.
+        if (accessUrl) this.bgImageInput = accessUrl;
         this.toastr.success(this.t('SETTINGS.T_SAVED_SERVER'));
       },
       error: () => {

@@ -6,6 +6,7 @@ import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ToastrModule } from 'ngx-toastr';
 import { CookieService } from 'ngx-cookie-service';
 import { CommonModule } from '@angular/common';
+import { ImageCropperModule } from 'ngx-image-cropper';
 
 import { RouterModule } from '@angular/router';
 import { AppRoutingModule } from './app-routing.module';
@@ -28,6 +29,7 @@ import { CommentItemComponent } from './shared/components/comment-item/comment-i
 import { CommentSectionComponent } from './shared/components/comment-section/comment-section.component';
 import { ReaderViewerComponent } from './shared/components/reader-viewer/reader-viewer.component';
 import { AvatarFrameComponent } from './shared/components/avatar-frame/avatar-frame.component';
+import { ImageCropDialogComponent } from './shared/components/image-crop-dialog/image-crop-dialog.component';
 
 // Features
 import { HomeComponent } from './features/home/home.component';
@@ -77,6 +79,7 @@ export function initTranslations(translation: TranslationService) {
     CommentSectionComponent,
     ReaderViewerComponent,
     AvatarFrameComponent,
+    ImageCropDialogComponent,
     HomeComponent,
     MangaDetailComponent,
     MangaReaderComponent,
@@ -102,6 +105,7 @@ export function initTranslations(translation: TranslationService) {
     HttpClientModule,
     RouterModule,
     AppRoutingModule,
+    ImageCropperModule,
     ToastrModule.forRoot({
       progressBar: true,
       progressAnimation: 'decreasing',
