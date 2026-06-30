@@ -83,7 +83,7 @@
         <button type="button" class="year-dd__trigger" (click)="yearOpen = !yearOpen">
           <span>{{ selectedYear ?? ('SEARCH.YEAR_ALL' | translate) }}</span>
           <span class="badge-x" *ngIf="selectedYear !== null" role="button" tabindex="-1"
-                aria-label="clear" (click)="$event.stopPropagation(); clearYear()">&times;</span>
+                aria-label="clear" (click)="$event.stopPropagation(); clearYear()"><i class="fa-solid fa-xmark"></i></span>
           <i class="fa-solid fa-chevron-down"></i>
         </button>
         <div class="year-dd__panel" *ngIf="yearOpen">
@@ -105,7 +105,7 @@
         <span class="tag-grid-toggle__badge" *ngIf="selectedAuthor">
           <span class="tag-grid-toggle__badge-text">{{ selectedAuthor.name }}</span>
           <span class="badge-x" role="button" tabindex="-1" aria-label="clear"
-                (click)="$event.stopPropagation(); clearAuthor()">&times;</span>
+                (click)="$event.stopPropagation(); clearAuthor()"><i class="fa-solid fa-xmark"></i></span>
         </span>
         <i class="fa-solid" [class.fa-angles-down]="!showAuthorGrid" [class.fa-angles-up]="showAuthorGrid"></i>
       </button>
@@ -138,7 +138,7 @@
         <span class="tag-grid-toggle__badge" *ngIf="selectedArtist">
           <span class="tag-grid-toggle__badge-text">{{ selectedArtist.name }}</span>
           <span class="badge-x" role="button" tabindex="-1" aria-label="clear"
-                (click)="$event.stopPropagation(); clearArtist()">&times;</span>
+                (click)="$event.stopPropagation(); clearArtist()"><i class="fa-solid fa-xmark"></i></span>
         </span>
         <i class="fa-solid" [class.fa-angles-down]="!showArtistGrid" [class.fa-angles-up]="showArtistGrid"></i>
       </button>
@@ -171,7 +171,7 @@
         <span class="tag-grid-toggle__badge" *ngIf="selectedCategories.length > 0">
           <span class="tag-grid-toggle__badge-text">{{ selectedCategories.length }}</span>
           <span class="badge-x" role="button" tabindex="-1" aria-label="clear all"
-                (click)="$event.stopPropagation(); clearAllCategories()">&times;</span>
+                (click)="$event.stopPropagation(); clearAllCategories()"><i class="fa-solid fa-xmark"></i></span>
         </span>
         <i class="fa-solid" [class.fa-angles-down]="!showCategoryGrid" [class.fa-angles-up]="showCategoryGrid"></i>
       </button>
@@ -229,7 +229,7 @@
     <div class="search-list" *ngIf="!isLoading && viewMode === 'list' && results.length > 0">
       <a class="search-row" *ngFor="let m of results"
          [routerLink]="['/manga', m.id]">
-        <img class="search-row__thumb" [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback>
+        <img class="search-row__thumb" [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback loading="lazy">
         <div class="search-row__info">
           <div class="search-row__name">{{ m.displayName }}</div>
           <div class="search-row__tags" *ngIf="m.tags?.length">

@@ -21,9 +21,9 @@ export class NotificationService {
   startHub(): void {
     if (this.hubConnection) return;
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(environment.hubUrl, {
-        accessTokenFactory: () => this.auth.token
-      })
+      // Auth qua cookie httpOnly — gửi kèm khi negotiate (withCredentials), không
+      // còn accessTokenFactory vì client không giữ token.
+      .withUrl(environment.hubUrl, { withCredentials: true })
       .withAutomaticReconnect()
       .build();
 

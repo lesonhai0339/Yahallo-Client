@@ -25,8 +25,11 @@ export class ReadingProgressService {
   constructor(private http: HttpClient, private prefs: UserPreferencesService) {}
 
   // ── Existing per-save API (kept for compatibility) ───────────────────────────
+  // Client dùng page 0-based (page 0 = ảnh đầu). Server `LastPage` là 1-based và
+  // validator yêu cầu > 0, nên quy đổi tại ranh giới: gửi lên +1, đọc về -1.
   save(progress: Partial<ReadingProgress>): Observable<any> {
-    return this.http.post(`${this.base}/save`, progress);
+    const payload = { ...progress, lastPage: (progress.lastPage ?? 0) + 1 };
+    return this.http.post(`${this.base}/save`, payload);
   }
 
   get(userId: string, mangaId?: string): Observable<ReadingProgress[]> {
@@ -156,7 +159,8 @@ export class ReadingProgressService {
       map[r.mangaId] = {
         mangaId: r.mangaId,
         chapterId: r.chapterId,
-        imageIndex: r.lastPage ?? 0,
+        // Server 1-based → client 0-based.
+        imageIndex: Math.max(0, (r.lastPage ?? 1) - 1),
         updatedAt: r.lastReadAt ? (Date.parse(r.lastReadAt) || 0) : 0,
       };
     }

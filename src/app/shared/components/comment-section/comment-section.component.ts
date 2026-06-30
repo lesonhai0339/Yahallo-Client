@@ -123,8 +123,11 @@ export class CommentSectionComponent implements OnInit {
 
     create$.subscribe({
       next: (res: any) => {
+        // Server trả JsonResponse<ResponseResult<string>> → id thật ở res.value.id.
+        // Phải gán đúng để reply ngay sau đó dùng làm ParentId/ReplyCommentId.
+        const newId = res?.value?.id ?? res?.id;
         const newComment: CommentData = {
-          id: res?.id ?? String(Date.now()),
+          id: newId ?? String(Date.now()),
           idUser: this.currentUser!.id,
           displayName: this.currentUser!.name,
           avatar: this.currentUser!.avatar,

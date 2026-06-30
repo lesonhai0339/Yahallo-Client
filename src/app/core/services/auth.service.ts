@@ -1,113 +1,119 @@
-import { HttpBackend, HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpBackend, HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, forkJoin, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, forkJoin, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { CookieService } from 'ngx-cookie-service';
-import * as CryptoJS from 'crypto-js';
 import { environment } from '../../../environments/environment';
 import { AuthCookie, CreateUserResponseDto, LoginRequest, RegisterRequest, User } from '../models/interfaces';
-
-const JWT_KEY = 'jwt_access';
-const RF_KEY = 'jwt_refresh';
-const USER = 'user'
-const ENCRYPT_KEY = 'yahallo_secret_2024123123@!asda@@####';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly base = environment.userApi;
-  private loginState = new BehaviorSubject<AuthCookie>({ status: false, isLogout: false, accessToken: '', refreshToken: '', user : ''});
-  auth$ = this.loginState.asObservable();
+
+  /**
+   * Current user — held IN MEMORY only (loaded via GET /user/getme), never persisted
+   * to localStorage. Access/refresh token live in httpOnly cookies set by the server.
+   */
+  private userSubject = new BehaviorSubject<User | null>(null);
+  user$ = this.userSubject.asObservable();
+
+  /** True only right after an explicit logout (cleared on next sign-in). */
+  private loggedOut = false;
+
+  /** Back-compat auth state ({ status, isLogout, user }) for header/permission/theme/etc. */
+  auth$: Observable<AuthCookie> = this.userSubject.pipe(
+    map(u => ({ status: !!u, isLogout: this.loggedOut && !u, user: u })),
+  );
 
   /**
    * HttpClient không qua interceptor — dùng để PUT thẳng lên pre-signed S3 URL.
-   * Tránh AuthInterceptor gắn Authorization (S3 sẽ từ chối) và ErrorInterceptor
+   * Tránh AuthInterceptor gắn withCredentials (S3 từ chối cookie) và ErrorInterceptor
    * điều hướng sang /server-error khi S3 trả lỗi.
    */
   private readonly s3Http: HttpClient;
 
-  constructor(private http: HttpClient, private cookie: CookieService, httpBackend: HttpBackend) {
+  constructor(private http: HttpClient, httpBackend: HttpBackend) {
     this.s3Http = new HttpClient(httpBackend);
   }
 
-  init(): void {
-    const accessToken = this.cookie.get(JWT_KEY);
-    const refreshToken = this.cookie.get(RF_KEY);
-    const user = localStorage.getItem(USER);
-    if (accessToken && refreshToken && user) {
-      try {
-        this.loginState.next({ status: true, isLogout: false, accessToken: accessToken, refreshToken: refreshToken, user :  user });
-      } catch {
-        this.logout();
-      }
-    }
-  }
-  getAccessToken(): string {
-    return this.loginState.value.accessToken;
-  }
-  get currentUser(): User | null {
-    const state = this.loginState.value;
-    if (!state.status || !state.user) return null;
-    const bytes = CryptoJS.AES.decrypt(state.user, ENCRYPT_KEY);
-    const user = bytes.toString(CryptoJS.enc.Utf8);
-    try { 
-      return JSON.parse(user); 
-    } 
-    catch { 
-      return null; 
-    }
-  }
-
-  get isLoggedIn(): boolean {
-    return this.loginState.value.status;
+  /** Map MeResult / LoginResponse ({ id, avatarUri, name, roles, level }) → User. */
+  private mapMe(d: any): User {
+    return {
+      id: d?.id,
+      name: d?.name ?? '',
+      email: d?.email ?? '',
+      avatar: d?.avatarUri ?? d?.avatar ?? '',
+      roles: d?.roles ?? [],
+      level: d?.level ?? undefined,
+    };
   }
 
   /**
-   * Merge a patch into the cached (AES-encrypted) current user, persist it and
-   * re-emit the auth state so subscribers (e.g. the header avatar) update live.
+   * Nạp user hiện tại từ session cookie (GET /user/getme). Cookie httpOnly tự gửi kèm.
+   * 401 / lỗi bất kỳ → guest (null), KHÔNG ép đăng nhập.
    */
-  private updateCachedUser(patch: Partial<User>): void {
-    const current = this.currentUser;
-    if (!current) return;
-    const updated = { ...current, ...patch };
-    const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(updated), ENCRYPT_KEY).toString();
-    localStorage.setItem(USER, encryptedUser);
-    this.loginState.next({ ...this.loginState.value, user: encryptedUser });
+  loadMe(): Observable<User | null> {
+    return this.http.get<any>(`${this.base}/getme`, { withCredentials: true }).pipe(
+      map(res => {
+        const d = res?.value ?? res;   // MeResult
+        return d?.id ? this.mapMe(d) : null;
+      }),
+      tap(user => { this.userSubject.next(user); if (user) this.loggedOut = false; }),
+      catchError(() => { this.userSubject.next(null); return of(null); }),
+    );
   }
 
-  get token(): string {
-    return this.loginState.value.accessToken;
+  /**
+   * Bootstrap (APP_INITIALIZER): nạp user từ cookie session. Trả Promise để app đợi
+   * xong trước khi render — guards đọc isLoggedIn đúng. 401 → guest, không ép login.
+   */
+  init(): Promise<void> {
+    return firstValueFrom(this.loadMe()).then(() => undefined).catch(() => undefined);
+  }
+
+  get currentUser(): User | null {
+    return this.userSubject.value;
+  }
+
+  get isLoggedIn(): boolean {
+    return !!this.userSubject.value;
+  }
+
+  /** Merge a patch into the in-memory current user and re-emit (header avatar updates live). */
+  private updateCachedUser(patch: Partial<User>): void {
+    const current = this.userSubject.value;
+    if (!current) return;
+    this.userSubject.next({ ...current, ...patch });
   }
 
   login(username: string, password: string): Observable<any> {
     const payload: LoginRequest = { username, password };
-    return this.http.post<any>(`${this.base}/login`, payload).pipe(
+    // Web flow: gửi header X-Client-Type=web → server đặt access/refresh vào cookie
+    // httpOnly (Set-Cookie) và trả LoginResponse (cùng shape MeResult, KHÔNG token).
+    // Nạp thẳng user từ response vào state in-memory (không lưu localStorage).
+    const headers = new HttpHeaders({ 'X-Client-Type': 'web' });
+    return this.http.post<any>(`${this.base}/login`, payload, { headers, withCredentials: true }).pipe(
       tap(res => {
-        const data = res?.value  ?? res;
-        const accessToken = data.accessToken;
-        const refreshToken = data.refreshToken;
-        const user = {
-          id: data.id,
-          name: data.name,
-          avatar: data.avatarUri  ?? null,
-          roles: data.roles ?? [],
-          level: data.level ?? null
-        }
-        if (accessToken) {
-          const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(user), ENCRYPT_KEY).toString();
-          this.cookie.set(JWT_KEY, accessToken, { path: '/', secure: true, sameSite: 'Strict' });
-          this.cookie.set(RF_KEY, refreshToken, { path: '/', secure: true, sameSite: 'Strict' });
-          localStorage.setItem(USER, encryptedUser);
-          this.loginState.next({ status: true, isLogout: false, accessToken, refreshToken, user: encryptedUser });
+        const d = res?.value ?? res;   // LoginResponse
+        if (d?.id) {
+          this.loggedOut = false;
+          this.userSubject.next(this.mapMe(d));
         }
       })
     );
   }
 
-  logout(): void {
-    this.cookie.delete(JWT_KEY, '/');
-    this.cookie.delete(RF_KEY, '/');
-    localStorage.removeItem(USER);
-    this.loginState.next({ status: false, isLogout: true, accessToken: '', refreshToken: '', user: '' });
+  logout(): Observable<any> {
+    // Không còn state ở localStorage; cookie httpOnly client không xóa được (hết hạn ở server).
+    const headers = new HttpHeaders({ 'X-Client-Type': 'web' });
+    return this.http.post<any>(`${this.base}/logout`,  { headers, withCredentials: true }).pipe(
+    tap(res => {
+      const d = res?.value ?? res;   // LoginResponse
+      if (d) {
+        this.loggedOut = true;
+        this.userSubject.next(null);
+      }
+    })
+  );
   }
 
   register(data: RegisterRequest): Observable<CreateUserResponseDto> {

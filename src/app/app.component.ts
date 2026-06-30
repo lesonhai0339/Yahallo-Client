@@ -13,6 +13,7 @@ import { UserSettingsService } from './core/services/user-settings.service';
       <router-outlet></router-outlet>
     </main>
     <app-footer *ngIf="!isAdminRoute"></app-footer>
+    <app-download-tray *ngIf="!isAdminRoute"></app-download-tray>
   `,
   styles: [`
     main { display: block; }

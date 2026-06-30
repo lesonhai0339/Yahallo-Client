@@ -4,6 +4,8 @@ export interface MangaSumaryDto
 {
     id: string,
     name: string,
+    /** Alias của `name` cho <app-manga-sumary-card> (grid) dùng chung toàn app. */
+    displayName?: string,
     mangaThumbnail: string,
     mangaBackground: string,
     totalViews: number,

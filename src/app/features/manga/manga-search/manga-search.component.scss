@@ -474,9 +474,9 @@
   max-width: 55%;
   display: inline-flex;
   align-items: center;
-  overflow: hidden;            // clip the "×" region's outer corners to the pill
+  overflow: hidden;            // clip the "×" block's outer corners to the badge
   padding: 0;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 600;
   line-height: 1.4;
@@ -499,8 +499,9 @@
 
 // Inline "×" to clear a selection directly from its badge (author / artist /
 // tag count) or the year trigger — no need to reopen the dropdown.
-// A literal "×" centered with flexbox — avoids the icon-font baseline offset
-// that pushed the glyph off-centre inside this tiny circle.
+// Uses a vector FA `fa-xmark` icon (symmetric, centres perfectly with flexbox);
+// the literal "×" glyph sat off-centre because its font metrics aren't centred
+// within the line box on Windows/Segoe UI.
 .badge-x {
   display: inline-flex;
   align-items: center;
@@ -511,24 +512,34 @@
   border-radius: 50%;
   cursor: pointer;
   background: rgba(0, 0, 0, 0.18);
-  font-size: 0.8rem;
-  font-weight: 700;
   line-height: 1;
   transition: background 0.15s;
+
+  i { font-size: 0.62rem; line-height: 1; }
 
   &:hover { background: rgba(0, 0, 0, 0.32); }
 }
 
-// The "×" is the right 3/10 of the badge, filling its full height; the pill's
-// `overflow: hidden` clips its outer corners to the rounded end so it sits flush.
+// The "×" is the right 3/10 of the badge (name : × = 7 : 3), filling its full
+// height; the badge's small `border-radius` + `overflow: hidden` only shave the
+// outer corners, so the glyph stays centred in this flat block (no large rounded
+// cap to pull it off-centre).
 .tag-grid-toggle__badge .badge-x {
   flex: 3 1 0;
   align-self: stretch;
   width: auto;
   height: auto;
   border-radius: 0;
+  // Nudge the glyph left: the right corners are shaved by the badge radius, so
+  // a dead-centred icon reads as right-heavy. padding-right shrinks the content
+  // box on the right → centred icon shifts left to the optical centre.
+  padding-right: 6px;
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
+  // Set on the <i> directly: the `.tag-grid-toggle--active i` rule colours every
+  // toggle icon accent-red and (applying straight to the element) would beat the
+  // inherited #fff above, making the "×" red-on-red and invisible.
+  i { color: #fff; }
   &:hover { background: rgba(255, 255, 255, 0.35); }
 }
 

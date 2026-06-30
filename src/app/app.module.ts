@@ -30,6 +30,7 @@ import { CommentSectionComponent } from './shared/components/comment-section/com
 import { ReaderViewerComponent } from './shared/components/reader-viewer/reader-viewer.component';
 import { AvatarFrameComponent } from './shared/components/avatar-frame/avatar-frame.component';
 import { ImageCropDialogComponent } from './shared/components/image-crop-dialog/image-crop-dialog.component';
+import { DownloadTrayComponent } from './shared/components/download-tray/download-tray.component';
 
 // Features
 import { HomeComponent } from './features/home/home.component';
@@ -80,6 +81,7 @@ export function initTranslations(translation: TranslationService) {
     ReaderViewerComponent,
     AvatarFrameComponent,
     ImageCropDialogComponent,
+    DownloadTrayComponent,
     HomeComponent,
     MangaDetailComponent,
     MangaReaderComponent,

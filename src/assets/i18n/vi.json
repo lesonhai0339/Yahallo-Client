@@ -413,7 +413,12 @@
     "STATUS_ZIPPING": "Đang nén",
     "STATUS_DONE": "Hoàn tất",
     "STATUS_ERROR": "Lỗi",
-    "STATUS_CANCELLED": "Đã hủy"
+    "STATUS_CANCELLED": "Đã hủy",
+    "STATUS_PAUSED": "Đã dừng",
+    "SHOW_ALL": "Xem tất cả",
+    "COLLAPSE": "Thu gọn",
+    "PAUSE": "Dừng",
+    "RESUME": "Tiếp tục"
   },
   "OFFLINE": {
     "CHAPTER_LIST": "Danh sách chương",

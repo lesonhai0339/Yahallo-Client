@@ -1,30 +1,10 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, catchError, map } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
+import { BehaviorSubject } from 'rxjs';
 import { AuthService } from './auth.service';
 import { AppRole, Permission, ROLE_PERMISSIONS, ROLE_PRIORITY, ADMIN_ROLES } from '../models/permission.model';
 
-interface UserRole {
-  roleId: string;
-  roleName: string;
-  userId: string;
-  userName: string;
-}
-
-interface UserRolePagination {
-  pageCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalCount: number;
-  data: UserRole[];
-}
-
 @Injectable({ providedIn: 'root' })
 export class PermissionService {
-  private readonly userRoleApi = environment.userRoleApi;
-
   private realRoles: AppRole[] = [];
   private viewAsRole: AppRole | null = null;
 
@@ -35,25 +15,16 @@ export class PermissionService {
   roles$ = this.rolesSubject.asObservable();
   permissions$ = this.permissionsSubject.asObservable();
 
-  constructor(private auth: AuthService, private http: HttpClient) {
-    this.auth.auth$.pipe(
-      switchMap(state => {
-        if (!state.status) {
-          this.clear();
-          return of(null);
-        }
-        const userId = this.auth.currentUser?.id;
-        if (!userId) return of(null);
-
-        const params = { PageNumber: 1, PageSize: 20, UserId: userId };
-        const headers = new HttpHeaders({ Authorization: `Bearer ${state.accessToken}` });
-        return this.http.get<{ value: UserRolePagination }>(
-          `${this.userRoleApi}/filter-user-role`, { params, headers }
-        ).pipe(catchError(() => of(null)));
-      })
-    ).subscribe((res: any) => {
-      const pagination: UserRolePagination | undefined = res?.value ?? res;
-      const roleNames = pagination?.data?.map(r => r.roleName?.toLowerCase()) ?? [];
+  constructor(private auth: AuthService) {
+    // Roles lấy thẳng từ phiên đăng nhập (getme đã trả `roles`, cùng nguồn
+    // RoleEntity.RoleName như filter-user-role cũ) — auth dùng cookie httpOnly,
+    // không còn bearer token để gọi filter-user-role riêng.
+    this.auth.auth$.subscribe(state => {
+      if (!state.status) {
+        this.clear();
+        return;
+      }
+      const roleNames = (this.auth.currentUser?.roles ?? []).map(r => (r ?? '').toLowerCase());
 
       const appRoles: AppRole[] = [];
       if (roleNames.includes('admin')) appRoles.push(AppRole.Admin);

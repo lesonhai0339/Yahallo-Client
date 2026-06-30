@@ -105,7 +105,7 @@
               <a class="top-item" *ngFor="let m of currentTopList; let i = index"
                  [routerLink]="['/manga', m.id]">
                 <span class="top-rank" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{ i+1 }}</span>
-                <img [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback>
+                <img [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback loading="lazy">
                 <div class="top-info">
                   <span class="top-name">{{ m.displayName }}</span>
                   <span class="top-views"><i class="fa-solid fa-eye me-1"></i>{{ m.view }}</span>

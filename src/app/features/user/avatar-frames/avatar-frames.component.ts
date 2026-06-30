@@ -20,11 +20,12 @@ export class AvatarFramesComponent {
   readonly premiumFrames: AvatarFrameMeta[] =
     this.frameService.frames.filter(f => f.tier === 'premium');
 
-  constructor(private frameService: AvatarFrameService, private auth: AuthService) {}
+  // Resolved once: bound inside two *ngFor grids, and `auth.currentUser` runs an
+  // AES decrypt + JSON.parse on every read — a getter would do that for every
+  // frame on every change-detection cycle. Avatar doesn't change on this page.
+  readonly avatarUrl: string = this.auth.currentUser?.avatar || '/assets/user.jpg';
 
-  get avatarUrl(): string {
-    return this.auth.currentUser?.avatar || '/assets/user.jpg';
-  }
+  constructor(private frameService: AvatarFrameService, private auth: AuthService) {}
 
   select(id: string): void {
     this.currentFrame = id;

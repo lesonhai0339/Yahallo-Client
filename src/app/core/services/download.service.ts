@@ -30,7 +30,7 @@ export interface OfflineManifest {
   chapters: OfflineManifestChapter[];
 }
 
-export type DownloadStatus = 'queued' | 'running' | 'zipping' | 'done' | 'error' | 'cancelled';
+export type DownloadStatus = 'queued' | 'running' | 'zipping' | 'done' | 'error' | 'cancelled' | 'paused';
 
 /** A single chapter inside a download job (a job may bundle a range of them). */
 export interface DownloadChapterState {
@@ -114,6 +114,35 @@ export class DownloadService {
     this.aborters.delete(jobId);
     this.queue = this.queue.filter(id => id !== jobId);
     this.patch(jobId, j => (j.status === 'done' ? j : { ...j, status: 'cancelled' }));
+  }
+
+  /**
+   * Dừng một job đang chạy/chờ: ngắt mạng nhưng GIỮ job trong danh sách (status
+   * 'paused') để người dùng có thể tải tiếp (resume) hoặc xóa hẳn (remove).
+   */
+  pause(jobId: string): void {
+    this.aborters.get(jobId)?.abort();
+    this.aborters.delete(jobId);
+    this.queue = this.queue.filter(id => id !== jobId);
+    this.patch(jobId, j => (j.status === 'done' ? j : { ...j, status: 'paused' }));
+  }
+
+  /**
+   * Tải tiếp một job đã dừng: zip + blob đã tải bị bỏ khi abort nên ta tải lại
+   * từ đầu — reset tiến trình rồi đưa lại vào hàng đợi.
+   */
+  resume(jobId: string): void {
+    const job = this.jobs.find(j => j.id === jobId);
+    if (!job || job.status === 'running' || job.status === 'queued' || job.status === 'done') return;
+    this.patch(jobId, j => ({
+      ...j,
+      status: 'queued',
+      percent: 0,
+      error: undefined,
+      chapters: j.chapters.map(c => ({ ...c, loaded: 0 })),
+    }));
+    if (!this.queue.includes(jobId)) this.queue.push(jobId);
+    void this.pump();
   }
 
   /** Remove a finished/cancelled/errored job from the list. */

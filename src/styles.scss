@@ -307,6 +307,9 @@ a {
     position: relative;
     aspect-ratio: 2/3;
     overflow: hidden;
+    // Loading placeholder: hiện gif cho tới khi ảnh thật vẽ xong (kể cả lazy).
+    // Ảnh thật (object-fit: cover, đục) phủ lên gif khi load xong.
+    background: var(--bg-tertiary, #2a2a2a) url('/assets/giphy.gif') center / cover no-repeat;
 
     img {
       width: 100%;

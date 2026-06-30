@@ -101,14 +101,14 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     const refs = this.selectedRangeChapters.map(c => ({ id: c.id, index: c.index, title: c.title }));
     this.download.downloadRange(this.manga?.name || 'manga', refs, this.manga?.mangaThumbnail);
     this.showDownloadPanel = false;
-    this.toastr.info(`Đã thêm ${refs.length} chương vào hàng tải`);
+    // Tiến trình hiển thị ở download-tray (góc dưới-phải) thay cho toast.
   }
 
   downloadChapter(ch: Chapter, ev: Event): void {
     ev.preventDefault();
     ev.stopPropagation();
     this.download.downloadChapter(this.manga?.name || 'manga', { id: ch.id, index: ch.index, title: ch.title }, this.manga?.mangaThumbnail);
-    this.toastr.info(`Đang tải chương ${ch.index}`);
+    // Tiến trình hiển thị ở download-tray (góc dưới-phải) thay cho toast.
   }
 
   ngOnInit(): void {
@@ -133,7 +133,6 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.manga.description = m.description;
         this.isLoading = false;
         this.seo.setMangaDetail(this.manga);
-        this.addView();
         this.loadStats();
         this.loadRelatedManga();
         this.loadUserRating();
@@ -142,7 +141,6 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(m => {
           this.manga = m as any;
           this.isLoading = false;
-          this.addView();
           this.loadStats();
         });
       }
@@ -161,12 +159,6 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.chapters = c || [];
         this.stats.totalChapters = this.chapters.length;
       });
-  }
-
-  addView(): void {
-    if (this.mangaId) {
-      this.userInteraction.addView(this.mangaId).subscribe();
-    }
   }
 
   toggleFollow(): void {

@@ -88,6 +88,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   // ── Downloads tab ────────────────────────────────────────────────────────────
   cancelDownload(id: string): void { this.download.cancel(id); }
+  resumeDownload(id: string): void { this.download.resume(id); }
   removeDownload(id: string): void { this.download.remove(id); }
   trackJob = (_: number, j: { id: string }) => j.id;
 

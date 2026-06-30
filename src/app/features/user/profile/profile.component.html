@@ -11,7 +11,7 @@
           <div class="profile-stats">
             <div class="stat">
               <span>{{ 'USER.FOLLOWING_COUNT' | translate }}</span>
-              <strong>{{ profile?.mangaFollowingCount ?? followingTotal }}</strong>
+              <strong>{{ followingTotal }}</strong>
             </div>
             <div class="stat">
               <span>{{ 'USER.FAVORITE_COUNT' | translate }}</span>
@@ -19,7 +19,7 @@
             </div>
             <div class="stat">
               <span>{{ 'USER.READ_COUNT' | translate }}</span>
-              <strong>{{ readingHistory.length }}</strong>
+              <strong>{{ historyTotal }}</strong>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@
          [routerLink]="['/user', user.id, user.name, 'history']">
         <i class="fa-solid fa-history"></i>
         <span>{{ 'USER.HISTORY_TAB' | translate }}</span>
-        <span class="nav-item__count">{{ readingHistory.length }}</span>
+        <span class="nav-item__count">{{ historyTotal }}</span>
       </a>
       <a class="nav-item" [class.active]="activeTab === 'frames'"
          [routerLink]="['/user', user.id, user.name, 'frames']">
@@ -223,7 +223,7 @@
       <div *ngSwitchCase="'history'">
         <div class="card-list" *ngIf="readingHistory.length > 0">
           <a class="follow-card" *ngFor="let h of readingHistory"
-             [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ?? 0]"
+             [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ? h.lastPage - 1 : 0]"
              [title]="'USER.CONTINUE_READING' | translate">
             <img class="follow-card__thumb" [src]="h.mangaThumbnail" [alt]="h.mangaName"
                  appImageFallback loading="lazy">
@@ -295,8 +295,13 @@
                             (click)="cancelDownload(j.id)">
                       <i class="fa-solid fa-stop me-1"></i>{{ 'DOWNLOAD.CANCEL' | translate }}
                     </button>
+                    <button class="dl-btn dl-btn--cancel"
+                            *ngIf="j.status === 'paused'"
+                            (click)="resumeDownload(j.id)">
+                      <i class="fa-solid fa-play me-1"></i>{{ 'DOWNLOAD.RESUME' | translate }}
+                    </button>
                     <button class="dl-btn dl-btn--remove"
-                            *ngIf="j.status === 'done' || j.status === 'error' || j.status === 'cancelled'"
+                            *ngIf="j.status === 'done' || j.status === 'error' || j.status === 'cancelled' || j.status === 'paused'"
                             (click)="removeDownload(j.id)">
                       <i class="fa-solid fa-trash me-1"></i>{{ 'DOWNLOAD.REMOVE' | translate }}
                     </button>

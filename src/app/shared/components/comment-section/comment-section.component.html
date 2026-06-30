@@ -12,9 +12,9 @@
   <!-- Top editor -->
   <div class="top-editor-wrap" *ngIf="currentUser; else loginPrompt">
     <div class="editor-user-row">
-      <app-avatar-frame [src]="currentUser.avatar || 'assets/images/user.jpg'"
+      <app-avatar-frame [src]="currentUser.avatar || '/assets/user.jpg'"
         [alt]="currentUser.name"
-        fallback="assets/images/user.jpg"
+        fallback="/assets/user.jpg"
         [size]="38"></app-avatar-frame>
     </div>
     <app-comment-editor

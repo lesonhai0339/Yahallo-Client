@@ -16,5 +16,13 @@ export enum ChapterSortBy {
 export interface ChapterImage{
     id: string,
     index: number,
-    cloudUrl: string
+    /** Resolved display URL: ưu tiên `url`, fallback `resizeUrl` (set trong service) */
+    cloudUrl: string,
+    url?: string | null,
+    resizeUrl?: string | null,
+    width?: number,
+    height?: number,
+    resizeWidth?: number,
+    resizeHeight?: number,
+    contentType?: string | null
 }

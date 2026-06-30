@@ -223,8 +223,9 @@ export class CommentItemComponent implements OnInit {
     // trả lời trực tiếp comment gốc: ParentId = root, ReplyCommentId = root
     this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, this.comment.idUser, this.comment.id, this.mangaId).subscribe({
       next: (res: any) => {
+        // id thật ở res.value.id (JsonResponse<ResponseResult<string>>).
         const newReply: ReplyData = {
-          id: res?.id ?? String(Date.now()),
+          id: res?.value?.id ?? res?.id ?? String(Date.now()),
           idUser: this.currentUser!.id,
           name: this.currentUser!.name,
           avatar: this.currentUser!.avatar,
@@ -264,8 +265,9 @@ export class CommentItemComponent implements OnInit {
     // ParentId = root (giữ thread phẳng); ReplyCommentId = đúng reply được trả lời; CommentToUserId = tác giả reply
     this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, reply.idUser, reply.id, this.mangaId).subscribe({
       next: (res: any) => {
+        // id thật ở res.value.id (JsonResponse<ResponseResult<string>>).
         const newReply: ReplyData = {
-          id: res?.id ?? String(Date.now()),
+          id: res?.value?.id ?? res?.id ?? String(Date.now()),
           idUser: this.currentUser!.id,
           name: this.currentUser!.name,
           avatar: this.currentUser!.avatar,

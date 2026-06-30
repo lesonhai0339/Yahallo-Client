@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { AuthService } from './auth.service';
 
 export type AvatarFrameTier = 'basic' | 'premium';
 
@@ -28,7 +29,10 @@ export interface AvatarFrameMeta {
 
 const FRAME_IMG = 'assets/avatar-frames';
 
-const STORAGE_KEY = 'yhl_avatar_frame';
+// Frame được lưu riêng theo user-id: `yhl_avatar_frame:<userId>`.
+// Khách chưa đăng nhập dùng key `:guest` để không lẫn với user nào.
+const STORAGE_PREFIX = 'yhl_avatar_frame';
+const GUEST_KEY = `${STORAGE_PREFIX}:guest`;
 const DEFAULT_FRAME = 'gradient';
 
 // The built-in frame catalogue. Add a frame with an entry here plus matching
@@ -63,8 +67,15 @@ export const AVATAR_FRAMES: AvatarFrameMeta[] = [
 export class AvatarFrameService {
   readonly frames = AVATAR_FRAMES;
 
-  private frameSubject = new BehaviorSubject<string>(this.getSaved());
+  private frameSubject = new BehaviorSubject<string>(DEFAULT_FRAME);
   frame$ = this.frameSubject.asObservable();
+
+  constructor(private auth: AuthService) {
+    // Reload frame của user hiện tại mỗi khi auth thay đổi (login / logout /
+    // đổi tài khoản). auth$ là BehaviorSubject nên phát ngay state hiện tại
+    // lúc subscribe → frame đúng được nạp ngay khi service khởi tạo.
+    this.auth.auth$.subscribe(() => this.frameSubject.next(this.getSaved()));
+  }
 
   get currentFrame(): string { return this.frameSubject.value; }
 
@@ -72,14 +83,20 @@ export class AvatarFrameService {
     return AVATAR_FRAMES.find(f => f.id === id);
   }
 
+  /** Storage key gắn với user-id hiện tại; khách dùng key `:guest`. */
+  private storageKey(): string {
+    const id = this.auth.currentUser?.id;
+    return id ? `${STORAGE_PREFIX}:${id}` : GUEST_KEY;
+  }
+
   private getSaved(): string {
-    const saved = localStorage.getItem(STORAGE_KEY) || '';
+    const saved = localStorage.getItem(this.storageKey()) || '';
     return AVATAR_FRAMES.some(f => f.id === saved) ? saved : DEFAULT_FRAME;
   }
 
   setFrame(id: string): void {
     if (!AVATAR_FRAMES.some(f => f.id === id)) return;
-    localStorage.setItem(STORAGE_KEY, id);
+    localStorage.setItem(this.storageKey(), id);
     this.frameSubject.next(id);
   }
 }

@@ -90,7 +90,7 @@
           {{ getRank(i) }}
         </span>
 
-        <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.displayName" appImageFallback>
+        <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.displayName" appImageFallback loading="lazy">
 
         <div class="manga-row__info">
           <div class="manga-row__name">{{ manga.displayName }}</div>

@@ -413,7 +413,12 @@
     "STATUS_ZIPPING": "Zipping",
     "STATUS_DONE": "Done",
     "STATUS_ERROR": "Error",
-    "STATUS_CANCELLED": "Cancelled"
+    "STATUS_CANCELLED": "Cancelled",
+    "STATUS_PAUSED": "Paused",
+    "SHOW_ALL": "Show all",
+    "COLLAPSE": "Collapse",
+    "PAUSE": "Pause",
+    "RESUME": "Resume"
   },
   "OFFLINE": {
     "CHAPTER_LIST": "Chapter list",

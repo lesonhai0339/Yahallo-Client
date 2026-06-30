@@ -49,10 +49,6 @@ export class UserInteractionService {
     return this.http.get(`${this.followBase}/filter-follow-manga`, { params });
   }
 
-  addView(mangaId: string): Observable<any> {
-    return this.http.post(`${environment.serviceApi}/CapNhatView/${mangaId}`, {});
-  }
-
   rate(mangaId: string, userId: string, star: number): Observable<any> {
     // Backend CreateRatingCommand is now generic over target type:
     // { TargetId, UserId, RatingTo, Rating }. For a manga rating, RatingTo = Manga.

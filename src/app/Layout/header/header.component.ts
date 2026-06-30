@@ -541,7 +541,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    this.auth.logout();
+    this.auth.logout().subscribe(rs => {});
     this.notifService.stopHub();
     this.router.navigate(['/']);
   }

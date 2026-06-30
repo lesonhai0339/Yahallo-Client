@@ -2,10 +2,10 @@
 
   <!-- Avatar -->
   <div class="comment-avatar">
-    <app-avatar-frame [src]="comment.avatar || 'assets/images/user.jpg'"
+    <app-avatar-frame [src]="comment.avatar || '/assets/user.jpg'"
       [alt]="comment.displayName"
       [frameId]="comment.avatarFrame || 'default'"
-      fallback="assets/images/user.jpg"
+      fallback="/assets/user.jpg"
       [size]="38"></app-avatar-frame>
   </div>
 
@@ -156,7 +156,7 @@
         <!-- Deleted reply -->
         <ng-container *ngIf="reply.isDeleted; else liveReply">
           <div class="comment-avatar reply-avatar">
-            <img src="assets/images/default-avatar.png" alt="">
+            <img src="/assets/user.jpg" alt="">
           </div>
           <div class="comment-body">
             <p class="deleted-text">
@@ -170,7 +170,7 @@
             <app-avatar-frame [src]="reply.avatar || 'assets/images/default-avatar.png'"
               [alt]="reply.name"
               [frameId]="reply.avatarFrame || 'default'"
-              fallback="assets/images/default-avatar.png"
+              fallback="/assets/user.jpg"
               [size]="30"></app-avatar-frame>
           </div>
           <div class="comment-body">

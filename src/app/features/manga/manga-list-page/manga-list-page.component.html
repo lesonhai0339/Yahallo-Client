@@ -44,7 +44,7 @@
       <a class="manga-row" *ngFor="let manga of displayList"
          [routerLink]="['/manga', manga.id]">
 
-        <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback>
+        <img class="manga-row__thumb" [src]="manga.mangaThumbnail" [alt]="manga.name" appImageFallback loading="lazy">
 
         <div class="manga-row__info">
           <div class="manga-row__name">{{ manga.name }}</div>

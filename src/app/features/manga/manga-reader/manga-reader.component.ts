@@ -89,6 +89,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
       this.chapterId = p['chapterId'];
       this.mangaName = p['name'] || '';
       this.initialPage = parseInt(p['chapterIndex'] || '0', 10);
+      this.currentPage = this.initialPage;   // tránh flush nhầm page cũ dưới chapter mới
       this.resolveResume();   // may adjust chapter/page ('always') or show prompt ('ask')
       this.loadImages();
       this.loadChapters();
@@ -279,6 +280,10 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     this.mangaService.recordView(this.mangaId, this.chapterId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({ error: () => {} });   // lỗi đếm view không ảnh hưởng trải nghiệm đọc
+    // Đẩy luôn vị trí đọc lên server cùng lúc ghi view — đảm bảo có ít nhất 1 lần
+    // lưu tiến trình mỗi lần đọc chapter, không phụ thuộc vào debounce 8s/rời reader
+    // (vốn không chạy khi chuyển chapter bằng nút trong cùng component).
+    this.flushProgress();
   }
 
   @HostListener('window:scroll')

@@ -1,0 +1,56 @@
+<ng-container *ngIf="(active$ | async) as jobs">
+  <div class="dl-tray" *ngIf="jobs.length > 0">
+    <!-- Header (only when expanded) with collapse button -->
+    <div class="dl-tray__header" *ngIf="expanded">
+      <span class="dl-tray__title">
+        <i class="fa-solid fa-download"></i>
+        {{ 'DOWNLOAD.TITLE' | translate }} ({{ jobs.length }})
+      </span>
+      <button type="button" class="dl-tray__icon-btn" (click)="expanded = false"
+              [attr.aria-label]="'DOWNLOAD.COLLAPSE' | translate">
+        <i class="fa-solid fa-chevron-down"></i>
+      </button>
+    </div>
+
+    <!-- Item(s): collapsed shows the newest only, expanded shows all -->
+    <div class="dl-tray__item" *ngFor="let j of visible(jobs); trackBy: trackById">
+      <div class="dl-tray__row">
+        <span class="dl-tray__name" [title]="j.fileName">{{ j.fileName }}</span>
+        <span class="dl-tray__pct">{{ j.percent | number:'1.0-0' }}%</span>
+        <!-- Đang tải: nút dừng. Bấm vào → paused → hiện 2 lựa chọn bên dưới. -->
+        <button type="button" class="dl-tray__icon-btn" *ngIf="j.status !== 'paused'"
+                (click)="pause(j.id, $event)"
+                [attr.aria-label]="'DOWNLOAD.PAUSE' | translate"
+                [title]="'DOWNLOAD.PAUSE' | translate">
+          <i class="fa-solid fa-pause"></i>
+        </button>
+      </div>
+      <div class="dl-tray__bar">
+        <div class="dl-tray__fill" [style.width.%]="j.percent"></div>
+      </div>
+
+      <!-- Đã dừng: tiếp tục (tải lại từ đầu) hoặc xóa hẳn -->
+      <div class="dl-tray__actions" *ngIf="j.status === 'paused'; else statusLine">
+        <button type="button" class="dl-tray__action" (click)="resume(j.id, $event)">
+          <i class="fa-solid fa-play"></i>{{ 'DOWNLOAD.RESUME' | translate }}
+        </button>
+        <button type="button" class="dl-tray__action dl-tray__action--danger"
+                (click)="remove(j.id, $event)">
+          <i class="fa-solid fa-trash"></i>{{ 'DOWNLOAD.REMOVE' | translate }}
+        </button>
+      </div>
+      <ng-template #statusLine>
+        <span class="dl-tray__status" [attr.data-status]="j.status">
+          {{ 'DOWNLOAD.STATUS_' + (j.status | uppercase) | translate }}
+        </span>
+      </ng-template>
+    </div>
+
+    <!-- "Show all" toggle when collapsed and more than one job is active -->
+    <button type="button" class="dl-tray__showall" *ngIf="!expanded && jobs.length > 1"
+            (click)="expanded = true">
+      {{ 'DOWNLOAD.SHOW_ALL' | translate }} ({{ jobs.length }})
+      <i class="fa-solid fa-chevron-up"></i>
+    </button>
+  </div>
+</ng-container>

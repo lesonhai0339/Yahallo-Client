@@ -173,6 +173,9 @@ export class MangaService {
         const data = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
           name: t.displayName,
+          // Shared <app-manga-sumary-card> (grid view) reads `displayName`; the
+          // list view reads `name`. Cấp cả hai để cả hai chế độ đều có tên.
+          displayName: t.displayName,
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           totalViews: t.totalViews ?? 0,
@@ -217,6 +220,9 @@ export class MangaService {
         const data = (raw?.data ?? []).map((t: any) => ({
           id: t.id,
           name: t.displayName,
+          // Shared <app-manga-sumary-card> (grid view) reads `displayName`; the
+          // list view reads `name`. Cấp cả hai để cả hai chế độ đều có tên.
+          displayName: t.displayName,
           mangaThumbnail: t.thumbnail ?? t.mangaThumbnail,
           mangaBackground: t.mangaBackground,
           totalViews: t.totalViews ?? 0,
@@ -362,7 +368,20 @@ export class MangaService {
     const params = new HttpParams().set('ChapterId', chapterId);
     return this.http.get(`${this.chapterBase}/get-image`, { params }).pipe(
       map((res: any) => {
-        const images: ChapterImage[] = res?.value ?? res;
+        const raw: any[] = res?.value ?? res ?? [];
+        const images: ChapterImage[] = raw.map((img: any) => ({
+          id: img.id,
+          index: img.index ?? 0,
+          // Ưu tiên url, fallback resizeUrl
+          cloudUrl: img.url ?? img.resizeUrl ?? img.cloudUrl ?? '',
+          url: img.url,
+          resizeUrl: img.resizeUrl,
+          width: img.width,
+          height: img.height,
+          resizeWidth: img.resizeWidth,
+          resizeHeight: img.resizeHeight,
+          contentType: img.contentType,
+        }));
         return images;
       })
     );

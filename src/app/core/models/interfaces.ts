@@ -47,9 +47,8 @@ export interface UserRole{
 export interface AuthCookie {
   status: boolean;
   isLogout: boolean;
-  accessToken: string;
-  refreshToken:string;
-  user: string;
+  /** Current user object (null = logged out). Held in memory, loaded via /user/getme. */
+  user: User | null;
 }
 
 export interface LoginRequest {
