@@ -91,8 +91,8 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/auth/login']);
+    // logout() là Observable lạnh → phải subscribe mới thực sự gọi API.
+    this.auth.logout().subscribe(() => this.router.navigate(['/auth/login']));
   }
 
   get currentUser() {

@@ -93,9 +93,12 @@ export class AuthService {
     const headers = new HttpHeaders({ 'X-Client-Type': 'web' });
     return this.http.post<any>(`${this.base}/login`, payload, { headers, withCredentials: true }).pipe(
       tap(res => {
-        const d = res?.value ?? res;   // LoginResponse
-        if (d?.id) {
+        const d = res?.value ?? res;   // LoginResponse (kèm sessionId)
+        if (d !== null) {
           this.loggedOut = false;
+          // sessionId không phải credential; lưu để logout gửi đúng session xóa,
+          // và để sống qua reload (reload nạp user qua /getme, vốn không có sessionId).
+          if (d.sessionId) localStorage.setItem('sessionId', d.sessionId);
           this.userSubject.next(this.mapMe(d));
         }
       })
@@ -103,15 +106,16 @@ export class AuthService {
   }
 
   logout(): Observable<any> {
-    // Không còn state ở localStorage; cookie httpOnly client không xóa được (hết hạn ở server).
+    // Gửi sessionId trong body để server xóa đúng token; cookie httpOnly do server
+    // xóa (Set-Cookie hết hạn). Chú ý thứ tự: post(url, BODY, OPTIONS).
     const headers = new HttpHeaders({ 'X-Client-Type': 'web' });
-    return this.http.post<any>(`${this.base}/logout`,  { headers, withCredentials: true }).pipe(
-    tap(res => {
-      const d = res?.value ?? res;   // LoginResponse
-      if (d) {
-        this.loggedOut = true;
-        this.userSubject.next(null);
-      }
+    const sessionId = localStorage.getItem('sessionId') ?? '';
+    return this.http.post<any>(`${this.base}/logout`, { sessionId }, { headers, withCredentials: true }).pipe(
+    tap(() => {
+      // Dọn state cục bộ bất kể server trả gì (cookie đã bị server xóa).
+      localStorage.removeItem('sessionId');
+      this.loggedOut = true;
+      this.userSubject.next(null);
     })
   );
   }
