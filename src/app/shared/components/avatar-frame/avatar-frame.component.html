@@ -14,7 +14,7 @@
       [style.transform]="emojiTransform(i)">{{ e }}</span>
   </span>
 
-  <img class="avatar-frame__img" [src]="src" [alt]="alt" [appImageFallback]="fallback">
+  <img class="avatar-frame__img" [src]="src || fallback" [alt]="alt" [appImageFallback]="fallback">
 
   <img class="avatar-frame__overlay" *ngIf="frameImage" [src]="frameImage" alt="" aria-hidden="true">
 </div>

@@ -8,6 +8,11 @@ export class ImageFallbackDirective {
 
   @HostListener('error')
   onError(): void {
-    this.el.nativeElement.src = this.appImageFallback;
+    const el = this.el.nativeElement;
+    // Chốt chặn vòng lặp: nếu src hiện tại đã là fallback (nghĩa là chính ảnh
+    // fallback cũng lỗi, hoặc fallback rỗng) thì dừng — tránh error → set → error
+    // lặp vô tận (đặc biệt khi src ban đầu là chuỗi rỗng).
+    if (!this.appImageFallback || el.getAttribute('src') === this.appImageFallback) return;
+    el.src = this.appImageFallback;
   }
 }

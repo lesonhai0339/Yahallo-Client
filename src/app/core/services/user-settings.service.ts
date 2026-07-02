@@ -1,7 +1,8 @@
 import { HttpBackend, HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { from, Observable, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { buildFileUploadInfo, appendFileUploadInfo, FileUploadInfo } from '../utils/file-upload-info';
 import { environment } from '../../../environments/environment';
 import { Theme, ThemeService } from './theme.service';
 import {
@@ -162,13 +163,25 @@ export class UserSettingsService {
    * the caller can show it. Emits null when no new background was sent.
    */
   save(bgFile?: File | null): Observable<string | null> {
+    // BgImage giờ là FileUploadInfo (metadata) qua [FromForm], KHÔNG gửi file bytes.
+    // Setting background chỉ cần original size → resize = null (0). Đọc kích thước
+    // ảnh trước rồi mới build form.
+    const info$: Observable<FileUploadInfo | null> =
+      bgFile ? from(buildFileUploadInfo(bgFile)) : of(null);
+    return info$.pipe(switchMap(bgInfo => this.saveWith(bgFile, bgInfo)));
+  }
+
+  private saveWith(
+    bgFile: File | null | undefined,
+    bgInfo: FileUploadInfo | null,
+  ): Observable<string | null> {
     const form = new FormData();
     const p = this.prefs.current;
 
     form.append('Language', this.translation.currentLang);
     form.append('Theme', toEnumName(this.theme.currentTheme, THEME_VALUES, THEME_NAMES));
 
-    if (bgFile) form.append('BgImage', bgFile, bgFile.name);
+    if (bgInfo) appendFileUploadInfo(form, 'BgImage', bgInfo);
     form.append('BgOpacity', String(this.theme.backgroundOpacity));
     form.append('BgBlur', String(this.theme.backgroundBlur));
 

@@ -249,7 +249,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   saveProgress(lastPage: number): void {
-    if (this.prefs.current.readProgressMode === 'off') return;
+    // Luôn lưu tiến trình đọc bất kể readProgressMode; mode chỉ chi phối việc
+    // resume/jump về vị trí cũ (xem resolveResume). Server chỉ lưu khi đã đăng nhập.
     const user = this.authService.currentUser;
     if (!user) return;
     this.readingProgress.save({

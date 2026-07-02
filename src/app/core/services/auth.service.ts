@@ -1,9 +1,10 @@
 import { HttpBackend, HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, firstValueFrom, forkJoin, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, forkJoin, from, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AuthCookie, CreateUserResponseDto, LoginRequest, RegisterRequest, User } from '../models/interfaces';
+import { buildFileUploadInfo, appendFileUploadInfo, AVATAR_RESIZE, BACKGROUND_RESIZE } from '../utils/file-upload-info';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -121,30 +122,41 @@ export class AuthService {
   }
 
   register(data: RegisterRequest): Observable<CreateUserResponseDto> {
-    const formData = new FormData();
-    formData.append('FirstName', data.FirstName);
-    formData.append('LastName', data.LastName);
-    formData.append('Email', data.Email);
-    formData.append('PhoneNumber', data.PhoneNumber);
-    formData.append('CountryId', data.CountryId);
-    formData.append('UserName', data.UserName);
-    formData.append('Password', data.Password);
-    if (data.Avatar) formData.append('Avatar', data.Avatar, data.Avatar.name);
-    if (data.Background) formData.append('Background', data.Background, data.Background.name);
+    // Server nhận FileUploadInfo (metadata) qua [FromForm], KHÔNG nhận file bytes.
+    // Đọc kích thước ảnh trước, gửi metadata, rồi upload file gốc lên pre-signed URL.
+    const build$ = from(Promise.all([
+      data.Avatar ? buildFileUploadInfo(data.Avatar, AVATAR_RESIZE) : Promise.resolve(null),
+      data.Background ? buildFileUploadInfo(data.Background, BACKGROUND_RESIZE) : Promise.resolve(null),
+    ]));
 
-    // Server trả về pre-signed URL; client tự upload file lên S3 sau đó.
-    return this.http.post<CreateUserResponseDto>(`${this.base}/create`, formData).pipe(
-      switchMap((res: any) => {
-        const t = res?.value ?? res;
-        const uploads: Observable<unknown>[] = [];
-        if (t.avatarUrl && data.Avatar) uploads.push(this.uploadToS3(t.avatarUrl, data.Avatar));
-        if (t.backgroundUrl && data.Background) uploads.push(this.uploadToS3(t.backgroundUrl, data.Background));
-        if (!uploads.length) return of(t);
-        // Tài khoản đã được tạo ở bước POST. Nếu upload S3 lỗi thì KHÔNG coi là
-        // đăng ký thất bại — trả về DTO kèm cờ uploadFailed để UI cảnh báo.
-        return forkJoin(uploads).pipe(
-          map(() => t),
-          catchError(() => of({ ...t, uploadFailed: true }))
+    return build$.pipe(
+      switchMap(([avatarInfo, bgInfo]) => {
+        const formData = new FormData();
+        formData.append('FirstName', data.FirstName);
+        formData.append('LastName', data.LastName);
+        formData.append('Email', data.Email);
+        formData.append('PhoneNumber', data.PhoneNumber);
+        formData.append('CountryId', data.CountryId);
+        formData.append('UserName', data.UserName);
+        formData.append('Password', data.Password);
+        if (avatarInfo) appendFileUploadInfo(formData, 'Avatar', avatarInfo);
+        if (bgInfo) appendFileUploadInfo(formData, 'Background', bgInfo);
+
+        // Server trả về pre-signed URL; client tự upload file gốc lên S3 sau đó.
+        return this.http.post<CreateUserResponseDto>(`${this.base}/create`, formData).pipe(
+          switchMap((res: any) => {
+            const t = res?.value ?? res;
+            const uploads: Observable<unknown>[] = [];
+            if (t.avatarUrl && data.Avatar) uploads.push(this.uploadToS3(t.avatarUrl, data.Avatar));
+            if (t.backgroundUrl && data.Background) uploads.push(this.uploadToS3(t.backgroundUrl, data.Background));
+            if (!uploads.length) return of(t);
+            // Tài khoản đã được tạo ở bước POST. Nếu upload S3 lỗi thì KHÔNG coi là
+            // đăng ký thất bại — trả về DTO kèm cờ uploadFailed để UI cảnh báo.
+            return forkJoin(uploads).pipe(
+              map(() => t),
+              catchError(() => of({ ...t, uploadFailed: true }))
+            );
+          })
         );
       })
     );
@@ -206,36 +218,46 @@ export class AuthService {
     avatar?: File,
     background?: File,
   ): Observable<any> {
-    const form = new FormData();
-    form.append('Id', fields.id);
-    if (fields.phoneNumber != null) form.append('PhoneNumber', fields.phoneNumber);
-    if (fields.displayName != null) form.append('DisplayName', fields.displayName);
-    if (avatar) form.append('Avatar', avatar, avatar.name);
-    if (background) form.append('Background', background, background.name);
+    // Server nhận FileUploadInfo (metadata) qua [FromForm]; Id lấy từ cookie (bỏ khỏi body).
+    // Avatar + Background gửi kèm resize size để server render bản resize sau.
+    const build$ = from(Promise.all([
+      avatar ? buildFileUploadInfo(avatar, AVATAR_RESIZE) : Promise.resolve(null),
+      background ? buildFileUploadInfo(background, BACKGROUND_RESIZE) : Promise.resolve(null),
+    ]));
 
-    return this.http.put<any>(`${this.base}/update`, form).pipe(
-      switchMap((res: any) => {
-        const t = res?.value ?? res;
-        const bgUploadUrl = t?.uploadBackgroundUrl ?? t?.updaloadBackgroundUrl ?? null;
+    return build$.pipe(
+      switchMap(([avatarInfo, bgInfo]) => {
+        const form = new FormData();
+        if (fields.phoneNumber != null) form.append('PhoneNumber', fields.phoneNumber);
+        if (fields.displayName != null) form.append('DisplayName', fields.displayName);
+        if (avatarInfo) appendFileUploadInfo(form, 'Avatar', avatarInfo);
+        if (bgInfo) appendFileUploadInfo(form, 'Background', bgInfo);
 
-        const uploads: Observable<unknown>[] = [];
-        if (avatar && t?.uploadAvatarUrl) uploads.push(this.uploadToS3(t.uploadAvatarUrl, avatar));
-        if (background && bgUploadUrl) uploads.push(this.uploadToS3(bgUploadUrl, background));
+        return this.http.put<any>(`${this.base}/update`, form).pipe(
+          switchMap((res: any) => {
+            const t = res?.value ?? res;
+            const bgUploadUrl = t?.uploadBackgroundUrl ?? t?.updaloadBackgroundUrl ?? null;
 
-        // The PUT itself persisted the displayName → reflect it regardless of S3.
-        if (fields.displayName != null) this.updateCachedUser({ name: fields.displayName });
+            const uploads: Observable<unknown>[] = [];
+            if (avatar && t?.uploadAvatarUrl) uploads.push(this.uploadToS3(t.uploadAvatarUrl, avatar));
+            if (background && bgUploadUrl) uploads.push(this.uploadToS3(bgUploadUrl, background));
 
-        if (!uploads.length) return of(t);
-        return forkJoin(uploads).pipe(
-          map(() => {
-            // Uploads succeeded → adopt the readable URLs into the cached user.
-            const patch: Partial<User> = {};
-            if (avatar && t?.accessAvatarUrl) patch.avatar = t.accessAvatarUrl;
-            if (background && t?.accessBackgroundUrl) patch.background = t.accessBackgroundUrl;
-            if (Object.keys(patch).length) this.updateCachedUser(patch);
-            return t;
-          }),
-          catchError(() => of({ ...t, uploadFailed: true })),
+            // The PUT itself persisted the displayName → reflect it regardless of S3.
+            if (fields.displayName != null) this.updateCachedUser({ name: fields.displayName });
+
+            if (!uploads.length) return of(t);
+            return forkJoin(uploads).pipe(
+              map(() => {
+                // Uploads succeeded → adopt the readable URLs into the cached user.
+                const patch: Partial<User> = {};
+                if (avatar && t?.accessAvatarUrl) patch.avatar = t.accessAvatarUrl;
+                if (background && t?.accessBackgroundUrl) patch.background = t.accessBackgroundUrl;
+                if (Object.keys(patch).length) this.updateCachedUser(patch);
+                return t;
+              }),
+              catchError(() => of({ ...t, uploadFailed: true })),
+            );
+          })
         );
       })
     );

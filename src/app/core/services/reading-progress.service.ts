@@ -5,6 +5,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ReadingProgress, ReadingHistoryItem } from '../models/interfaces';
 import { UserPreferencesService } from './user-preferences.service';
+import { AuthService } from './auth.service';
 
 /** A single manga's local read position. */
 export interface LocalProgress {
@@ -22,7 +23,11 @@ const LOCAL_KEY = 'yhl_read_progress';
 export class ReadingProgressService {
   private readonly base = environment.readingProgressApi;
 
-  constructor(private http: HttpClient, private prefs: UserPreferencesService) {}
+  constructor(
+    private http: HttpClient,
+    private prefs: UserPreferencesService,
+    private auth: AuthService,
+  ) {}
 
   // ── Existing per-save API (kept for compatibility) ───────────────────────────
   // Client dùng page 0-based (page 0 = ảnh đầu). Server `LastPage` là 1-based và
@@ -69,7 +74,9 @@ export class ReadingProgressService {
   // ── Local storage (process 1: updated on every new image) ───────────────────
   /** Save/update the local position for a manga, then prune by user prefs. */
   saveLocal(mangaId: string, chapterId: string, imageIndex: number): void {
-    if (this.prefs.current.readProgressMode === 'off') return;
+    // Chỉ lưu khi đã đăng nhập (khách không cần tiến trình đọc). isLoggedIn phản
+    // ánh trạng thái từ /getme. Mode chỉ quyết định resume/jump, không chặn lưu.
+    if (!this.auth.isLoggedIn) return;
     const map = this.readMap();
     map[mangaId] = { mangaId, chapterId, imageIndex, updatedAt: Date.now() };
     this.writeMap(this.prune(map));
