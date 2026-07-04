@@ -1,7 +1,8 @@
 import { HttpBackend, HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, firstValueFrom, forkJoin, from, Observable, of, switchMap, tap, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, finalize, map } from 'rxjs/operators';
+import { CookieService } from 'ngx-cookie-service';
 import { environment } from '../../../environments/environment';
 import { AuthCookie, CreateUserResponseDto, LoginRequest, RegisterRequest, User } from '../models/interfaces';
 import { buildFileUploadInfo, appendFileUploadInfo, AVATAR_RESIZE, BACKGROUND_RESIZE } from '../utils/file-upload-info';
@@ -32,8 +33,31 @@ export class AuthService {
    */
   private readonly s3Http: HttpClient;
 
-  constructor(private http: HttpClient, httpBackend: HttpBackend) {
+  constructor(private http: HttpClient, httpBackend: HttpBackend, private cookie: CookieService) {
     this.s3Http = new HttpClient(httpBackend);
+  }
+
+  /**
+   * sessionId lưu trong cookie (KHÔNG httpOnly → JS đọc được) để:
+   *  - gửi kèm khi logout / refresh cho server xóa/định danh đúng token record,
+   *  - sống qua reload (reload nạp user qua /getme, vốn không trả sessionId).
+   * Không phải credential (access/refresh token nằm ở cookie httpOnly do server đặt).
+   */
+  private getSessionId(): string {
+    return this.cookie.get('sessionId') || '';
+  }
+
+  private setSessionId(id: string): void {
+    this.cookie.set('sessionId', id, { path: '/', expires: 7, sameSite: 'Lax' });
+  }
+
+  private clearSessionId(): void {
+    this.cookie.delete('sessionId', '/');
+  }
+
+  /** Có phiên đăng nhập cục bộ không (dùng để interceptor quyết định có refresh khi 401). */
+  get hasSession(): boolean {
+    return !!this.getSessionId();
   }
 
   /** Map MeResult / LoginResponse ({ id, avatarUri, name, roles, level }) → User. */
@@ -97,9 +121,7 @@ export class AuthService {
         const d = res?.value ?? res;   // LoginResponse (kèm sessionId)
         if (d !== null) {
           this.loggedOut = false;
-          // sessionId không phải credential; lưu để logout gửi đúng session xóa,
-          // và để sống qua reload (reload nạp user qua /getme, vốn không có sessionId).
-          if (d.sessionId) localStorage.setItem('sessionId', d.sessionId);
+          if (d.sessionId) this.setSessionId(d.sessionId);
           this.userSubject.next(this.mapMe(d));
         }
       })
@@ -107,18 +129,39 @@ export class AuthService {
   }
 
   logout(): Observable<any> {
-    // Gửi sessionId trong body để server xóa đúng token; cookie httpOnly do server
-    // xóa (Set-Cookie hết hạn). Chú ý thứ tự: post(url, BODY, OPTIONS).
+    // Gửi sessionId trong body để server xóa đúng token; access/refresh cookie httpOnly
+    // do server xóa (Set-Cookie hết hạn). Chú ý thứ tự: post(url, BODY, OPTIONS).
     const headers = new HttpHeaders({ 'X-Client-Type': 'web' });
-    const sessionId = localStorage.getItem('sessionId') ?? '';
+    const sessionId = this.getSessionId();
     return this.http.post<any>(`${this.base}/logout`, { sessionId }, { headers, withCredentials: true }).pipe(
-    tap(() => {
-      // Dọn state cục bộ bất kể server trả gì (cookie đã bị server xóa).
-      localStorage.removeItem('sessionId');
-      this.loggedOut = true;
-      this.userSubject.next(null);
-    })
-  );
+      // finalize → dọn state + xóa cookie sessionId DÙ server trả OK hay lỗi (vd access
+      // token đã hết hạn khi logout trong flow phiên hết hạn → server 401 vẫn phải sạch).
+      finalize(() => {
+        this.clearSessionId();
+        this.loggedOut = true;
+        this.userSubject.next(null);
+      })
+    );
+  }
+
+  /**
+   * Làm mới phiên khi gặp 401: POST /check-token-expired (server đọc refreshToken từ
+   * cookie httpOnly, nếu hợp lệ thì đặt access/refresh cookie mới + trả LoginResponse).
+   * Cập nhật sessionId mới vào cookie và user in-memory. Lỗi → ném ra để interceptor
+   * chuyển sang flow logout + hiện thông báo phiên hết hạn.
+   */
+  refreshSession(): Observable<User | null> {
+    const headers = new HttpHeaders({ 'X-Client-Type': 'web' });
+    const sessionId = this.getSessionId();
+    return this.http.post<any>(`${this.base}/check-token-expired`, { sessionId }, { headers, withCredentials: true }).pipe(
+      map(res => {
+        const d = res?.value ?? res;   // LoginResponse (kèm sessionId mới)
+        if (d?.sessionId) this.setSessionId(d.sessionId);
+        const user = d?.id ? this.mapMe(d) : null;
+        if (user) { this.userSubject.next(user); this.loggedOut = false; }
+        return user;
+      })
+    );
   }
 
   register(data: RegisterRequest): Observable<CreateUserResponseDto> {

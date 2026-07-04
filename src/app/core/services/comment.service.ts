@@ -1,13 +1,20 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { CacheService, CACHE_TTL } from './cache.service';
 
 @Injectable({ providedIn: 'root' })
 export class CommentService {
   private readonly base = environment.commentApi;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cache: CacheService) {}
+
+  /** Xóa cache danh sách comment (mọi trang) sau khi thêm/sửa/xóa comment. */
+  private invalidateComments(): void {
+    this.cache.invalidate('manga-comments:');
+  }
 
   filter(params: {
     mangaId?: string;
@@ -37,7 +44,10 @@ export class CommentService {
 
   getAllMangaComments(mangaId: string, pageSize: number, page: number): Observable<any> {
     // mới nhất lên đầu: SortBy=Time + ReverseSort=true (OrderByDescending CreateDate)
-    return this.filter({ mangaId, page, pageSize, orderByDateDesc: true });
+    // Cache 2 phút (khớp server); invalidate khi có comment mới để không hiện cũ.
+    return this.cache.get(`manga-comments:${mangaId}:${page}:${pageSize}`, CACHE_TTL.COMMENTS, () =>
+      this.filter({ mangaId, page, pageSize, orderByDateDesc: true })
+    );
   }
 
   getChapterComments(mangaId: string, chapterId: string): Observable<any> {
@@ -54,7 +64,8 @@ export class CommentService {
     if (parentId) form.append('ParentId', parentId);
     if (replyCommentId) form.append('ReplyCommentId', replyCommentId);
     if(commentToUserId) form.append('CommentToUserId', commentToUserId);
-    return this.http.post(`${this.base}/create`, form);
+    return this.http.post(`${this.base}/create`, form)
+      .pipe(tap(() => this.invalidateComments()));
   }
 
   createChapterComment(userId: string, mangaId: string, chapterId: string, message: string): Observable<any> {
@@ -65,11 +76,13 @@ export class CommentService {
     const form = new FormData();
     form.append('Id', commentId);
     form.append('Message', message);
-    return this.http.put(`${this.base}/update`, form);
+    return this.http.put(`${this.base}/update`, form)
+      .pipe(tap(() => this.invalidateComments()));
   }
 
   deleteComment(commentId: string): Observable<any> {
-    return this.http.delete(`${this.base}/delete`, { body: { id: commentId } });
+    return this.http.delete(`${this.base}/delete`, { body: { id: commentId } })
+      .pipe(tap(() => this.invalidateComments()));
   }
 
   getReplies(commentId: string): Observable<any> {

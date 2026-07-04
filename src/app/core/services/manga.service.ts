@@ -7,6 +7,7 @@ import { Chapter, Manga, MangaDetailDto, MangaStatsDto, MangaPagination, PagedRe
 import { ChapterImage, ChapterSortBy } from '../models/chapter.interface';
 import { HomepageDto, MangaSumaryDto, MangaSortBy } from '../models/manga.interface';
 import { ReadVarExpr } from '@angular/compiler';
+import { CacheService, CACHE_TTL } from './cache.service';
 
 @Injectable({ providedIn: 'root' })
 export class MangaService {
@@ -14,7 +15,7 @@ export class MangaService {
   private readonly chapterBase = environment.chapterApi;
   private readonly tagBase = environment.tagApi;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cache: CacheService) {}
 
   /**
    * Ghi 1 lượt xem manga. Luôn gửi visitorId (cho khách); nếu user đã login,
@@ -41,8 +42,11 @@ export class MangaService {
   }
 
   getHomepage(): Observable<HomepageDto> {
-    return this.http.get<any>(`${this.base}/homepage`).pipe(
-      map((res: any) => res?.value ?? res)
+    // Server cache homepage 2 phút → client cache khớp để tránh gọi lại khi quay về.
+    return this.cache.get('homepage', CACHE_TTL.HOMEPAGE, () =>
+      this.http.get<any>(`${this.base}/homepage`).pipe(
+        map((res: any) => res?.value ?? res)
+      )
     );
   }
 
@@ -302,28 +306,30 @@ export class MangaService {
    * here; load those with getMangaStats() and getChapters().
    */
   getDetailAggregated(mangaId: string): Observable<MangaDetailDto> {
-    const params = new HttpParams()
-    .set('Id', mangaId)
-    return this.http.get(`${this.base}/detail`, {params})
-    .pipe(map((res: any) => {
-      const t = res?.value ?? res;
-      return {
-          id: t.id,
-          name: t.displayName,
-          description: t.description,
-          level: t.level,
-          status: t.status,
-          type: t.type,
-          countries: t.countries,
-          season: t.season,
-          mangaThumbnail: t.mangaThumbnail,
-          mangaBackground: t.mangaBackground,
-          userId: t.userId,
-          tags: t.tags ?? [],
-          authors: t.authors ?? [],
-          artists: t.artists ?? [],
-        } as MangaDetailDto;
-      }));
+    // Chỉ chứa field tĩnh → cache 10 phút (khớp server). Counter động lấy ở getMangaStats.
+    return this.cache.get(`manga-detail:${mangaId}`, CACHE_TTL.MANGA_DETAIL, () => {
+      const params = new HttpParams().set('Id', mangaId);
+      return this.http.get(`${this.base}/detail`, { params })
+        .pipe(map((res: any) => {
+          const t = res?.value ?? res;
+          return {
+              id: t.id,
+              name: t.displayName,
+              description: t.description,
+              level: t.level,
+              status: t.status,
+              type: t.type,
+              countries: t.countries,
+              season: t.season,
+              mangaThumbnail: t.mangaThumbnail,
+              mangaBackground: t.mangaBackground,
+              userId: t.userId,
+              tags: t.tags ?? [],
+              authors: t.authors ?? [],
+              artists: t.artists ?? [],
+            } as MangaDetailDto;
+          }));
+    });
   }
 
   getMangaStats(mangaId: string): Observable<MangaStatsDto> {
@@ -340,28 +346,30 @@ export class MangaService {
     sortBy: ChapterSortBy = ChapterSortBy.Index,
     reverseSort = true,
   ): Observable<Chapter[]> {
-    const params = new HttpParams()
-    .set('PageNumber', 1)
-    .set('PageSize', 1000)
-    .set('MangaId', mangaId)
-    .set('SortBy', sortBy)
-    .set('ReverseSort', reverseSort);
-    return this.http.get(`${this.chapterBase}/filter-chapter`, { params }).pipe(
-      map((res: any) => {
-        const t = res?.value ?? res;
-        return t?.data?.map((chapter : any) =>
-          (
-            {
-               id: chapter.id,
-               index : chapter.index,
-               title: chapter.title,
-               mangaId: chapter.mangaId,
-               chapterDate: chapter.createDate
-            }
-          )
-        ) ?? []
-      })
-    );
+    return this.cache.get(`chapters:${mangaId}:${sortBy}:${reverseSort}`, CACHE_TTL.CHAPTERS, () => {
+      const params = new HttpParams()
+      .set('PageNumber', 1)
+      .set('PageSize', 1000)
+      .set('MangaId', mangaId)
+      .set('SortBy', sortBy)
+      .set('ReverseSort', reverseSort);
+      return this.http.get(`${this.chapterBase}/filter-chapter`, { params }).pipe(
+        map((res: any) => {
+          const t = res?.value ?? res;
+          return t?.data?.map((chapter : any) =>
+            (
+              {
+                 id: chapter.id,
+                 index : chapter.index,
+                 title: chapter.title,
+                 mangaId: chapter.mangaId,
+                 chapterDate: chapter.createDate
+              }
+            )
+          ) ?? []
+        })
+      );
+    });
   }
 
   getChapterImages(chapterId: string): Observable<ChapterImage[]> {

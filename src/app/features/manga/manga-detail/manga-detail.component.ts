@@ -135,7 +135,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.seo.setMangaDetail(this.manga);
         this.loadStats();
         this.loadRelatedManga();
-        this.loadUserRating();
+        this.loadInteraction();
       },
       error: () => {
         this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(m => {
@@ -213,15 +213,20 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     this.hoverRating = 0;
   }
 
-  private loadUserRating(): void {
+  /**
+   * Gọi manga/interaction (gộp rating + following) rồi áp trạng thái tương tác của
+   * user cho phần đánh giá & nút theo dõi. Chỉ gọi khi đã đăng nhập.
+   */
+  private loadInteraction(): void {
     const user = this.authService.currentUser;
     if (!user) return;
-    this.userInteraction.getUserRating(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (rating) => {
-        if (rating.rating > 0) {
+    this.userInteraction.getInteraction(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (it) => {
+        this.isFollowing = it.following;
+        if (it.rating > 0) {
           this.hasRated = true;
-          this.existingRating = rating;
-          this.selectedRating = rating.rating;
+          this.existingRating = { id: it.ratingId ?? '', rating: it.rating };
+          this.selectedRating = it.rating;
         }
       },
       error: () => {}

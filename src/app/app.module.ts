@@ -7,6 +7,7 @@ import { ToastrModule } from 'ngx-toastr';
 import { CookieService } from 'ngx-cookie-service';
 import { CommonModule } from '@angular/common';
 import { ImageCropperModule } from 'ngx-image-cropper';
+import { MatDialogModule } from '@angular/material/dialog';
 
 import { RouterModule } from '@angular/router';
 import { AppRoutingModule } from './app-routing.module';
@@ -31,6 +32,7 @@ import { ReaderViewerComponent } from './shared/components/reader-viewer/reader-
 import { AvatarFrameComponent } from './shared/components/avatar-frame/avatar-frame.component';
 import { ImageCropDialogComponent } from './shared/components/image-crop-dialog/image-crop-dialog.component';
 import { DownloadTrayComponent } from './shared/components/download-tray/download-tray.component';
+import { SessionExpiredDialogComponent } from './shared/components/session-expired-dialog/session-expired-dialog.component';
 
 // Features
 import { HomeComponent } from './features/home/home.component';
@@ -51,6 +53,7 @@ import { OfflineReaderComponent } from './features/offline-reader/offline-reader
 
 // Core
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
+import { RefreshInterceptor } from './core/interceptors/refresh.interceptor';
 import { ErrorInterceptor } from './core/interceptors/error.interceptor';
 import { AuthService } from './core/services/auth.service';
 import { TranslationService } from './core/services/translation.service';
@@ -97,6 +100,7 @@ export function initTranslations(translation: TranslationService) {
     MangaListPageComponent,
     ServerErrorComponent,
     OfflineReaderComponent,
+    SessionExpiredDialogComponent,
   ],
   imports: [
     BrowserModule,
@@ -108,6 +112,7 @@ export function initTranslations(translation: TranslationService) {
     RouterModule,
     AppRoutingModule,
     ImageCropperModule,
+    MatDialogModule,
     ToastrModule.forRoot({
       progressBar: true,
       progressAnimation: 'decreasing',
@@ -136,6 +141,12 @@ export function initTranslations(translation: TranslationService) {
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
+      multi: true
+    },
+    {
+      // Sau Auth (để request đã có withCredentials), trước Error: bắt 401 → refresh/retry.
+      provide: HTTP_INTERCEPTORS,
+      useClass: RefreshInterceptor,
       multi: true
     },
     {
