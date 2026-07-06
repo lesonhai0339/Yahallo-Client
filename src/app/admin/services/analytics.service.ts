@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { catchError, delay } from 'rxjs/operators';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of, forkJoin } from 'rxjs';
+import { catchError, delay, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export type TimeRange = 'daily' | 'monthly' | 'yearly';
@@ -59,16 +59,32 @@ const USE_MOCK = true;
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
   private readonly baseUrl = environment.apiUrl;
+  private readonly mangaBase = environment.mangaApi;
+  private readonly userBase = environment.userApi;
 
   constructor(private http: HttpClient) {}
 
   // ── Aggregate endpoints ─────────────────────────────────────────────────
 
+  /**
+   * Dashboard charts use the real backend count endpoints:
+   *   GET {userApi}/count  → JsonResponse<PagedResult<CountUserQueryResult>>
+   *   GET {mangaApi}/count → JsonResponse<PagedResult<CountNewMangaQueryResult>>
+   * Each row is { period, count }. The backend only returns periods that have
+   * data, so we scaffold the full label/date axis and fill missing buckets with 0.
+   */
   getDashboardAnalytics(range: TimeRange): Observable<DashboardAnalytics> {
-    if (USE_MOCK) return of(this.mockDashboard(range));
-    return this.http.get<DashboardAnalytics>(
-      `${this.baseUrl}/analytics/dashboard`, { params: { range } }
-    ).pipe(catchError(() => of(this.mockDashboard(range))));
+    const params = this.buildCountParams(range);
+    return forkJoin({
+      users: this.http.get(`${this.userBase}/count`, { params }).pipe(catchError(() => of(null))),
+      manga: this.http.get(`${this.mangaBase}/count`, { params }).pipe(catchError(() => of(null))),
+    }).pipe(
+      map(({ users, manga }) => ({
+        registrations: this.mapCountToSeries(users, range),
+        newManga: this.mapCountToSeries(manga, range),
+      })),
+      catchError(() => of(this.mockDashboard(range)))
+    );
   }
 
   getMangaAnalytics(mangaId: string, range: TimeRange): Observable<MangaAnalytics> {
@@ -281,6 +297,81 @@ export class AnalyticsService {
     };
   }
 
+  // ── Count endpoint helpers ──────────────────────────────────────────────
+
+  /** Build From/To/CountBy/paging params matching the selected range. */
+  private buildCountParams(range: TimeRange): HttpParams {
+    const now = new Date();
+    const from = new Date(now);
+    let countBy: string;
+    if (range === 'daily') {
+      from.setDate(from.getDate() - 29);
+      countBy = 'Day';
+    } else if (range === 'monthly') {
+      from.setMonth(from.getMonth() - 11);
+      countBy = 'Month';
+    } else {
+      from.setFullYear(from.getFullYear() - 4);
+      countBy = 'Year';
+    }
+    // Backend convention: minutes east of UTC (Vietnam UTC+7 → 420). JS
+    // getTimezoneOffset() returns the opposite sign, so negate it.
+    const timeZoneOffset = -now.getTimezoneOffset();
+
+    return new HttpParams()
+      .set('From', from.toISOString())
+      .set('To', now.toISOString())
+      .set('CountBy', countBy)
+      .set('TimeZoneOffset', String(timeZoneOffset))
+      .set('PageNo', '1')
+      .set('PageSize', '1000');
+  }
+
+  /**
+   * Merge a JsonResponse<PagedResult<{ day, month, yearh, count }>> into the full
+   * axis so the chart shows a continuous series with zero-filled gaps.
+   */
+  private mapCountToSeries(res: any, range: TimeRange): TimeSeriesPoint[] {
+    const labels = this.generateLabels(range);
+    const dates = this.generateDates(range);
+    const paged = res?.value ?? res;
+    const rows: any[] = paged?.data ?? paged?.items ?? [];
+
+    const counts = new Map<string, number>();
+    for (const row of rows) {
+      const key = this.rowKey(row, range);
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + (row?.count ?? row?.Count ?? 0));
+    }
+
+    return labels.map((label, i) => ({
+      label,
+      date: dates[i],
+      value: counts.get(dates[i]) ?? 0,
+    }));
+  }
+
+  /**
+   * Build a bucket key from the backend's split Day/Month/Yearh fields, matching
+   * the key format produced by generateDates for the given range.
+   * (`Yearh` is the backend's spelling; `Year` accepted as a fallback.)
+   */
+  private rowKey(row: any, range: TimeRange): string {
+    const year = row?.yearh ?? row?.Yearh ?? row?.year ?? row?.Year;
+    if (year == null) return '';
+    const y = String(year);
+    if (range === 'yearly') return y;
+
+    const month = row?.month ?? row?.Month;
+    if (month == null) return '';
+    const m = String(month).padStart(2, '0');
+    if (range === 'monthly') return `${y}-${m}`;
+
+    const day = row?.day ?? row?.Day;
+    if (day == null) return '';
+    return `${y}-${m}-${String(day).padStart(2, '0')}`;
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   private generateLabels(range: TimeRange): string[] {
@@ -309,7 +400,7 @@ export class AnalyticsService {
     if (range === 'daily') {
       for (let i = 29; i >= 0; i--) {
         const d = new Date(now); d.setDate(d.getDate() - i);
-        dates.push(d.toISOString().split('T')[0]);
+        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
       }
     } else if (range === 'monthly') {
       for (let i = 11; i >= 0; i--) {

@@ -103,7 +103,7 @@
     letter-spacing: 0.04em;
     color: var(--text-muted, #888);
   }
-  &__name { font-weight: 600; }
+  &__name { font-weight: 600; color: var(--text-primary, #eee); }
   &__muted { color: var(--text-secondary, #aaa); }
   &__actions { width: 1%; white-space: nowrap; text-align: right; }
 }

@@ -74,8 +74,7 @@
             <span *ngIf="perm.isViewingAs" class="role-badge__preview">(preview)</span>
           </span>
           <img
-            *ngIf="currentUser.avatar"
-            [src]="currentUser.avatar"
+            [src]="currentUser.avatar || '/assets/user.jpg'"
             [alt]="currentUser.name"
             class="admin-header__avatar" />
           <span class="admin-header__username">{{ currentUser.name }}</span>
