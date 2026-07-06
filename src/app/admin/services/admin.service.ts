@@ -23,6 +23,11 @@ export class AdminService {
     return this.http.get(`${this.userBase}/get-by-id`, { params: { id } });
   }
 
+  /** GET /user/detail?UserId=... → UserDetailDto (thông tin đầy đủ cho card admin). */
+  getUserDetail(id: string): Observable<any> {
+    return this.http.get(`${this.userBase}/detail`, { params: { UserId: id } });
+  }
+
   updateUser(data: FormData): Observable<any> {
     return this.http.put(`${this.userBase}/update`, data);
   }

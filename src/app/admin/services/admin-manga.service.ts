@@ -25,7 +25,7 @@ export class AdminMangaService {
   }
 
   getDetail(id: string): Observable<any> {
-    return this.http.get(`${this.base}/detail/${id}`);
+    return this.http.get(`${this.base}/detail`, { params: { Id: id } });
   }
 
   create(formData: FormData): Observable<any> {
@@ -122,7 +122,7 @@ export class AdminMangaService {
 
     if (fullQuery.startsWith('ref:id:')) {
       const id = fullQuery.replace('ref:id:', '').trim();
-      return this.http.get<any>(`${this.base}/detail/${id}`).pipe(
+      return this.http.get<any>(`${this.base}/detail`, { params: { Id: id } }).pipe(
         map((res: any) => {
           const item = res?.value ?? res;
           return item?.id ? [item] : [];

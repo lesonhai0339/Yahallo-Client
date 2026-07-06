@@ -101,7 +101,11 @@
 
           <div class="mcard__details" *ngIf="selectedUser?.id === u.id">
             <div class="user-card user-card--embedded">
-              <ng-container *ngTemplateOutlet="userCardTpl; context: { u: u, embedded: true }"></ng-container>
+              <app-detail-card-skeleton *ngIf="detailLoading; else userCardM"
+                variant="avatar" [lines]="7"></app-detail-card-skeleton>
+              <ng-template #userCardM>
+                <ng-container *ngTemplateOutlet="userCardTpl; context: { u: u, embedded: true }"></ng-container>
+              </ng-template>
             </div>
           </div>
         </div>
@@ -121,7 +125,11 @@
     <!-- Column 2: user detail card (desktop) -->
     <aside class="page-aside desktop-only" *ngIf="selectedUser">
       <div class="user-card">
-        <ng-container *ngTemplateOutlet="userCardTpl; context: { u: selectedUser, embedded: false }"></ng-container>
+        <app-detail-card-skeleton *ngIf="detailLoading; else userCardD"
+          variant="avatar" [lines]="7"></app-detail-card-skeleton>
+        <ng-template #userCardD>
+          <ng-container *ngTemplateOutlet="userCardTpl; context: { u: selectedUser, embedded: false }"></ng-container>
+        </ng-template>
       </div>
     </aside>
   </div>
@@ -144,11 +152,47 @@
   </div>
 
   <div class="user-card__info">
+    <div class="info-item" *ngIf="fullName(u)">
+      <span class="material-icons">badge</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Họ tên</span>
+        <span class="info-item__val">{{ fullName(u) }}</span>
+      </div>
+    </div>
     <div class="info-item">
       <span class="material-icons">mail</span>
       <div class="info-item__body">
         <span class="info-item__label">Email</span>
-        <span class="info-item__val">{{ u.email ?? '—' }}</span>
+        <span class="info-item__val">
+          {{ u.email ?? '—' }}
+          <span class="verify-badge" *ngIf="u.emailConfirmed != null"
+                [class.verify-badge--ok]="u.emailConfirmed">
+            {{ u.emailConfirmed ? 'đã xác thực' : 'chưa xác thực' }}
+          </span>
+        </span>
+      </div>
+    </div>
+    <div class="info-item" *ngIf="u.phone">
+      <span class="material-icons">call</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Điện thoại</span>
+        <span class="info-item__val">{{ u.phone }}</span>
+      </div>
+    </div>
+    <div class="info-item" *ngIf="u.level != null">
+      <span class="material-icons">military_tech</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Cấp độ</span>
+        <span class="info-item__val">Lv. {{ u.level }}</span>
+      </div>
+    </div>
+    <div class="info-item" *ngIf="u.status != null">
+      <span class="material-icons">verified_user</span>
+      <div class="info-item__body">
+        <span class="info-item__label">Trạng thái</span>
+        <span class="info-item__val">
+          <span class="status-badge" [ngClass]="userStatusClass(u.status)">{{ userStatusLabel(u.status) }}</span>
+        </span>
       </div>
     </div>
     <div class="info-item">
@@ -162,14 +206,14 @@
       <span class="material-icons">calendar_today</span>
       <div class="info-item__body">
         <span class="info-item__label">Ngày tạo</span>
-        <span class="info-item__val">{{ u.createdAt ? (u.createdAt | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
+        <span class="info-item__val">{{ u.createDate ? (u.createDate | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
       </div>
     </div>
     <div class="info-item">
       <span class="material-icons">schedule</span>
       <div class="info-item__body">
-        <span class="info-item__label">Hoạt động cuối</span>
-        <span class="info-item__val">{{ u.lastActive ? (u.lastActive | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
+        <span class="info-item__label">Cập nhật cuối</span>
+        <span class="info-item__val">{{ u.lastUpdateTime ? (u.lastUpdateTime | date:'HH:mm - dd/MM/yyyy') : '—' }}</span>
       </div>
     </div>
   </div>

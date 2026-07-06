@@ -13,6 +13,10 @@ export class NotificationService {
   private notifications$ = new BehaviorSubject<Notification[]>([]);
   private unreadCount$ = new BehaviorSubject<number>(0);
 
+  /** Ping mỗi 3 phút để server cập nhật LastActive (chỉ khi hub đang kết nối + đã login). */
+  private readonly PING_INTERVAL_MS = 3 * 60 * 1000;
+  private pingTimer: any = null;
+
   notifications = this.notifications$.asObservable();
   unreadCount = this.unreadCount$.asObservable();
 
@@ -33,12 +37,34 @@ export class NotificationService {
       this.unreadCount$.next(this.unreadCount$.value + 1);
     });
 
-    this.hubConnection.start().catch(err => console.error('SignalR error:', err));
+    this.hubConnection.start()
+      .then(() => this.startPing())
+      .catch(err => console.error('SignalR error:', err));
   }
 
   stopHub(): void {
+    this.stopPing();
     this.hubConnection?.stop();
     this.hubConnection = null;
+  }
+
+  // ── Ping / last-active ────────────────────────────────────────────────────────
+  /** Ping ngay khi kết nối rồi lặp lại mỗi 3 phút. */
+  private startPing(): void {
+    this.stopPing();
+    this.ping();
+    this.pingTimer = setInterval(() => this.ping(), this.PING_INTERVAL_MS);
+  }
+
+  private stopPing(): void {
+    if (this.pingTimer) { clearInterval(this.pingTimer); this.pingTimer = null; }
+  }
+
+  /** Gọi hub Ping — chỉ khi đã đăng nhập và hub đang Connected. Lỗi không ảnh hưởng UX. */
+  private ping(): void {
+    if (!this.auth.isLoggedIn) return;
+    if (this.hubConnection?.state !== signalR.HubConnectionState.Connected) return;
+    this.hubConnection.invoke('Ping').catch(() => {});
   }
 
   getAll(page = 1, pageSize = 20): Observable<any> {

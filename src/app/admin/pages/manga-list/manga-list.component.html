@@ -57,7 +57,7 @@
       <ng-container matColumnDef="type">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Loại</th>
         <td mat-cell *matCellDef="let m">
-          <span class="type-badge">{{ m.type || '—' }}</span>
+          <span class="type-badge">{{ getTypeLabel(m.type) }}</span>
         </td>
       </ng-container>
 
@@ -168,7 +168,7 @@
 
       <div class="mcard__details" *ngIf="expandedId === m.id">
         <div class="mcard__info">
-          <div class="mcard__row"><span class="mcard__k">Loại</span><span class="mcard__v">{{ m.type || '—' }}</span></div>
+          <div class="mcard__row"><span class="mcard__k">Loại</span><span class="mcard__v">{{ getTypeLabel(m.type) }}</span></div>
           <div class="mcard__row"><span class="mcard__k">Trạng thái</span><span class="mcard__v">{{ getStatusLabel(m.status) }}</span></div>
           <div class="mcard__row"><span class="mcard__k">Chương</span><span class="mcard__v">{{ m.totalChapters ?? 0 }}</span></div>
           <div class="mcard__row"><span class="mcard__k">Lượt xem</span><span class="mcard__v">{{ m.totalViews ?? 0 | number }}</span></div>
@@ -213,7 +213,11 @@
   <!-- Column 2: manga detail card (desktop) -->
   <aside class="page-aside desktop-only" *ngIf="selectedManga">
     <div class="manga-card">
-      <ng-container *ngTemplateOutlet="mangaCardTpl; context: { m: selectedManga }"></ng-container>
+      <app-detail-card-skeleton *ngIf="detailLoading; else mangaCardD"
+        variant="cover" [lines]="6"></app-detail-card-skeleton>
+      <ng-template #mangaCardD>
+        <ng-container *ngTemplateOutlet="mangaCardTpl; context: { m: selectedManga }"></ng-container>
+      </ng-template>
     </div>
   </aside>
 
@@ -228,7 +232,7 @@
   <h3 class="manga-card__title">{{ m.name }}</h3>
 
   <div class="manga-card__badges">
-    <span class="type-badge">{{ m.type || '—' }}</span>
+    <span class="type-badge">{{ getTypeLabel(m.type) }}</span>
     <span class="status-badge" [ngClass]="getStatusClass(m.status)">{{ getStatusLabel(m.status) }}</span>
   </div>
 

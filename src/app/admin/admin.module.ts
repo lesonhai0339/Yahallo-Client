@@ -49,6 +49,7 @@ import { ResetPasswordDialogComponent } from './shared/reset-password-dialog/res
 import { TaxonomyListComponent } from './pages/taxonomy-list/taxonomy-list.component';
 import { TaxonomyRequestsComponent } from './pages/taxonomy-requests/taxonomy-requests.component';
 import { TaxonomyFormDialogComponent } from './shared/taxonomy-form-dialog/taxonomy-form-dialog.component';
+import { DetailCardSkeletonComponent } from './shared/detail-card-skeleton/detail-card-skeleton.component';
 
 const MAT_MODULES = [
   MatTableModule,
@@ -72,6 +73,7 @@ const MAT_MODULES = [
 @NgModule({
   declarations: [
     AdminLayoutComponent,
+    DetailCardSkeletonComponent,
     DashboardComponent,
     MangaListComponent,
     MangaFormComponent,

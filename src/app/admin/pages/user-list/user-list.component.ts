@@ -27,6 +27,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
   pageIndex = 0;
   loading = false;
   selectedUser: any = null;
+  detailLoading = false;
   readonly imgBase = environment.serviceApi;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -77,7 +78,44 @@ export class UserListComponent implements OnInit, AfterViewInit {
   }
 
   selectUser(user: any): void {
-    this.selectedUser = this.selectedUser?.id === user.id ? null : user;
+    if (this.selectedUser?.id === user.id) { this.selectedUser = null; return; }
+    // Hiển thị ngay dữ liệu list, rồi nạp chi tiết đầy đủ từ /user/detail và gộp vào.
+    this.selectedUser = user;
+    this.loadUserDetail(user.id);
+  }
+
+  private loadUserDetail(id: string): void {
+    this.detailLoading = true;
+    this.adminService.getUserDetail(id).subscribe({
+      next: (res: any) => {
+        const d = res?.value ?? res;   // UserDetailDto
+        if (d && this.selectedUser?.id === (d.id ?? id)) {
+          this.selectedUser = {
+            ...this.selectedUser,
+            ...d,
+            name: d.displayName ?? this.selectedUser.name,
+            avatarUrl: d.avatar ?? this.selectedUser.avatarUrl,
+          };
+        }
+        this.detailLoading = false;
+      },
+      error: () => { this.detailLoading = false; },
+    });
+  }
+
+  /** Họ tên đầy đủ (firstName + lastName) nếu có. */
+  fullName(u: any): string {
+    return [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
+  }
+
+  /** UserStatus: None=1 (bình thường), Lock=2 (bị khóa). */
+  userStatusLabel(status: any): string {
+    const map: Record<string, string> = { '1': 'Bình thường', '2': 'Bị khóa', 'None': 'Bình thường', 'Lock': 'Bị khóa' };
+    return map[String(status)] ?? '—';
+  }
+
+  userStatusClass(status: any): string {
+    return (String(status) === '2' || String(status) === 'Lock') ? 'status--locked' : 'status--active';
   }
 
   openRoleDialog(user: any): void {

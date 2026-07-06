@@ -443,3 +443,37 @@ $radius-md: var(--radius-md);
   // No aside column on mobile — inline cards replace it.
   .page-layout, .page-layout--has-aside { grid-template-columns: 1fr !important; }
 }
+
+// ── User detail card extras ───────────────────────────────────────────────────
+.user-card__loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 10px;
+  font-size: 0.82rem;
+  color: $text-sec;
+
+  .spin { font-size: 1rem; animation: spin 0.9s linear infinite; }
+}
+
+.verify-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+
+  &--ok { background: rgba(40, 167, 69, 0.15); color: #28a745; }
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  &.status--active { background: rgba(40, 167, 69, 0.15); color: #28a745; }
+  &.status--locked { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
+}

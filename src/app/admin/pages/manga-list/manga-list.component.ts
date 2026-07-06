@@ -64,9 +64,15 @@ export class MangaListComponent implements OnInit, AfterViewInit {
         }
 
         this.totalCount = this.perm.isOwnMangaOnly() ? items.length : (d?.totalCount ?? 0);
+        // API trả MangaDto: displayName / viewCount / lastestChapter... nhưng
+        // template card + bảng đọc name / totalViews / totalChapters / updateDate.
         this.dataSource.data = items.map((m: any) => ({
           ...m,
-          thumbnail: m.mangaThumbnail ?? null
+          name: m.displayName ?? m.name,
+          thumbnail: m.mangaThumbnail ?? null,
+          totalViews: m.viewCount ?? m.totalViews ?? 0,
+          totalChapters: m.lastestChapter?.index ?? m.totalChapters ?? 0,
+          updateDate: m.lastestChapter?.createDate ?? m.updateDate ?? null,
         }));
         this.loading = false;
         // Mặc định chọn phần tử đầu để hiển thị card chi tiết bên phải.
@@ -98,7 +104,18 @@ export class MangaListComponent implements OnInit, AfterViewInit {
     this.detailLoading = true;
     this.mangaService.getDetail(id).subscribe({
       next: (res: any) => {
-        this.detail = res?.value ?? res;
+        const d = res?.value ?? res;
+        this.detail = d;
+        // Gộp dữ liệu chi tiết (displayName, tags, description, authors, artists...)
+        // vào selectedManga để card hiển thị đầy đủ; giữ id đúng của dòng đang chọn.
+        if (d && this.selectedManga?.id === d.id) {
+          this.selectedManga = {
+            ...this.selectedManga,
+            ...d,
+            name: d.displayName ?? this.selectedManga.name,
+            thumbnail: d.mangaThumbnail ?? this.selectedManga.thumbnail,
+          };
+        }
         this.detailLoading = false;
       },
       error: () => { this.detailLoading = false; }
@@ -186,24 +203,31 @@ export class MangaListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  getStatusClass(status: string): string {
+  getStatusClass(status: any): string {
     const map: Record<string, string> = {
-      'Ongoing': 'status--ongoing',
-      'Completed': 'status--completed',
-      'Hiatus': 'status--hiatus',
-      'Hidden': 'status--hidden',
+      // Enum số backend: Active=1, Paused=2, Finished=3
+      '1': 'status--ongoing', '2': 'status--hiatus', '3': 'status--completed',
+      // Nhãn chuỗi cũ (tương thích)
+      'Ongoing': 'status--ongoing', 'Completed': 'status--completed',
+      'Hiatus': 'status--hiatus', 'Hidden': 'status--hidden',
     };
-    return map[status] ?? '';
+    return map[String(status)] ?? '';
   }
 
-  getStatusLabel(status: string): string {
+  getStatusLabel(status: any): string {
     const map: Record<string, string> = {
-      'Ongoing': 'Đang ra',
-      'Completed': 'Hoàn thành',
-      'Hiatus': 'Tạm dừng',
-      'Hidden': 'Đã ẩn',
+      '1': 'Đang ra', '2': 'Tạm dừng', '3': 'Hoàn thành',
+      'Ongoing': 'Đang ra', 'Completed': 'Hoàn thành', 'Hiatus': 'Tạm dừng', 'Hidden': 'Đã ẩn',
     };
-    return map[status] ?? status;
+    return map[String(status)] ?? String(status ?? '—');
+  }
+
+  /** MangaType backend: Oneshot=1, Ova=2, Dojinshi=3, Series=4. */
+  getTypeLabel(type: any): string {
+    const map: Record<string, string> = {
+      '1': 'Oneshot', '2': 'OVA', '3': 'Dojinshi', '4': 'Series',
+    };
+    return map[String(type)] ?? String(type ?? '—');
   }
 
   get pageTitle(): string {
