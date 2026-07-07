@@ -217,7 +217,7 @@ export class MangaService {
       .set('pageNumber', page)
       .set('pageSize', pageSize)
       .set('SortBy', sortBy)
-      .set('ReverserSort', reverseSort);
+      .set('ReverseSort', reverseSort);
     return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
       map((res: any) => {
         const raw = res?.value ?? res;
