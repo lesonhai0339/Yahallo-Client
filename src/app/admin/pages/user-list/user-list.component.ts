@@ -58,6 +58,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
         this.totalCount = d?.totalCount ?? items.length;
         this.dataSource.data = items.map((u: any) => ({
           ...u,
+          name: u.displayName ?? u.name ?? u.userName,
           avatarUrl:  u.avatar ?? null,
           roleList: []
         }));

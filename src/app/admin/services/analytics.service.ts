@@ -87,11 +87,25 @@ export class AnalyticsService {
     );
   }
 
+  /**
+   * Real endpoint: GET {mangaApi}/analytics
+   *   ?MangaId&From&To&FilterBy(Day|Month|Year)
+   *   → JsonResponse<GetMangaAnalyticsResult { totalChapter, mangaAnalytics[] }>
+   * Each bucket carries per-period sums (totalView/totalComment/totalFollower) tagged
+   * with day/month/year. Backend only returns non-empty buckets, so we scaffold the
+   * full label/date axis (same window as the charts) and zero-fill the gaps.
+   */
   getMangaAnalytics(mangaId: string, range: TimeRange): Observable<MangaAnalytics> {
-    if (USE_MOCK) return of(this.mockMangaAnalytics(range));
-    return this.http.get<MangaAnalytics>(
-      `${this.baseUrl}/analytics/manga/${mangaId}`, { params: { range } }
-    ).pipe(catchError(() => of(this.mockMangaAnalytics(range))));
+    const { from, to } = this.rangeWindow(range);
+    const params = new HttpParams()
+      .set('MangaId', mangaId)
+      .set('From', from.toISOString())
+      .set('To', to.toISOString())
+      .set('FilterBy', this.filterByOf(range));
+    return this.http.get(`${this.mangaBase}/analytics`, { params }).pipe(
+      map(res => this.mapMangaAnalytics(res, range)),
+      catchError(() => of(this.mockMangaAnalytics(range)))
+    );
   }
 
   getUserAnalytics(userId: string, range: TimeRange): Observable<UserAnalytics> {
@@ -325,6 +339,57 @@ export class AnalyticsService {
       .set('TimeZoneOffset', String(timeZoneOffset))
       .set('PageNo', '1')
       .set('PageSize', '1000');
+  }
+
+  /** TimeRange → backend MangaDailyFilterBy enum name. */
+  private filterByOf(range: TimeRange): 'Day' | 'Month' | 'Year' {
+    return range === 'daily' ? 'Day' : range === 'monthly' ? 'Month' : 'Year';
+  }
+
+  /** [From, To] window matching the chart axis (30 ngày / 12 tháng / 5 năm). */
+  private rangeWindow(range: TimeRange): { from: Date; to: Date } {
+    const now = new Date();
+    const from = new Date(now);
+    if (range === 'daily') from.setDate(from.getDate() - 29);
+    else if (range === 'monthly') from.setMonth(from.getMonth() - 11);
+    else from.setFullYear(from.getFullYear() - 4);
+    return { from, to: now };
+  }
+
+  /**
+   * Map GetMangaAnalyticsResult → MangaAnalytics view model. Buckets are keyed onto
+   * the scaffolded axis by day/month/year; summary stats are the range totals (sum of
+   * the per-period buckets), totalChapters comes straight from the backend.
+   */
+  private mapMangaAnalytics(res: any, range: TimeRange): MangaAnalytics {
+    const labels = this.generateLabels(range);
+    const dates = this.generateDates(range);
+    const body = res?.value ?? res;
+    const rows: any[] = body?.mangaAnalytics ?? body?.MangaAnalytics ?? [];
+
+    const views = new Map<string, number>();
+    const comments = new Map<string, number>();
+    let totalViews = 0, totalComments = 0, totalFollows = 0;
+
+    for (const row of rows) {
+      const key = this.rowKey(row, range);
+      if (!key) continue;
+      const v = row?.totalView ?? row?.TotalView ?? 0;
+      const c = row?.totalComment ?? row?.TotalComment ?? 0;
+      const f = row?.totalFollower ?? row?.TotalFollower ?? 0;
+      views.set(key, (views.get(key) ?? 0) + v);
+      comments.set(key, (comments.get(key) ?? 0) + c);
+      totalViews += v; totalComments += c; totalFollows += f;
+    }
+
+    return {
+      totalViews,
+      totalComments,
+      totalFollows,
+      totalChapters: body?.totalChapter ?? body?.TotalChapter ?? 0,
+      viewsByTime: labels.map((label, i) => ({ label, date: dates[i], value: views.get(dates[i]) ?? 0 })),
+      commentsByTime: labels.map((label, i) => ({ label, date: dates[i], value: comments.get(dates[i]) ?? 0 })),
+    };
   }
 
   /**

@@ -6,7 +6,7 @@
     </button>
     <div>
       <h1>Quản lý Chương</h1>
-      <p>{{ manga?.name || 'Manga ID: ' + (mangaId | slice:0:8) + '...' }} · {{ totalCount }} chương</p>
+      <p>{{ manga?.displayName || 'Manga ID: ' + (mangaId | slice:0:8) + '...' }} · {{ totalCount }} chương</p>
     </div>
     <button class="btn btn-primary" (click)="openAddDialog()">
       <span class="material-icons">add</span> Thêm chương
@@ -43,9 +43,9 @@
             <td mat-cell *matCellDef="let c">{{ c.title || '—' }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="chapterDate">
+          <ng-container matColumnDef="createDate">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày đăng</th>
-            <td mat-cell *matCellDef="let c">{{ c.chapterDate ? (c.chapterDate | date:'dd/MM/yyyy') : '—' }}</td>
+            <td mat-cell *matCellDef="let c">{{ c.createDate ? (c.createDate | date:'dd/MM/yyyy') : '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="actions">
@@ -88,14 +88,14 @@
         <!-- Thumbnail -->
         <img class="manga-card__thumb"
              [src]="getThumbnailUrl(manga.mangaThumbnail)"
-             [alt]="manga.name"
+             [alt]="manga.displayName"
              *ngIf="manga.mangaThumbnail" />
         <div class="manga-card__thumb manga-card__thumb--placeholder" *ngIf="!manga.mangaThumbnail">
           <span class="material-icons">image</span>
         </div>
 
         <!-- Name -->
-        <h3 class="manga-card__name">{{ manga.name }}</h3>
+        <h3 class="manga-card__name">{{ manga.displayName }}</h3>
 
         <!-- Tags -->
         <div class="manga-card__tags" *ngIf="manga.tags?.length">
@@ -111,7 +111,7 @@
           <div class="stat-item">
             <span class="material-icons">star</span>
             <div class="stat-item__body">
-              <span class="stat-item__val">{{ manga.averageRating?.toFixed(1) ?? '—' }}</span>
+              <span class="stat-item__val">{{ manga.rating != null ? (manga.rating | number:'1.0-1') : '—' }}</span>
               <span class="stat-item__label">Đánh giá</span>
             </div>
           </div>
@@ -125,14 +125,14 @@
           <div class="stat-item">
             <span class="material-icons">visibility</span>
             <div class="stat-item__body">
-              <span class="stat-item__val">{{ formatNumber(manga.totalViews ?? 0) }}</span>
+              <span class="stat-item__val">{{ formatNumber(manga.viewCount ?? 0) }}</span>
               <span class="stat-item__label">Lượt xem</span>
             </div>
           </div>
           <div class="stat-item">
             <span class="material-icons">chat_bubble_outline</span>
             <div class="stat-item__body">
-              <span class="stat-item__val">{{ formatNumber(manga.totalCommentCount ?? manga.commentCount ?? 0) }}</span>
+              <span class="stat-item__val">{{ formatNumber(manga.commentCount ?? 0) }}</span>
               <span class="stat-item__label">Bình luận</span>
             </div>
           </div>

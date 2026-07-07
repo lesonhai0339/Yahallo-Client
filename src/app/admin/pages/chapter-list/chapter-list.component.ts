@@ -15,7 +15,7 @@ import { ChapterFormDialogComponent } from '../../shared/chapter-form-dialog/cha
   styleUrls: ['./chapter-list.component.scss']
 })
 export class ChapterListComponent implements OnInit, AfterViewInit {
-  displayedColumns = ['index', 'title', 'chapterDate', 'actions'];
+  displayedColumns = ['index', 'title', 'createDate', 'actions'];
   dataSource = new MatTableDataSource<any>([]);
   mangaId = '';
   manga: any = null;

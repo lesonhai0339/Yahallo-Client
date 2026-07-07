@@ -64,7 +64,9 @@ export class NotificationService {
   private ping(): void {
     if (!this.auth.isLoggedIn) return;
     if (this.hubConnection?.state !== signalR.HubConnectionState.Connected) return;
-    this.hubConnection.invoke('Ping').catch(() => {});
+    // Hub Ping không trả về gì (chỉ cập nhật LastActive) → dùng send (fire-and-forget)
+    // thay vì invoke, khỏi chờ server xử lý xong. Lỗi transport bỏ qua.
+    this.hubConnection.send('Ping').catch(() => {});
   }
 
   getAll(page = 1, pageSize = 20): Observable<any> {
