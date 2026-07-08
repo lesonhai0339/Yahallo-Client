@@ -11,7 +11,7 @@ export class ChapterService {
 
   filter(params: { id?: string; mangaId?: string; mangaName?: string; index?: number; page?: number; pageSize?: number }): Observable<any> {
     let hp = new HttpParams()
-      .set('PageNumber', params.page ?? 1)
+      .set('PageNo', params.page ?? 1)
       .set('PageSize', params.pageSize ?? 50);
     if (params.id) hp = hp.set('Id', params.id);
     if (params.mangaId) hp = hp.set('MangaId', params.mangaId);
@@ -29,7 +29,7 @@ export class ChapterService {
   }
 
   getPaginated(page = 1, pageSize = 20): Observable<any> {
-    const params = new HttpParams().set('PageNumber', page).set('PageSize', pageSize);
+    const params = new HttpParams().set('PageNo', page).set('PageSize', pageSize);
     return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
 

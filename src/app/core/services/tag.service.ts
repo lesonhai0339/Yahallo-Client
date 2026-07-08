@@ -16,7 +16,7 @@ export class TagService {
 
   filter(params: { name?: string; id?: string; description?: string; page?: number; pageSize?: number }): Observable<any> {
     let hp = new HttpParams()
-      .set('PageNumber', params.page ?? 1)
+      .set('PageNo', params.page ?? 1)
       .set('PageSize', params.pageSize ?? 50);
     if (params.name) hp = hp.set('Name', params.name);
     if (params.id) hp = hp.set('Id', params.id);

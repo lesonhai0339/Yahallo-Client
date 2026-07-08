@@ -54,7 +54,7 @@ export class ReadingProgressService {
   getPaginated(
     userId: string, pageNumber: number, pageSize: number, mangaId?: string,
   ): Observable<{ data: ReadingHistoryItem[]; totalCount: number; pageCount: number; pageNumber: number; pageSize: number }> {
-    const params: any = { PageNumber: pageNumber, PageSize: pageSize, UserId: userId };
+    const params: any = { PageNo: pageNumber, PageSize: pageSize, UserId: userId };
     if (mangaId) params['MangaId'] = mangaId;
     return this.http.get<any>(`${this.base}/get-pagination`, { params }).pipe(
       map(res => {

@@ -20,7 +20,7 @@ export class AdminMangaService {
   }
 
   getAll(page = 1, pageSize = 20): Observable<any> {
-    const params = new HttpParams().set('PageNumber', page).set('PageSize', pageSize);
+    const params = new HttpParams().set('PageNo', page).set('PageSize', pageSize);
     return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
 
@@ -93,7 +93,7 @@ export class AdminMangaService {
   getChapters(mangaId: string, page = 1, pageSize = 50): Observable<any> {
     const params = new HttpParams()
       .set('MangaId', mangaId)
-      .set('PageNumber', page)
+      .set('PageNo', page)
       .set('PageSize', pageSize);
     return this.http.get(`${this.chapterBase}/filter-chapter`, { params });
   }
@@ -118,7 +118,7 @@ export class AdminMangaService {
    * NOTE: Backend endpoints for author/artist filter are stubs — falls back to name search.
    */
   searchByPrefix(fullQuery: string, pageSize = 10): Observable<any[]> {
-    let params = new HttpParams().set('PageNumber', 1).set('PageSize', pageSize);
+    let params = new HttpParams().set('PageNo', 1).set('PageSize', pageSize);
 
     if (fullQuery.startsWith('ref:id:')) {
       const id = fullQuery.replace('ref:id:', '').trim();

@@ -28,5 +28,10 @@ import { Component, Input } from '@angular/core';
 export class LoadingSkeletonComponent {
   @Input() count = 12;
   @Input() cols = 6;
-  get items() { return Array(this.count).fill(0); }
+  // Coerce: count can arrive as a string (e.g. pageSize hydrated from stored/server
+  // prefs). Array('20') → 1 phần tử, nên ép về số nguyên dương, fallback 12.
+  get items() {
+    const n = Math.floor(Number(this.count));
+    return Array(n > 0 ? n : 12).fill(0);
+  }
 }

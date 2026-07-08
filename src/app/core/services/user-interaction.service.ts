@@ -59,7 +59,7 @@ export class UserInteractionService {
   getFollowing(userId: string, pageNumber = 1, pageSize = 24): Observable<{ items: any[]; totalCount: number }> {
     const params = new HttpParams()
       .set('UserId', userId)
-      .set('PageNumber', pageNumber)
+      .set('PageNo', pageNumber)
       .set('PageSize', pageSize);
     return this.http.get<any>(`${this.followBase}/filter-follow-manga`, { params }).pipe(
       map((res: any) => {
@@ -128,7 +128,7 @@ export class UserInteractionService {
     reverse: boolean = false
   ): Observable<any> {
     let params = new HttpParams()
-      .set('PageNumber', pageNo)
+      .set('PageNo', pageNo)
       .set('PageSize', pageSize)
       .set('MangaId', mangaId)
       .set('MangaName', mangaName)

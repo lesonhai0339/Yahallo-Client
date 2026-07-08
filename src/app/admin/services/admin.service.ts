@@ -15,7 +15,7 @@ export class AdminService {
   constructor(private http: HttpClient) {}
 
   getAllUsers(page = 1, pageSize = 50): Observable<any> {
-    const params = new HttpParams().set('PageNumber', page).set('PageSize', pageSize);
+    const params = new HttpParams().set('PageNo', page).set('PageSize', pageSize);
     return this.http.get(`${this.userBase}/get-all-pagination`, { params });
   }
 

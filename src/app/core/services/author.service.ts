@@ -14,13 +14,13 @@ export class AuthorService {
   }
 
   getPaginated(page = 1, pageSize = 20): Observable<any> {
-    const params = new HttpParams().set('PageNumber', page).set('PageSize', pageSize);
+    const params = new HttpParams().set('PageNo', page).set('PageSize', pageSize);
     return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
 
   filter(params: { id?: string; name?: string; countries?: number; birth?: string; lifeStatus?: number; page?: number; pageSize?: number }): Observable<any> {
     let hp = new HttpParams()
-      .set('PageNumber', params.page ?? 1)
+      .set('PageNo', params.page ?? 1)
       .set('PageSize', params.pageSize ?? 20);
     if (params.id) hp = hp.set('Id', params.id);
     if (params.name) hp = hp.set('Name', params.name);

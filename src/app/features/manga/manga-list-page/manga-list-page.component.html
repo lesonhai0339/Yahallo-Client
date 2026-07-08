@@ -35,9 +35,7 @@
     </div>
 
     <!-- Loading -->
-    <div class="page-loading" *ngIf="isLoading">
-      <div class="spinner-border" style="color:var(--accent-primary)"></div>
-    </div>
+    <app-loading-skeleton *ngIf="isLoading" [count]="pageSize" [cols]="6"></app-loading-skeleton>
 
     <!-- List View -->
     <div class="manga-list" *ngIf="!isLoading && viewMode === 'list'">

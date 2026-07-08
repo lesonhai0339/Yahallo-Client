@@ -52,13 +52,13 @@ export class MangaService {
 
   getPaginated(page: number, pageSize = 20): Observable<any> {
     const params = new HttpParams()
-      .set('PageNumber', page)
+      .set('PageNo', page)
       .set('PageSize', pageSize);
     return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
   getNewestUpdatePaginated(page: number, pageSize = 20): Observable<any> {
     const params = new HttpParams()
-      .set('PageNumber', page)
+      .set('PageNo', page)
       .set('PageSize', pageSize);
     return this.http.get(`${this.base}/lastest-updated`, { params });
   }
@@ -127,8 +127,8 @@ export class MangaService {
 
   getTopMangaPaginated(page = 1, pageSize = 20, sortBy: MangaSortBy, reverseSort: boolean): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
     const params = new HttpParams()
-      .set('pageNumber', page)  
-      .set('pageSize', pageSize)
+      .set('PageNo', page)  
+      .set('PageSize', pageSize)
       .set('sortBy', sortBy)
       .set('reverseSort', reverseSort);
     return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
@@ -169,8 +169,8 @@ export class MangaService {
 
   getPopularPaginated(page = 1, pageSize = 20): Observable<{ data: MangaSumaryDto[]; totalPages: number; totalCount: number }> {
     const params = new HttpParams()
-      .set('pageNumber', page)
-      .set('pageSize', pageSize);
+      .set('PageNo', page)
+      .set('PageSize', pageSize);
     return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
       map((res: any) => {
         const raw = res?.value ?? res;
@@ -214,8 +214,8 @@ export class MangaService {
     reverseSort = true,
   ): Observable<{ data: MangaSumaryDto[]; totalPages: number; totalCount: number }> {
     const params = new HttpParams()
-      .set('pageNumber', page)
-      .set('pageSize', pageSize)
+      .set('PageNo', page)
+      .set('PageSize', pageSize)
       .set('SortBy', sortBy)
       .set('ReverseSort', reverseSort);
     return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
@@ -279,8 +279,8 @@ export class MangaService {
 
   getLatestUpdated(page = 1, pageSize = 20): Observable<any> {
     const params = new HttpParams()
-      .set('page', page)
-      .set('pageSize', pageSize);
+      .set('PageNo', page)
+      .set('PageSize', pageSize);
     return this.http.get(`${this.base}/latest-updated`, { params });
   }
 
@@ -348,7 +348,7 @@ export class MangaService {
   ): Observable<Chapter[]> {
     return this.cache.get(`chapters:${mangaId}:${sortBy}:${reverseSort}`, CACHE_TTL.CHAPTERS, () => {
       const params = new HttpParams()
-      .set('PageNumber', 1)
+      .set('PageNo', 1)
       .set('PageSize', 1000)
       .set('MangaId', mangaId)
       .set('SortBy', sortBy)
@@ -412,8 +412,8 @@ export class MangaService {
     if (params.type != null) httpParams = httpParams.set('Type', params.type);
     if (params.countries != null) httpParams = httpParams.set('Countries', params.countries);
     if (params.level != null) httpParams = httpParams.set('Level', params.level);
-    httpParams = httpParams.set('pageNumber', params.page ?? 1);
-    httpParams = httpParams.set('pageSize', params.pageSize ?? 20);
+    httpParams = httpParams.set('PageNo', params.page ?? 1);
+    httpParams = httpParams.set('PageSize', params.pageSize ?? 20);
     return this.http.get(`${this.base}/filter-manga`, { params: httpParams })
     .pipe(map((res: any) =>{
         const tags: MangaPagination = res?.value ?? null;
@@ -430,8 +430,8 @@ export class MangaService {
     if (params.tagIds && params.tagIds.length > 0) {
       httpParams = httpParams.set('tagIds', params.tagIds.join(','));
     }
-    httpParams = httpParams.set('pageNumber', params.page ?? 1);
-    httpParams = httpParams.set('pageSize', params.pageSize ?? 50);
+    httpParams = httpParams.set('PageNo', params.page ?? 1);
+    httpParams = httpParams.set('PageSize', params.pageSize ?? 50);
     return this.http.get(`${this.base}/filter-manga-by-tags`, { params: httpParams })
     .pipe(map((res: any) =>{
         const tags: MangaPagination = res?.value ?? null;
@@ -508,8 +508,8 @@ export class MangaService {
     if (params.sortBy) httpParams =  httpParams.set('SortBy', params.sortBy);
     if (params.reverseSort) httpParams = httpParams.set('ReverseSort', params.reverseSort);
 
-    httpParams = httpParams.set('pageNumber', params.pageNo ?? 1);
-    httpParams = httpParams.set('pageSize', params.pageSize ?? 20);
+    httpParams = httpParams.set('PageNo', params.pageNo ?? 1);
+    httpParams = httpParams.set('PageSize', params.pageSize ?? 20);
     return this.http.get(`${this.base}/filter-manga`, { params: httpParams }).pipe(
       map((res: any) => {
         const raw = res?.value ?? res;
@@ -545,8 +545,8 @@ export class MangaService {
     if (params.tagIds && params.tagIds.length > 0) {
       httpParams = httpParams.set('tagIds', params.tagIds.join(','));
     }
-    httpParams = httpParams.set('pageNumber', params.page ?? 1);
-    httpParams = httpParams.set('pageSize', params.pageSize ?? 20);
+    httpParams = httpParams.set('PageNo', params.page ?? 1);
+    httpParams = httpParams.set('PageSize', params.pageSize ?? 20);
     return this.http.get(`${this.base}/filter-manga-by-tags`, { params: httpParams }).pipe(
       map((res: any) => {
         const raw = res?.value ?? res;
@@ -582,7 +582,7 @@ export class MangaService {
   getComments(mangaId: string, pageSize: number, page: number): Observable<any> {
     const params = new HttpParams()
       .set('MangaId', mangaId)
-      .set('PageNumber', page)
+      .set('PageNo', page)
       .set('PageSize', pageSize);
     return this.http.get(`${environment.commentApi}/filter-comment`, { params });
   }

@@ -21,7 +21,7 @@ export class FollowMangaService {
   getByUser(userId: string, page = 1, pageSize = 20): Observable<any> {
     const params = new HttpParams()
       .set('UserId', userId)
-      .set('PageNumber', page)
+      .set('PageNo', page)
       .set('PageSize', pageSize);
     return this.http.get(`${this.base}/filter-follow-manga`, { params });
   }
@@ -29,7 +29,7 @@ export class FollowMangaService {
   getByManga(mangaId: string, page = 1, pageSize = 20): Observable<any> {
     const params = new HttpParams()
       .set('MangaId', mangaId)
-      .set('PageNumber', page)
+      .set('PageNo', page)
       .set('PageSize', pageSize);
     return this.http.get(`${this.base}/filter-follow-manga`, { params });
   }
@@ -48,7 +48,7 @@ export class FollowMangaService {
   }
 
   getAll(page = 1, pageSize = 20): Observable<any> {
-    const params = new HttpParams().set('PageNumber', page).set('PageSize', pageSize);
+    const params = new HttpParams().set('PageNo', page).set('PageSize', pageSize);
     return this.http.get(`${this.base}/get-all-pagination`, { params });
   }
 

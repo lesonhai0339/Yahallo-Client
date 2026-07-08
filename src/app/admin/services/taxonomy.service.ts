@@ -89,7 +89,7 @@ export class TaxonomyService {
       : type === 'author' ? `${this.authorBase}/filter-author`
       : `${this.artistBase}/filter-artist`;
     let params = new HttpParams()
-      .set('PageNumber', opts.page)
+      .set('PageNo', opts.page)
       .set('PageSize', opts.pageSize);
     if (opts.name?.trim()) params = params.set('Name', opts.name.trim());
     return this.http.get<any>(url, { params }).pipe(

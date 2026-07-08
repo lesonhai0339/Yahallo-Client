@@ -150,7 +150,7 @@ export class UserSettingsService {
     if (!this.prefs.hasStored) {
       const view = parseEnum(dto.listView, VIEW_NAMES, VIEW_VALUES);
       if (view) patch.defaultView = view;
-      if (dto.pageSize != null) patch.defaultPageSize = dto.pageSize;
+      if (dto.pageSize != null) patch.defaultPageSize = Number(dto.pageSize) || 20;
     }
 
     if (Object.keys(patch).length) this.prefs.update(patch);

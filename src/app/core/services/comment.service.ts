@@ -27,7 +27,7 @@ export class CommentService {
     orderByLikeDesc?: boolean;
   }): Observable<any> {
     let hp = new HttpParams()
-      .set('PageNumber', params.page ?? 1)
+      .set('PageNo', params.page ?? 1)
       .set('PageSize', params.pageSize ?? 20);
     if (params.mangaId) hp = hp.set('MangaId', params.mangaId);
     if (params.chapterId) hp = hp.set('ChapterId', params.chapterId);
