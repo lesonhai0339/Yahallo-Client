@@ -28,6 +28,8 @@ export interface CommentData {
   showReplies?: boolean;
   userReaction?: Reaction;
   pendingReaction?: Reaction;
+  /** True khi đang chờ server trả id — UI hiển thị mờ và khoá tương tác. */
+  pending?: boolean;
 }
 
 export interface ReplyData {
@@ -51,6 +53,8 @@ export interface ReplyData {
   isDeleted: boolean;
   isEdited: boolean;
   userReaction?: Reaction;
+  /** True khi đang chờ server trả id — UI hiển thị mờ và khoá tương tác. */
+  pending?: boolean;
 }
 
 /** Reply top-level kèm các reply con (lồng tối đa 1 cấp theo replyToCommentId). */

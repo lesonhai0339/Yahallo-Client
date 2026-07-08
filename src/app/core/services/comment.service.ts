@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { CacheService, CACHE_TTL } from './cache.service';
 
@@ -14,6 +14,18 @@ export class CommentService {
   /** Xóa cache danh sách comment (mọi trang) sau khi thêm/sửa/xóa comment. */
   private invalidateComments(): void {
     this.cache.invalidate('manga-comments:');
+  }
+
+  /**
+   * Rút commentId từ response của /create. Backend giờ trả về id của comment vừa
+   * tạo (thay cho chuỗi "success"/"failed" cũ), nhưng có thể ở nhiều dạng bao bọc:
+   *   { value: { id } } | { value: "<id>" } | { id } | "<id>"
+   * Trả '' nếu không tìm thấy id hợp lệ để caller tự xử lý fallback.
+   */
+  private extractCommentId(res: any): string {
+    if (typeof res === 'string') return res;
+    if (typeof res?.value === 'string') return res.value;
+    return res?.value?.id ?? res?.data?.id ?? res?.id ?? '';
   }
 
   filter(params: {
@@ -54,7 +66,8 @@ export class CommentService {
     return this.filter({ mangaId, chapterId , pageSize: 50 });
   }
 
-  createComment(userId: string, mangaId: string, message: string, type: number , commentToUserId = '', chapterId = '', parentId = '', replyCommentId = ''): Observable<any> {
+  /** Tạo comment; trả về commentId vừa tạo (chuỗi rỗng nếu backend không trả id). */
+  createComment(userId: string, mangaId: string, message: string, type: number , commentToUserId = '', chapterId = '', parentId = '', replyCommentId = ''): Observable<string> {
     const form = new FormData();
     form.append('UserId', userId);
     form.append('MangaId', mangaId);
@@ -64,11 +77,13 @@ export class CommentService {
     if (parentId) form.append('ParentId', parentId);
     if (replyCommentId) form.append('ReplyCommentId', replyCommentId);
     if(commentToUserId) form.append('CommentToUserId', commentToUserId);
-    return this.http.post(`${this.base}/create`, form)
-      .pipe(tap(() => this.invalidateComments()));
+    return this.http.post(`${this.base}/create`, form).pipe(
+      tap(() => this.invalidateComments()),
+      map(res => this.extractCommentId(res)),
+    );
   }
 
-  createChapterComment(userId: string, mangaId: string, chapterId: string, message: string): Observable<any> {
+  createChapterComment(userId: string, mangaId: string, chapterId: string, message: string): Observable<string> {
     return this.createComment(userId, mangaId, message, 2, '', chapterId, '', '');
   }
 
@@ -89,7 +104,8 @@ export class CommentService {
     return this.filter({ parentId: commentId, pageSize: 50 });
   }
 
-  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, replyCommentId = '', mangaId = '', chapterId = ''): Observable<any> {
+  /** Tạo reply; trả về commentId của reply vừa tạo. */
+  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, replyCommentId = '', mangaId = '', chapterId = ''): Observable<string> {
     return this.createComment(userId, mangaId, message, type, commentToUserId, chapterId, parentId, replyCommentId);
   }
 

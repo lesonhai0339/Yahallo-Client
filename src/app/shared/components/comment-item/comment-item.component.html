@@ -1,4 +1,4 @@
-<div class="comment-item" [class.is-reply]="isReply" [class.deleted]="isDeleted">
+<div class="comment-item" [class.is-reply]="isReply" [class.deleted]="isDeleted" [class.pending]="comment.pending">
 
   <!-- Avatar -->
   <div class="comment-avatar">
@@ -142,10 +142,10 @@
       <!-- Reply list (lồng 1 cấp theo replyToCommentId) -->
       <div class="replies-list" *ngIf="comment.showReplies && comment.replies?.length">
         <ng-container *ngFor="let node of threadedReplies">
-          <div class="reply-item">
+          <div class="reply-item" [class.pending]="node.reply.pending">
             <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: node.reply }"></ng-container>
           </div>
-          <div class="reply-item reply-child" *ngFor="let child of node.children">
+          <div class="reply-item reply-child" *ngFor="let child of node.children" [class.pending]="child.pending">
             <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: child }"></ng-container>
           </div>
         </ng-container>

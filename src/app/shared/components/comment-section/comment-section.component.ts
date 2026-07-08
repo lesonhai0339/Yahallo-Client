@@ -117,42 +117,60 @@ export class CommentSectionComponent implements OnInit {
     if (!text.trim()) return;
 
     const uid = this.currentUser!.id;
+
+    // Optimistic: hiện ngay comment ở trạng thái pending (mờ, khoá tương tác) với
+    // id tạm. Chỉ khi server trả commentId thật mới gán id + mở khoá; lỗi thì gỡ.
+    const newComment: CommentData = {
+      id: '',
+      idUser: this.currentUser!.id,
+      displayName: this.currentUser!.name,
+      avatar: this.currentUser!.avatar,
+      commentData: text,
+      dateComment: new Date().toISOString(),
+      chapterId: this.chapterId,
+      chapterName: undefined,
+      likeCount: 0,
+      dislikeCount: 0,
+      isDeleted: false,
+      isEdited: false,
+      replyCount: 0,
+      replies: [],
+      repliesLoaded: true,
+      showReplies: false,
+      userReaction: null,
+      pending: true,
+    };
+    this.comments.unshift(newComment);
+    this.totalCount++;
+    this.quotedAuthor = '';
+    this.quotedText = '';
+
     const create$ = this.chapterId
       ? this.commentService.createChapterComment(uid, this.mangaId, this.chapterId, text)
       : this.commentService.createComment(uid, this.mangaId, text, 1);
 
     create$.subscribe({
-      next: (res: any) => {
-        // Server trả JsonResponse<ResponseResult<string>> → id thật ở res.value.id.
-        // Phải gán đúng để reply ngay sau đó dùng làm ParentId/ReplyCommentId.
-        const newId = res?.value?.id ?? res?.id;
-        const newComment: CommentData = {
-          id: newId ?? String(Date.now()),
-          idUser: this.currentUser!.id,
-          displayName: this.currentUser!.name,
-          avatar: this.currentUser!.avatar,
-          commentData: text,
-          dateComment: new Date().toISOString(),
-          chapterId: this.chapterId,
-          chapterName: undefined,
-          likeCount: 0,
-          dislikeCount: 0,
-          isDeleted: false,
-          isEdited: false,
-          replyCount: 0,
-          replies: [],
-          repliesLoaded: true,
-          showReplies: false,
-          userReaction: null,
-        };
-        this.comments.unshift(newComment);
-        this.totalCount++;
-        this.quotedAuthor = '';
-        this.quotedText = '';
+      next: (newId: string) => {
+        if (!newId) { this.rollbackComment(newComment); return; }
+        // Gán id thật để reply ngay sau đó dùng làm ParentId/ReplyCommentId.
+        newComment.id = newId;
+        newComment.pending = false;
         this.toastr.success('Đã đăng bình luận');
       },
-      error: () => this.toastr.error('Không thể đăng bình luận')
+      error: () => {
+        this.rollbackComment(newComment);
+        this.toastr.error('Không thể đăng bình luận');
+      }
     });
+  }
+
+  /** Gỡ comment optimistic khi tạo thất bại / server không trả id. */
+  private rollbackComment(c: CommentData): void {
+    const i = this.comments.indexOf(c);
+    if (i > -1) {
+      this.comments.splice(i, 1);
+      this.totalCount = Math.max(0, this.totalCount - 1);
+    }
   }
 
   // ── Quote ────────────────────────────────────────────────────────────────

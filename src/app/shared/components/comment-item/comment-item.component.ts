@@ -92,6 +92,7 @@ export class CommentItemComponent implements OnInit {
   // ── Reactions ──────────────────────────────────────────────────────────────
 
   react(type: 'like' | 'dislike'): void {
+    if (this.comment.pending) return;
     if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
     const current = this.comment.userReaction;
     if (current === type) {
@@ -212,85 +213,88 @@ export class CommentItemComponent implements OnInit {
   // ── Reply submit ───────────────────────────────────────────────────────────
 
   startReply(): void {
+    if (this.comment.pending) return;
     if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
     this.isReplying = true;
     this.isEditing = false;
   }
 
   submitReply(text: string): void {
-    if (!this.currentUser || !text.trim()) return;
+    if (!this.currentUser || !text.trim() || this.comment.pending) return;
     const prefixed = text.startsWith('@') ? text : `@${this.comment.displayName} ${text}`;
     // trả lời trực tiếp comment gốc: ParentId = root, ReplyCommentId = root
+    const newReply = this.pushPendingReply(prefixed, this.comment.displayName, this.comment.id);
+    this.isReplying = false;
     this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, this.comment.idUser, this.comment.id, this.mangaId).subscribe({
-      next: (res: any) => {
-        // id thật ở res.value.id (JsonResponse<ResponseResult<string>>).
-        const newReply: ReplyData = {
-          id: res?.value?.id ?? res?.id ?? String(Date.now()),
-          idUser: this.currentUser!.id,
-          name: this.currentUser!.name,
-          avatar: this.currentUser!.avatar,
-          data: prefixed,
-          date: new Date().toISOString(),
-          namereply: this.comment.displayName,
-          replyToCommentId: this.comment.id,
-          likeCount: 0,
-          dislikeCount: 0,
-          isDeleted: false,
-          isEdited: false,
-          userReaction: null,
-        };
-        if (!this.comment.replies) this.comment.replies = [];
-        this.comment.replies.push(newReply);
-        this.comment.repliesLoaded = true;
-        this.comment.showReplies = true;
-        this.comment.replyCount = (this.comment.replyCount ?? 0) + 1;
-        this.isReplying = false;
-        this.rebuildThread();
-        this.toastr.success('Đã gửi trả lời');
-      },
-      error: () => this.toastr.error('Không thể gửi trả lời')
+      next: (newId: string) => this.confirmReply(newReply, newId),
+      error: () => this.rollbackReply(newReply, 'Không thể gửi trả lời'),
     });
+  }
+
+  /** Dựng reply optimistic (pending) và chèn vào cây, trả về reference để confirm/rollback. */
+  private pushPendingReply(data: string, namereply: string, replyToCommentId: string): ReplyData {
+    const newReply: ReplyData = {
+      id: '',
+      idUser: this.currentUser!.id,
+      name: this.currentUser!.name,
+      avatar: this.currentUser!.avatar,
+      data,
+      date: new Date().toISOString(),
+      namereply,
+      replyToCommentId,
+      likeCount: 0,
+      dislikeCount: 0,
+      isDeleted: false,
+      isEdited: false,
+      userReaction: null,
+      pending: true,
+    };
+    if (!this.comment.replies) this.comment.replies = [];
+    this.comment.replies.push(newReply);
+    this.comment.repliesLoaded = true;
+    this.comment.showReplies = true;
+    this.comment.replyCount = (this.comment.replyCount ?? 0) + 1;
+    this.rebuildThread();
+    return newReply;
+  }
+
+  /** Server đã trả id → gán id thật + mở khoá tương tác; không có id thì gỡ. */
+  private confirmReply(reply: ReplyData, newId: string): void {
+    if (!newId) { this.rollbackReply(reply, 'Không thể gửi trả lời'); return; }
+    reply.id = newId;
+    reply.pending = false;
+    this.toastr.success('Đã gửi trả lời');
+  }
+
+  /** Gỡ reply optimistic khi tạo thất bại / server không trả id. */
+  private rollbackReply(reply: ReplyData, message: string): void {
+    const list = this.comment.replies ?? [];
+    const i = list.indexOf(reply);
+    if (i > -1) {
+      list.splice(i, 1);
+      this.comment.replyCount = Math.max(0, (this.comment.replyCount ?? 1) - 1);
+      this.rebuildThread();
+    }
+    this.toastr.error(message);
   }
 
   // ── Reply to a reply (Model A: ParentId vẫn là root, chỉ đổi CommentToUserId) ─
 
   startReplyToChild(reply: ReplyData): void {
+    if (reply.pending) return;
     if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
     this.replyingToId = reply.id;
   }
 
   submitChildReply(reply: ReplyData, text: string): void {
-    if (!this.currentUser || !text.trim()) return;
+    if (!this.currentUser || !text.trim() || reply.pending) return;
     const prefixed = text.startsWith('@') ? text : `@${reply.name} ${text}`;
     // ParentId = root (giữ thread phẳng); ReplyCommentId = đúng reply được trả lời; CommentToUserId = tác giả reply
+    const newReply = this.pushPendingReply(prefixed, reply.name, reply.id);
+    this.replyingToId = null;
     this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, reply.idUser, reply.id, this.mangaId).subscribe({
-      next: (res: any) => {
-        // id thật ở res.value.id (JsonResponse<ResponseResult<string>>).
-        const newReply: ReplyData = {
-          id: res?.value?.id ?? res?.id ?? String(Date.now()),
-          idUser: this.currentUser!.id,
-          name: this.currentUser!.name,
-          avatar: this.currentUser!.avatar,
-          data: prefixed,
-          date: new Date().toISOString(),
-          namereply: reply.name,
-          replyToCommentId: reply.id,
-          likeCount: 0,
-          dislikeCount: 0,
-          isDeleted: false,
-          isEdited: false,
-          userReaction: null,
-        };
-        if (!this.comment.replies) this.comment.replies = [];
-        this.comment.replies.push(newReply);
-        this.comment.repliesLoaded = true;
-        this.comment.showReplies = true;
-        this.comment.replyCount = (this.comment.replyCount ?? 0) + 1;
-        this.replyingToId = null;
-        this.rebuildThread();
-        this.toastr.success('Đã gửi trả lời');
-      },
-      error: () => this.toastr.error('Không thể gửi trả lời')
+      next: (newId: string) => this.confirmReply(newReply, newId),
+      error: () => this.rollbackReply(newReply, 'Không thể gửi trả lời'),
     });
   }
 
@@ -304,6 +308,7 @@ export class CommentItemComponent implements OnInit {
   // ── Edit ──────────────────────────────────────────────────────────────────
 
   startEdit(): void {
+    if (this.comment.pending) return;
     this.isEditing = true;
     this.isReplying = false;
   }
@@ -322,7 +327,7 @@ export class CommentItemComponent implements OnInit {
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
-  confirmDelete(): void { this.showConfirmDelete = true; }
+  confirmDelete(): void { if (this.comment.pending) return; this.showConfirmDelete = true; }
   cancelDelete(): void { this.showConfirmDelete = false; }
 
   executeDelete(): void {
@@ -340,6 +345,7 @@ export class CommentItemComponent implements OnInit {
   // ── Reply reactions ────────────────────────────────────────────────────────
 
   reactToReply(reply: ReplyData, type: 'like' | 'dislike'): void {
+    if (reply.pending) return;
     if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
     const current = reply.userReaction;
     if (current === type) {
@@ -356,6 +362,7 @@ export class CommentItemComponent implements OnInit {
   }
 
   deleteReply(reply: ReplyData): void {
+    if (reply.pending) return;
     this.commentService.deleteReply(reply.id).subscribe(() => {
       reply.isDeleted = true;
       reply.data = DELETED_MARKER;
