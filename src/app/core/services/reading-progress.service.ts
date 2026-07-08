@@ -37,8 +37,8 @@ export class ReadingProgressService {
     return this.http.post(`${this.base}/save`, payload);
   }
 
-  get(userId: string, mangaId?: string): Observable<ReadingProgress[]> {
-    const params: any = { userId };
+  get(mangaId?: string): Observable<ReadingProgress[]> {
+    const params: any = {};
     if (mangaId) params['mangaId'] = mangaId;
     return this.http.get<ReadingProgress[]>(`${this.base}/get`, { params });
   }
@@ -132,7 +132,7 @@ export class ReadingProgressService {
   sync(userId: string): Observable<SyncResult> {
     if (!userId || this.prefs.current.readProgressMode === 'off') return of('skipped');
 
-    return this.get(userId).pipe(
+    return this.get().pipe(
       switchMap(serverList => {
         const serverMap = this.fromServer(serverList || []);
         const local = this.prune(this.readMap());
