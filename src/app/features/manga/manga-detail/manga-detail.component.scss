@@ -141,6 +141,13 @@
   .info-label { color: var(--text-muted); min-width: 120px; flex-shrink: 0; }
   .info-value { color: var(--text-primary); }
 
+  .person-link {
+    color: var(--accent-primary, #e94560);
+    text-decoration: none;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+
   &--end {
     .info-value { margin-left: 0; }
   }

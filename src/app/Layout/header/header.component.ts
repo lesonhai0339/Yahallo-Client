@@ -1,20 +1,15 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subject, of, debounceTime, distinctUntilChanged, switchMap, takeUntil, finalize } from 'rxjs';
+import { Subject, of, timer, debounce, distinctUntilChanged, switchMap, takeUntil, finalize, catchError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { MangaService } from '../../core/services/manga.service';
+import { SearchService, SuggestType, SuggestResult } from '../../core/services/search.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { UserInteractionService } from '../../core/services/user-interaction.service';
 import { TranslationService, SupportedLang } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { AdminStateService } from '../../admin/services/admin-state.service';
 import { MasterDataService } from '../../core/services/master-data.service';
-import { User, Tag, Manga } from '../../core/models/interfaces';
-
-interface RecommendItem {
-  id: string;
-  name: string;
-}
+import { User } from '../../core/models/interfaces';
 
 export interface SearchPrefix {
   prefix: string;
@@ -55,14 +50,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
   notifications: any[] = [];
   unreadCount = 0;
   categories: any[] = [];
-  tags: Tag[] = [];
-  authors: RecommendItem[] = [];
-  artists: RecommendItem[] = [];
 
-  showRecommend = false;
-  recommendList: RecommendItem[] = [];
-  recommendIndex = -1;
-
+  // Search type (tier 2 của Manga). Mọi type đều gọi suggest và trả về MANGA:
+  // - name  → manga theo tên
+  // - tag    → manga có tag (theo tên tag, startsWith)
+  // - author → manga của tác giả (theo tên, startsWith)
+  // - artist → manga của hoạ sĩ (theo tên, startsWith)
   readonly prefixOptions: SearchPrefix[] = [
     { prefix: 'tag:',    label: 'SEARCH.PREFIX_TAG',    icon: 'fa-solid fa-tags',    hint: 'SEARCH.PREFIX_TAG_HINT' },
     { prefix: 'name:',   label: 'SEARCH.PREFIX_NAME',   icon: 'fa-solid fa-book',    hint: 'SEARCH.PREFIX_NAME_HINT' },
@@ -86,13 +79,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
     return `https://flagcdn.com/h20/${this.langLabels[lang].iso}.png`;
   }
 
+  /** Ảnh mặc định khi manga suggest không kèm thumbnailUrl. */
+  private static readonly DEFAULT_THUMB = '/assets/noresult.png';
+
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
-  private _skipInput = false;
 
   constructor(
     private auth: AuthService,
-    private mangaService: MangaService,
+    private searchService: SearchService,
     private notifService: NotificationService,
     private userInteraction: UserInteractionService,
     public translation: TranslationService,
@@ -121,47 +116,32 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.notifService.unreadCount.pipe(takeUntil(this.destroy$)).subscribe(c => this.unreadCount = c);
     this.notifService.notifications.pipe(takeUntil(this.destroy$)).subscribe(n => this.notifications = n.slice(0, 8));
 
-    this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => {
-      this.categories = c;
-      this.refreshRecommendIfActive();
-    });
-    this.masterData.tags$.pipe(takeUntil(this.destroy$)).subscribe(t => {
-      this.tags = t;
-      this.refreshRecommendIfActive();
-    });
-    this.masterData.authors$.pipe(takeUntil(this.destroy$)).subscribe(a => {
-      this.authors = a;
-      this.refreshRecommendIfActive();
-    });
-    this.masterData.artists$.pipe(takeUntil(this.destroy$)).subscribe(a => {
-      this.artists = a;
-      this.refreshRecommendIfActive();
-    });
+    // Categories cho mega-menu "Thể loại" ở nav (không liên quan search).
+    this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => this.categories = c);
 
+    // Header search: mọi type đều gọi /services/search/suggest (startsWith) và
+    // đều trả về MANGA. Author/artist search tức thì (0ms), còn lại đợi 0.5s.
     this.searchSubject.pipe(
-      debounceTime(200),
+      debounce(() => timer(this.isInstantSuggest ? 0 : 500)),
       distinctUntilChanged(),
-      switchMap(q => {
+      switchMap(() => {
         const keyword = this.getSearchKeyword();
         if (keyword.length === 0) {
           this.isSearchLoading = false;
           this.hasSearched = false;
           this.searchResults = [];
-          return of([]);
+          return of({ data: [] as SuggestResult[], totalCount: 0 });
         }
         this.isSearchLoading = true;
-        return this.searchByPrefix(q).pipe(
+        return this.searchService.suggest(keyword, this.currentSuggestType(), 10).pipe(
+          catchError(() => of({ data: [] as SuggestResult[], totalCount: 0 })),
           finalize(() => this.isSearchLoading = false)
         );
       }),
       takeUntil(this.destroy$)
-    ).subscribe((results: any) => {
-      if (Array.isArray(results)) {
-        this.searchResults = results;
-      } else {
-        this.searchResults = (results.data ?? []).slice(0, 6);
-        this.searchTotalCount = results.totalCount || 0;
-      }
+    ).subscribe((res: { data: SuggestResult[]; totalCount: number }) => {
+      this.searchResults = res.data.map(r => this.toResultItem(r));
+      this.searchTotalCount = res.totalCount;
       this.hasSearched = true;
     });
   }
@@ -193,7 +173,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onSearchInput(): void {
-    if (this._skipInput) { this._skipInput = false; return; }
     const q = this.searchQuery.trim().toLowerCase();
 
     if (!this.selectedPrefix) {
@@ -203,21 +182,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.showPrefixHints = true;
         this.filteredPrefixOptions = [];
         this.highlightedPrefixIndex = this.prefixOptions.indexOf(exactPrefix);
-        this.searchResults = [];
-        this.isSearchLoading = false;
-        this.hasSearched = false;
+        this.resetResults();
         return;
       }
 
       const matchingPrefixes = this.getMatchingPrefixes(q);
-
       if (matchingPrefixes.length > 0) {
         this.showPrefixHints = true;
         this.filteredPrefixOptions = matchingPrefixes;
         this.highlightedPrefixIndex = 0;
-        this.searchResults = [];
-        this.isSearchLoading = false;
-        this.hasSearched = false;
+        this.resetResults();
         return;
       }
 
@@ -225,9 +199,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.showPrefixHints = true;
         this.filteredPrefixOptions = [];
         this.highlightedPrefixIndex = 0;
-        this.searchResults = [];
-        this.isSearchLoading = false;
-        this.hasSearched = false;
+        this.resetResults();
         return;
       }
     }
@@ -236,23 +208,22 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.filteredPrefixOptions = [];
     this.highlightedPrefixIndex = -1;
 
-    if (this.hasRecommendSource) {
-      this.updateRecommend(this.searchQuery.trim().toLowerCase());
+    const keyword = this.getSearchKeyword();
+    if (keyword.length === 0) {
+      this.resetResults();
+      this.highlightedResultIndex = -1;
       return;
     }
 
-    this.hideRecommend();
-    const keyword = this.getSearchKeyword();
-    if (keyword.length > 0) {
-      this.isSearchLoading = true;
-      this.highlightedResultIndex = 0;
-    } else {
-      this.searchResults = [];
-      this.isSearchLoading = false;
-      this.hasSearched = false;
-      this.highlightedResultIndex = -1;
-    }
+    this.isSearchLoading = true;
+    this.highlightedResultIndex = 0;
     this.searchSubject.next(this.searchQuery);
+  }
+
+  private resetResults(): void {
+    this.searchResults = [];
+    this.isSearchLoading = false;
+    this.hasSearched = false;
   }
 
   onSearchKeyDown(event: KeyboardEvent): void {
@@ -277,25 +248,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.showRecommend && this.recommendList.length > 0) {
-      switch (event.key) {
-        case 'ArrowDown':
-          event.preventDefault();
-          this.recommendIndex = Math.min(this.recommendIndex + 1, this.recommendList.length - 1);
-          return;
-        case 'ArrowUp':
-          event.preventDefault();
-          this.recommendIndex = Math.max(this.recommendIndex - 1, 0);
-          return;
-        case 'Enter':
-          event.preventDefault();
-          if (this.recommendIndex >= 0 && this.recommendList[this.recommendIndex]) {
-            this.selectRecommendItem(this.recommendList[this.recommendIndex]);
-          }
-          return;
-      }
-    }
-
     if (this.searchResults.length > 0) {
       switch (event.key) {
         case 'ArrowDown':
@@ -309,9 +261,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
         case 'Enter':
           event.preventDefault();
           if (this.highlightedResultIndex >= 0 && this.searchResults[this.highlightedResultIndex]) {
-            this.goToManga(this.searchResults[this.highlightedResultIndex]);
+            this.goToResult(this.searchResults[this.highlightedResultIndex]);
           } else {
-            this.submitSearch();
+            this.goToAdvancedSearch();
           }
           return;
       }
@@ -325,7 +277,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.submitSearch();
+      this.goToAdvancedSearch();
     }
 
     if (event.key === 'Backspace' && !this.searchQuery && this.selectedPrefix) {
@@ -340,15 +292,48 @@ export class HeaderComponent implements OnInit, OnDestroy {
     );
   }
 
-  private getSearchKeyword(): string {
-    const q = this.searchQuery.trim();
-    if (this.selectedPrefix) return q;
-    for (const opt of this.prefixOptions) {
-      if (q.toLowerCase().startsWith(opt.prefix)) {
-        return q.slice(opt.prefix.length).trim();
-      }
+  /**
+   * Chỉ nhận DUY NHẤT 1 search type: tiền tố đứng đầu query (hoặc prefix đang
+   * chọn). Query kiểu `tag:name:...` chỉ tách `tag:`, phần còn lại là keyword.
+   */
+  private resolvePrefix(fullQuery: string): { prefix: SearchPrefix | null; keyword: string } {
+    if (this.selectedPrefix) {
+      return { prefix: this.selectedPrefix, keyword: (fullQuery ?? '').trim() };
     }
-    return q;
+    const q = (fullQuery ?? '').trim();
+    const match = this.prefixOptions.find(o => q.toLowerCase().startsWith(o.prefix));
+    if (match) {
+      return { prefix: match, keyword: q.slice(match.prefix.length).trim() };
+    }
+    return { prefix: null, keyword: q };
+  }
+
+  private getSearchKeyword(): string {
+    return this.resolvePrefix(this.searchQuery).keyword;
+  }
+
+  /** Chỉ search tức thì khi user đã chủ động chọn type author/artist. */
+  private get isInstantSuggest(): boolean {
+    const p = this.selectedPrefix?.prefix;
+    return p === 'author:' || p === 'artist:';
+  }
+
+  /** Map prefix đang active → SuggestType cho API suggest. */
+  private currentSuggestType(): SuggestType {
+    switch (this.resolvePrefix(this.searchQuery).prefix?.prefix) {
+      case 'tag:': return SuggestType.Tag;
+      case 'author:': return SuggestType.Author;
+      case 'artist:': return SuggestType.Artist;
+      default: return SuggestType.Manga; // name: hoặc không có prefix
+    }
+  }
+
+  /** SuggestResult luôn là manga → shape cho list kết quả. */
+  private toResultItem(r: SuggestResult): any {
+    const thumb = r.thumbnailUrl && r.thumbnailUrl.trim()
+      ? r.thumbnailUrl
+      : HeaderComponent.DEFAULT_THUMB;
+    return { id: r.id, displayName: r.name, mangaThumbnail: thumb };
   }
 
   togglePrefixHints(): void {
@@ -360,9 +345,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.showPrefixHints = false;
     this.searchResults = [];
-    if (this.hasRecommendSource) {
-      this.updateRecommend('');
-    }
     setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
   }
 
@@ -370,7 +352,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.selectedPrefix = null;
     this.searchResults = [];
     this.hasSearched = false;
-    this.hideRecommend();
+    setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
+  }
+
+  openSearch(): void {
+    this.isSearchOpen = true;
+    // Ô input được *ngIf render sau khi isSearchOpen = true → focus ở macrotask kế.
     setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
   }
 
@@ -383,141 +370,38 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.selectedPrefix = null;
     this.searchQuery = '';
     this.searchTotalCount = 0;
-    this.hideRecommend();
   }
 
   get activePrefixOption(): SearchPrefix | null {
     return this.selectedPrefix || this.prefixOptions.find(o => this.searchQuery.startsWith(o.prefix)) || null;
   }
 
-  submitSearch(): void {
-    if (!this.searchQuery.trim()) return;
-    this.showPrefixHints = false;
-    this.isSearchLoading = true;
-    this.searchByPrefix(this.searchQuery).pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.isSearchLoading = false)
-    ).subscribe(results => {
-      this.searchResults = (results.data as Manga[]).slice(0, 6);
-      this.searchTotalCount = results.totalCount || 0;
-      this.hasSearched = true;
-    });
-  }
-
-  private searchByPrefix(fullQuery: string) {
-    const effectiveQuery = this.selectedPrefix ? this.selectedPrefix.prefix + fullQuery : fullQuery;
-    const tagMatch = effectiveQuery.match(/^tag:(.+)/i);
-    const nameMatch = effectiveQuery.match(/^name:(.+)/i);
-    const authorMatch = effectiveQuery.match(/^author:(.+)/i);
-    const artistMatch = effectiveQuery.match(/^artist:(.+)/i);
-
-    if (tagMatch) {
-      const tagName = tagMatch[1].trim();
-      const tag = this.tags.find((t: Tag) => t.name.toLowerCase().includes(tagName.toLowerCase()));
-      if (tag) {
-          return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 10, tagIds: [tag.id]})
-
-        //return this.mangaService.getByCategories([tag.id]);
-      }
-      const catTag = this.categories.find((c: any) => c.genresIdName.toLowerCase().includes(tagName.toLowerCase()));
-      if (catTag) {
-        return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 10, tagIds: [catTag.genreId]})
-
-        //return this.mangaService.getByCategories([catTag.genreId]);
-      }
-      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, name: tagName})
-      //return this.mangaService.filter({ name: tagName, pageSize: 6 });
-    }
-
-    if (nameMatch) {
-      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, name: nameMatch[1].trim()})
-      //return this.mangaService.filter({ name: nameMatch[1].trim(), pageSize: 6 });
-    }
-    if(authorMatch)
-    {
-      const name = authorMatch[1].trim();
-      const author = this.authors.find(x => x.name.trim() == name);
-      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, authorId: author?.id})
-    }
-
-    if(artistMatch)
-    {
-      const name = artistMatch[1].trim();
-      const artist = this.artists.find(x => x.name.trim() == name);
-      return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, artistId: artist?.id})
-    }
-    return  this.mangaService.filterPaginated({pageNo: 1, pageSize: 6, name: fullQuery.trim()})
-    //return this.mangaService.filter({ name: fullQuery.trim(), pageSize: 6 });
-  }
-
-  // ── Recommend (tag / author / artist) ───────────────────────────────────────
-
-  get hasRecommendSource(): boolean {
-    const p = this.selectedPrefix?.prefix;
-    return p === 'tag:' || p === 'author:' || p === 'artist:';
-  }
-
-  get recommendTitleKey(): string {
-    switch (this.selectedPrefix?.prefix) {
-      case 'tag:': return 'SEARCH.TAG_SUGGEST';
-      case 'author:': return 'SEARCH.AUTHOR_SUGGEST';
-      case 'artist:': return 'SEARCH.ARTIST_SUGGEST';
-      default: return '';
-    }
-  }
-
-  get recommendIcon(): string {
-    return this.selectedPrefix?.icon ?? 'fa-solid fa-tags';
-  }
-
-  private get recommendSource(): RecommendItem[] {
-    switch (this.selectedPrefix?.prefix) {
-      case 'tag:':
-        const catItems: RecommendItem[] = this.categories.map((c: any) => ({ id: c.genreId, name: c.genresIdName }));
-        return [...this.tags, ...catItems];
-      case 'author:': return this.authors;
-      case 'artist:': return this.artists;
-      default: return [];
-    }
-  }
-
-  private refreshRecommendIfActive(): void {
-    if (this.showRecommend && this.hasRecommendSource) {
-      this.updateRecommend(this.searchQuery.trim().toLowerCase());
-    }
-  }
-
-  private updateRecommend(query: string): void {
-    const source = this.recommendSource;
-    this.recommendList = !query ? source : source.filter(item => item.name.toLowerCase().includes(query));
-    this.showRecommend = true;
-    this.recommendIndex = this.recommendList.length > 0 ? 0 : -1;
-  }
-
-  private hideRecommend(): void {
-    this.showRecommend = false;
-    this.recommendList = [];
-    this.recommendIndex = -1;
-  }
-
-  selectRecommendItem(item: RecommendItem): void {
-    this._skipInput = true;
-    this.searchQuery = item.name;
-    this.hideRecommend();
-    setTimeout(() => this.submitSearch());
-  }
-
-  goToManga(item: Manga): void {
+  /** Kết quả suggest luôn là manga → mở trang chi tiết manga. */
+  goToResult(item: any): void {
     this.router.navigate(['/manga', item.id]);
     this.closeSearch();
   }
 
+  /**
+   * Chỉ hiện dòng "N kết quả trùng khớp" khi CÒN kết quả chưa show (total > số
+   * item đang hiển thị). Click sẽ sang advanced search (lọc theo contains).
+   */
+  get showSeeMore(): boolean {
+    return this.searchTotalCount > this.searchResults.length;
+  }
+
+  get matchCount(): number {
+    return this.searchTotalCount || this.searchResults.length;
+  }
+
   goToAdvancedSearch(): void {
-    const q = this.searchQuery;
-    const prefix = this.selectedPrefix?.prefix?.replace(':', '') || '';
+    // Chuyển sang advanced search, lọc đúng loại đã chọn. Tính trước khi close.
+    const { prefix, keyword } = this.resolvePrefix(this.searchQuery);
+    const prefixName = prefix?.prefix?.replace(':', '') || '';
+    if (!keyword) { return; }
     this.closeSearch();
-    const queryParams: any = { q };
-    if (prefix) queryParams.prefix = prefix;
+    const queryParams: any = { q: keyword };
+    if (prefixName) queryParams.prefix = prefixName;
     this.router.navigate(['/search/advanced'], { queryParams });
   }
 

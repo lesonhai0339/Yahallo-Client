@@ -201,6 +201,9 @@ $header-height: 60px;
 
     input {
       flex: 1;
+      // Cho phép input co lại khi có prefix badge / tag chip, nếu không min-content
+      // của input (placeholder dài) sẽ đẩy .clear-btn tràn ra ngoài & bị cắt.
+      min-width: 0;
       background: none;
       border: none;
       outline: none;
@@ -347,55 +350,6 @@ $header-height: 60px;
       font-size: 0.7rem;
       color: var(--text-muted);
       font-family: monospace;
-    }
-  }
-
-  .header-recommend {
-    &__header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 14px 6px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-
-      i { font-size: 0.75rem; color: var(--accent-primary); }
-    }
-
-    &__items {
-      max-height: 280px;
-      overflow-y: auto;
-
-      &::-webkit-scrollbar { width: 4px; }
-      &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
-    }
-
-    &__item {
-      padding: 8px 14px;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      cursor: pointer;
-      border-bottom: 1px solid var(--border-color);
-      border-left: 3px solid transparent;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
-
-      &:last-child { border-bottom: none; }
-
-      &:hover {
-        border-left-color: var(--border-light);
-        color: var(--text-primary);
-        background: var(--icon-btn-bg);
-      }
-
-      &--hl {
-        border-left-color: #4287f5 !important;
-        color: #4287f5 !important;
-        background: rgba(66, 135, 245, 0.06);
-        font-weight: 500;
-      }
     }
   }
 

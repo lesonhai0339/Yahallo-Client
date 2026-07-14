@@ -75,11 +75,21 @@
             <div class="info-grid">
               <div class="info-row">
                 <span class="info-label"><i class="fa-solid fa-user-pen me-2"></i>{{ 'MANGA.AUTHOR' | translate }}</span>
-                <span class="info-value">{{ authorNames || ('MANGA.UNKNOWN' | translate) }}</span>
+                <span class="info-value" *ngIf="manga?.authors?.length; else noAuthor">
+                  <ng-container *ngFor="let a of manga.authors; let last = last">
+                    <a class="person-link" [routerLink]="['/author', a.id]">{{ a.name }}</a><span *ngIf="!last">, </span>
+                  </ng-container>
+                </span>
+                <ng-template #noAuthor><span class="info-value">{{ 'MANGA.UNKNOWN' | translate }}</span></ng-template>
               </div>
               <div class="info-row">
                 <span class="info-label"><i class="fa-solid fa-pen-nib me-2"></i>{{ 'MANGA.ARTIST' | translate }}</span>
-                <span class="info-value">{{ artistNames || ('MANGA.UNKNOWN' | translate) }}</span>
+                <span class="info-value" *ngIf="manga?.artists?.length; else noArtist">
+                  <ng-container *ngFor="let a of manga.artists; let last = last">
+                    <a class="person-link" [routerLink]="['/artist', a.id]">{{ a.name }}</a><span *ngIf="!last">, </span>
+                  </ng-container>
+                </span>
+                <ng-template #noArtist><span class="info-value">{{ 'MANGA.UNKNOWN' | translate }}</span></ng-template>
               </div>
               <div class="info-row">
                 <span class="info-label"><i class="fa-solid fa-circle-dot me-2"></i>{{ 'MANGA.STATUS' | translate }}</span>

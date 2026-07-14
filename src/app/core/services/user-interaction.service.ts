@@ -83,7 +83,7 @@ export class UserInteractionService {
     return this.http.get(`${this.followBase}/filter-follow-manga`, { params });
   }
 
-  rate(mangaId: string, userId: string, star: number): Observable<any> {
+  rate(mangaId: string, userId: string, star: number): Observable<string> {
     // Backend CreateRatingCommand is now generic over target type:
     // { TargetId, UserId, RatingTo, Rating }. For a manga rating, RatingTo = Manga.
     const body = {
@@ -92,8 +92,11 @@ export class UserInteractionService {
       RatingTo: RatingTarget.Manga,
       Rating: star
     };
-    return this.http.post(`${this.ratingBase}/create`, body)
-      .pipe(tap(() => this.invalidateInteraction()));
+    // Response giờ trả về id của rating vừa tạo: { value: "rating_id" }.
+    return this.http.post<any>(`${this.ratingBase}/create`, body).pipe(
+      map(res => (res?.value ?? res?.id ?? res ?? '') as string),
+      tap(() => this.invalidateInteraction())
+    );
   }
   reRate(rateId: string, selectedRating: number): Observable<any>
   {

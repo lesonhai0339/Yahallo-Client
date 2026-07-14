@@ -39,6 +39,98 @@
   &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 }
 
+// ── LEFT column: tier-1 tabs + search bar + filters ──────────────────────────
+.search-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  align-self: start; // hug content (như filter-section cũ)
+}
+
+// Tier-1 object selector — tab dính liền panel bên dưới.
+.target-tabs {
+  display: flex;
+  gap: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+.target-tab {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.06));
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+
+  i { font-size: 0.78rem; }
+  span { overflow: hidden; text-overflow: ellipsis; }
+
+  &:hover { color: var(--text-primary); }
+
+  &--active {
+    color: var(--accent-primary);
+    background: var(--bg-card);
+    border-top: 2px solid var(--accent-primary);
+    // Đè lên viền trên của panel → xoá đường ngăn giữa tab & panel (linked).
+    margin-bottom: -1px;
+    position: relative;
+    z-index: 3;
+  }
+}
+
+.search-left__panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible; // để year-dd overlay ra ngoài
+
+  // filter-section bên trong không cần card riêng nữa (panel đã là card).
+  .filter-section {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  // search-box không cần margin dưới khi nằm trong panel.
+  .search-box { margin-bottom: 0; }
+}
+
+// ── Result loại 2: info entity (tier - placeholder) ──────────────────────────
+.entity-result {
+  min-height: 240px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &__placeholder {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+
+    i { font-size: 2.4rem; color: var(--accent-primary); opacity: 0.85; }
+    h3 { margin: 14px 0 6px; font-size: 1.05rem; color: var(--text-primary); }
+    p { margin: 0; font-size: 0.9rem; }
+  }
+}
+
 // Mobile: drop the fixed-height / independent-scroll-pane model. With limited
 // viewport height the filter-section and results fight over space, so let the
 // whole page flow and scroll naturally instead.

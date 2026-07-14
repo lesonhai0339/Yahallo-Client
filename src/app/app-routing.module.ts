@@ -15,6 +15,7 @@ import { MangaListPageComponent } from './features/manga/manga-list-page/manga-l
 import { AuthGuard } from './core/guards/auth.guard';
 import { ServerErrorComponent } from './features/error/server-error.component';
 import { OfflineReaderComponent } from './features/offline-reader/offline-reader.component';
+import { PersonDetailComponent } from './features/person/person-detail/person-detail.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -27,6 +28,8 @@ const routes: Routes = [
   { path: 'popular', component: MangaListPageComponent, data: { mode: 'popular', titleKey: 'HOME.POPULAR', icon: 'fa-solid fa-chart-line' } },
   { path: 'top-manga', component: TopMangaComponent },
   { path: 'top-manga/:criterion', component: TopMangaComponent },
+  { path: 'author/:id', component: PersonDetailComponent, data: { kind: 'author' } },
+  { path: 'artist/:id', component: PersonDetailComponent, data: { kind: 'artist' } },
   { path: 'auth/login', component: LoginComponent },
   { path: 'auth/register', component: RegisterComponent },
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },

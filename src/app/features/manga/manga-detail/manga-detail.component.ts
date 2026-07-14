@@ -192,8 +192,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         });
     }
     else{
-      this.userInteraction.rate(this.mangaId, user.id, this.selectedRating).subscribe(() => {
-          this.existingRating.rating = this.selectedRating;
+      this.userInteraction.rate(this.mangaId, user.id, this.selectedRating).subscribe((ratingId) => {
+          // Lần đầu đánh giá: existingRating chưa tồn tại → khởi tạo từ id server trả về
+          // (để lần sửa sau gọi đúng reRate). Trước đây gán .rating trên undefined → crash,
+          // khiến layout không cập nhật.
+          this.existingRating = { id: ratingId, rating: this.selectedRating };
           this.hasRated = true;
           this.showReratePanel = false;
           this.toastr.success(`Đã đánh giá ${this.selectedRating} sao`);

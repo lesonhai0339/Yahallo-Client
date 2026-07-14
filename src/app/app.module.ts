@@ -50,6 +50,7 @@ import { TopMangaComponent } from './features/manga/top-manga/top-manga.componen
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { ServerErrorComponent } from './features/error/server-error.component';
 import { OfflineReaderComponent } from './features/offline-reader/offline-reader.component';
+import { PersonDetailComponent } from './features/person/person-detail/person-detail.component';
 
 // Core
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
@@ -101,6 +102,7 @@ export function initTranslations(translation: TranslationService) {
     ServerErrorComponent,
     OfflineReaderComponent,
     SessionExpiredDialogComponent,
+    PersonDetailComponent,
   ],
   imports: [
     BrowserModule,

@@ -1,8 +1,27 @@
 <div class="search-page container py-4">
   <h1 class="page-title"><i class="fa-solid fa-search me-2"></i>{{ 'SEARCH.TITLE' | translate }}</h1>
 
+  <!-- Main Layout: LEFT (object tabs + search bar + filters) | RIGHT (results) -->
+  <div class="search-layout">
+
+  <!-- LEFT column -->
+  <div class="search-left">
+
+  <!-- Tier-1: object selector (linked với panel bên dưới) -->
+  <div class="target-tabs" role="tablist" [attr.aria-label]="'SEARCH.TARGET_LABEL' | translate">
+    <button *ngFor="let opt of targetOptions" type="button" class="target-tab"
+      role="tab" [attr.aria-selected]="searchTarget === opt.value"
+      [class.target-tab--active]="searchTarget === opt.value"
+      (click)="selectTarget(opt.value)">
+      <i [class]="opt.icon"></i><span>{{ opt.label | translate }}</span>
+    </button>
+  </div>
+
+  <!-- Panel: search-bar + danh mục lọc (dính liền tab active) -->
+  <div class="search-left__panel">
+
   <!-- Search Input with Prefix Hints -->
-  <div class="search-box mb-2">
+  <div class="search-box">
     <div class="search-input-group" [class.search-input-group--prefix]="!!activePrefixOption">
 
       <!-- Search icon — click to show prefix hints -->
@@ -64,11 +83,9 @@
       </div>
     </div>
   </div>
+  <!-- /search-box -->
 
-  <!-- Main Layout -->
-  <div class="search-layout">
-
-  <!-- Category Filter -->
+  <!-- Category Filter (danh mục lọc — giữ cấu trúc row dọc tuần tự) -->
   <div class="filter-section" [class.filter-section--collapsed]="!isFilterExpanded" *ngIf="categories.length > 0">
     <h3 class="filter-title" (click)="isFilterExpanded = !isFilterExpanded">
       {{ 'SEARCH.FILTER_BY_GENRE' | translate }}
@@ -94,6 +111,10 @@
         </div>
       </div>
     </div>
+
+    <!-- Bộ lọc theo thể loại/tác giả/hoạ sĩ CHỈ áp cho đối tượng Manga.
+         Tag/Author/Artist chỉ dùng search-bar + lọc năm ở trên. -->
+    <ng-container *ngIf="isMangaTarget">
 
     <!-- Author list (collapsible) -->
     <div class="tag-grid-toggle-wrap" [class.tag-grid-toggle-wrap--active]="!!selectedAuthor">
@@ -194,10 +215,20 @@
       </div>
     </div>
     </ng-container>
+    <!-- /isMangaTarget -->
+    </ng-container>
   </div>
+  <!-- /filter-section -->
+  </div>
+  <!-- /search-left__panel -->
+  </div>
+  <!-- /search-left -->
 
-  <!-- Results -->
+  <!-- Results container: (1) list manga · (2) info entity (tier - placeholder) -->
   <div class="results-section">
+
+  <!-- Loại 1: kết quả Manga -->
+  <ng-container *ngIf="isMangaTarget">
 
     <!-- Controls bar (visible when has results) -->
     <div class="controls-bar" *ngIf="hasSearched && results.length > 0">
@@ -270,7 +301,24 @@
       <i class="fa-solid fa-magnifying-glass"></i>
       <p>{{ 'SEARCH.INITIAL_HINT' | translate }}</p>
     </div>
-  </div>
+
+  </ng-container>
+  <!-- /loại 1: Manga -->
+
+  <!-- Loại 2: info entity (Tag/Author/Artist) — DỰNG KHUNG, wiring ở tier sau -->
+  <ng-container *ngIf="!isMangaTarget">
+    <div class="entity-result">
+      <div class="entity-result__placeholder">
+        <i class="fa-solid fa-screwdriver-wrench"></i>
+        <h3>{{ 'SEARCH.TIER_PLACEHOLDER_TITLE' | translate }}</h3>
+        <p>{{ 'SEARCH.TIER_PLACEHOLDER_HINT' | translate }}</p>
+      </div>
+    </div>
+  </ng-container>
 
   </div>
+  <!-- /results-section -->
+
+  </div>
+  <!-- /search-layout -->
 </div>

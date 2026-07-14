@@ -18,6 +18,10 @@ export interface SearchPrefix {
   hint: string;
 }
 
+/** Tier 1 — đối tượng tìm kiếm. Hiện chỉ `manga` hoạt động đầy đủ; tag/author/
+ *  artist đang dựng khung (placeholder) cho phần tier tương lai. */
+export type SearchTarget = 'manga' | 'tag' | 'author' | 'artist';
+
 @Component({
   selector: 'app-manga-search',
   templateUrl: './manga-search.component.html',
@@ -44,6 +48,16 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   pageSize = 10;
   pageSizeOptions = [10, 20, 50];
   viewMode: 'list' | 'grid' = 'grid';
+
+  // Tier 1 — đối tượng tìm kiếm (mặc định manga). Danh mục lọc + loại kết quả
+  // đổi theo giá trị này.
+  searchTarget: SearchTarget = 'manga';
+  readonly targetOptions: { value: SearchTarget; label: string; icon: string }[] = [
+    { value: 'manga',  label: 'SEARCH.TARGET_MANGA',  icon: 'fa-solid fa-book' },
+    { value: 'tag',    label: 'SEARCH.TARGET_TAG',    icon: 'fa-solid fa-tags' },
+    { value: 'author', label: 'SEARCH.TARGET_AUTHOR', icon: 'fa-solid fa-pen-nib' },
+    { value: 'artist', label: 'SEARCH.TARGET_ARTIST', icon: 'fa-solid fa-palette' },
+  ];
 
   showPrefixHints = false;
   highlightedPrefixIndex = -1;
@@ -230,6 +244,23 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     if (this.selectedYear === y) return;
     this.selectedYear = y;
     this.onYearChange();
+  }
+
+  /**
+   * Tier 1 — đổi đối tượng tìm kiếm. Hiện chỉ Manga hoạt động đầy đủ (list manga
+   * + full bộ lọc). Tag/Author/Artist đang DỰNG KHUNG: chỉ còn search-bar + lọc
+   * năm, kết quả là placeholder "info entity" — sẽ wiring ở phần tier tương lai.
+   */
+  selectTarget(t: SearchTarget): void {
+    if (this.searchTarget === t) return;
+    this.searchTarget = t;
+    this.results = [];
+    this.hasSearched = false;
+    // TODO(tier): dispatch search theo đối tượng khi làm tier1/tier2.
+  }
+
+  get isMangaTarget(): boolean {
+    return this.searchTarget === 'manga';
   }
 
   // ── Prefix hints ──────────────────────────────────────────────────────────
