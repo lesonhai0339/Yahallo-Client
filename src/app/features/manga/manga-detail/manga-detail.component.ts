@@ -99,7 +99,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
       return;
     }
     const refs = this.selectedRangeChapters.map(c => ({ id: c.id, index: c.index, title: c.title }));
-    this.download.downloadRange(this.manga?.name || 'manga', refs, this.manga?.mangaThumbnail);
+    this.download.downloadRange(this.manga?.name || 'manga', refs, this.manga?.mangaThumbnail, this.manga?.id);
     this.showDownloadPanel = false;
     // Tiến trình hiển thị ở download-tray (góc dưới-phải) thay cho toast.
   }
@@ -107,7 +107,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   downloadChapter(ch: Chapter, ev: Event): void {
     ev.preventDefault();
     ev.stopPropagation();
-    this.download.downloadChapter(this.manga?.name || 'manga', { id: ch.id, index: ch.index, title: ch.title }, this.manga?.mangaThumbnail);
+    this.download.downloadChapter(this.manga?.name || 'manga', { id: ch.id, index: ch.index, title: ch.title }, this.manga?.mangaThumbnail, this.manga?.id);
     // Tiến trình hiển thị ở download-tray (góc dưới-phải) thay cho toast.
   }
 
@@ -167,7 +167,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     if (this.isFollowing) {
       this.userInteraction.unfollow(user.id, this.mangaId).subscribe(() => {
         this.isFollowing = false;
-        this.toastr.info('Đã hủy theo dõi');
+        this.toastr.error('Đã hủy theo dõi');
       });
     } else {
       this.userInteraction.follow(user.id, this.mangaId).subscribe(() => {

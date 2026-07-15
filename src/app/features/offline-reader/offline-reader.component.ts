@@ -1,4 +1,5 @@
 import { Component, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { ChapterImage } from '../../core/models/chapter.interface';
 import { TranslationService } from '../../core/services/translation.service';
@@ -17,6 +18,7 @@ interface OfflineReaderSettings {
 interface OfflineChapter {
   id: string;
   label: string;       // mangaName/title
+  mangaId?: string;    // real manga GUID from the manifest → deep-link to read online
   mangaName: string;
   title: string;
   index: number;
@@ -58,12 +60,26 @@ export class OfflineReaderComponent implements OnDestroy {
   /** All object URLs created from imported files — revoked on destroy. */
   private urls: string[] = [];
 
-  constructor(private toastr: ToastrService, private i18n: TranslationService) {}
+  constructor(private toastr: ToastrService, private i18n: TranslationService, private router: Router) {}
 
   private t(key: string, p?: Record<string, string>): string { return this.i18n.get(key, p); }
 
   get activeChapter(): OfflineChapter | null {
     return this.chapters.find(c => c.id === this.activeId) ?? null;
+  }
+
+  /** Manga to deep-link to for online reading — that of the active chapter (or,
+   *  before any is picked, the first imported chapter). Only set when the
+   *  manifest carried a real mangaId. */
+  get onlineManga(): { id: string; name: string } | null {
+    const ch = this.activeChapter ?? this.chapters[0] ?? null;
+    return ch?.mangaId ? { id: ch.mangaId, name: ch.mangaName } : null;
+  }
+
+  /** Leave the offline reader and open the manga's detail page to read online. */
+  goToOnline(): void {
+    const m = this.onlineManga;
+    if (m) this.router.navigate(['/manga', m.id]);
   }
 
   // ── Import ───────────────────────────────────────────────────────────────────
@@ -102,6 +118,7 @@ export class OfflineReaderComponent implements OnDestroy {
           added.push({
             id: ch.id || `${data.mangaName}|${ch.title}`,
             label: `${data.mangaName}/${ch.title}`,
+            mangaId: data.mangaId,
             mangaName: data.mangaName, title: ch.title, index: ch.index,
             thumbnail: data.thumbnail, images: imgs,
           });

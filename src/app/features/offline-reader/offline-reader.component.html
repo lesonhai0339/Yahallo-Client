@@ -16,6 +16,14 @@
 
     <div class="import-hint">{{ 'OFFLINE.IMPORT_HINT' | translate }}</div>
 
+    <!-- Deep-link to the manga's online detail page (only when the manifest
+         carried a real mangaId) so the reader can switch to reading online. -->
+    <button class="go-online-btn" *ngIf="onlineManga" (click)="goToOnline()"
+      [title]="'OFFLINE.GO_ONLINE' | translate">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      <span class="go-online-btn__text">{{ 'OFFLINE.GO_ONLINE' | translate }}</span>
+    </button>
+
     <div class="offline-list__items" *ngIf="chapters.length > 0; else emptyList">
       <button *ngFor="let ch of chapters" class="offline-chapter"
         [class.active]="ch.id === activeId" (click)="selectChapter(ch)">
@@ -109,15 +117,6 @@
           </label>
           <input type="range" class="form-range" min="50" max="150" step="5"
             [(ngModel)]="pendingSettings.imageSize" [ngModelOptions]="{ standalone: true }">
-        </div>
-
-        <div class="setting-group">
-          <label class="setting-label">
-            {{ 'READER.PRELOAD_COUNT' | translate }}
-            <span class="setting-value">{{ pendingSettings.preloadCount }}</span>
-          </label>
-          <input type="range" class="form-range" min="1" max="10" step="1"
-            [(ngModel)]="pendingSettings.preloadCount" [ngModelOptions]="{ standalone: true }">
         </div>
       </div>
 

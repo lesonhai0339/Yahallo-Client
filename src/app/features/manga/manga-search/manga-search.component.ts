@@ -65,8 +65,13 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   showAuthorGrid = false;
   showArtistGrid = false;
   showCategoryGrid = false;
+  showTagGrid = true;
   selectedAuthor: RecommendItem | null = null;
   selectedArtist: RecommendItem | null = null;
+  /** Đối tượng Tag: chỉ chọn MỘT thể loại (single-select), khác manga (multi). */
+  selectedTag: any | null = null;
+  /** Thông tin thể loại đang xem (từ /tag/get-by-id) — chỉ Name/Description. */
+  tagInfo: { id: string; name: string; description?: string } | null = null;
   showRecommend = false;
   recommendList: RecommendItem[] = [];
   recommendIndex = -1;
@@ -256,6 +261,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.searchTarget = t;
     this.results = [];
     this.hasSearched = false;
+    // Reset lựa chọn thể loại khi rời/đổi đối tượng để tránh highlight "mồ côi".
+    this.selectedTag = null;
+    this.tagInfo = null;
     // TODO(tier): dispatch search theo đối tượng khi làm tier1/tier2.
   }
 
@@ -518,6 +526,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   private reloadCurrentSearch(): void {
+    // Đối tượng Tag: đổi trang gọi lại filter-manga theo tagId đang chọn.
+    if (this.searchTarget === 'tag') {
+      if (this.selectedTag) this.loadTagMangas(this.currentPage);
+      return;
+    }
     if (this.hasActiveFilter) {
       this.searchByCategories();
     } else if (this.searchQuery.trim()) {
@@ -742,6 +755,44 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       this.selectedCategories = [...this.selectedCategories, cat.genreId];
       this.searchByCategories();
     }
+  }
+
+  /**
+   * Đối tượng Tag — single-select: bấm 1 thể loại là gọi request ngay (bấm lại
+   * để bỏ chọn). Hai request riêng lẻ: (1) /tag/get-by-id lấy Name/Description,
+   * (2) filter-manga theo tagId để có grid + phân trang độc lập.
+   */
+  selectTagChip(cat: any): void {
+    if (this.selectedTag?.genreId === cat.genreId) {
+      this.selectedTag = null;
+      this.tagInfo = null;
+      this.results = [];
+      this.hasSearched = false;
+      return;
+    }
+    this.selectedTag = cat;
+    this.currentPage = 1;
+    this.tagInfo = null;
+    this.mangaService.getTagInfo(cat.genreId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(info => { this.tagInfo = info; });
+    this.loadTagMangas(1);
+  }
+
+  /** Part 2 — trang manga của thể loại đang chọn (phân trang độc lập). */
+  private loadTagMangas(page: number): void {
+    if (!this.selectedTag) return;
+    this.startLoading();
+    this.results = [];
+    this.mangaService.filterPaginated({ tagIds: [this.selectedTag.genreId], pageNo: page, pageSize: this.pageSize }).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.stopLoading())
+    ).subscribe(r => {
+      this.results = r.data;
+      this.totalPages = r.totalPages;
+      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
+      this.hasSearched = true;
+    });
   }
 
   searchByCategories(): void {

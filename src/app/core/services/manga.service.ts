@@ -301,6 +301,21 @@ export class MangaService {
   }
 
   /**
+   * Tag info (name / description) for the tag-target result header. The manga
+   * grid + its total count are fetched separately via filterPaginated so paging
+   * is independent of this call.
+   */
+  getTagInfo(tagId: string): Observable<{ id: string; name: string; description?: string }> {
+    const params = new HttpParams().set('Id', tagId);
+    return this.http.get<any>(`${this.tagBase}/get-by-id`, { params }).pipe(
+      map((res: any) => {
+        const v = res?.value ?? res;
+        return { id: v.id, name: v.name, description: v.description };
+      })
+    );
+  }
+
+  /**
    * Aggregated manga detail — STATIC fields only.
    * Backend no longer returns dynamic counters (views/rating/follows/chapters)
    * here; load those with getMangaStats() and getChapters().

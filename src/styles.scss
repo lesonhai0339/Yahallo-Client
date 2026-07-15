@@ -551,6 +551,17 @@ a {
   }
 }
 
+// Light theme: the toast surface is white (--bg-card), so the neon dark-theme
+// text colours (aqua-green #00ffae, yellow #ffcc00) wash out. Use deeper, high-
+// contrast shades — success = aqua-blue, warning = yellow/gold, error + cancel
+// actions = red.
+[data-theme="light"] .ngx-toastr {
+  &.toast-success { color: #0e7490 !important; }  // deep aqua
+  &.toast-warning { color: #a16207 !important; }  // yellow (readable gold)
+  &.toast-error   { color: #dc2626 !important; }  // red (errors + cancel)
+  &.toast-info    { color: #0284c7 !important; }  // blue
+}
+
 // === Angular Material Overrides ===
 .mat-mdc-dialog-container .mdc-dialog__surface {
   // Match the "add manga" form surface: bg-card (dark in dark theme, white in

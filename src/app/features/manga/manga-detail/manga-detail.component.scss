@@ -98,9 +98,13 @@
   align-items: center;
   gap: 2px;
 
-  i { font-size: 1rem; color: var(--text-secondary); }
+  // Hero sits on a fixed dark overlay (.detail-page::before) in EVERY theme, so
+  // these must use fixed colours — theme vars (--text-secondary / --accent) turn
+  // dark or change hue in light mode and stop matching the dark look. Prominent
+  // grey for views/chapters; the star (gold) and heart (red) set their own inline.
+  i { font-size: 1rem; color: rgba(255, 255, 255, 0.72); }
   span { font-size: 1.1rem; font-weight: 600; color: white; }
-  small { font-size: 0.7rem; color: var(--text-muted); }
+  small { font-size: 0.7rem; color: rgba(255, 255, 255, 0.55); }
 }
 
 .manga-actions {

@@ -22,6 +22,8 @@ export interface OfflineManifestChapter {
 export interface OfflineManifest {
   app: string;
   version: number;
+  /** Manga id — lets the offline reader deep-link to /manga/:id to read online. */
+  mangaId?: string;
   mangaName: string;
   /** Manga thumbnail URL (S3/CloudFront) — referenced, not bundled. Shown in the
    *  offline list when online; falls back to a placeholder when offline. */
@@ -53,6 +55,8 @@ export interface DownloadJob {
   /** Overall 0–100. */
   percent: number;
   error?: string;
+  /** Manga id — copied into the manifest so the offline reader can link online. */
+  mangaId?: string;
   /** Manga thumbnail URL — copied into the manifest for the offline list. */
   thumbnail?: string;
   chapters: DownloadChapterState[];
@@ -80,10 +84,11 @@ export class DownloadService {
 
   // ── Public API ───────────────────────────────────────────────────────────────
   /** Queue a single chapter → `<slug>_<index>.zip`. */
-  downloadChapter(mangaName: string, chapter: ChapterRef, thumbnail?: string): string {
+  downloadChapter(mangaName: string, chapter: ChapterRef, thumbnail?: string, mangaId?: string): string {
     const slug = this.slugify(mangaName);
     return this.enqueue({
       mangaName,
+      mangaId,
       thumbnail,
       label: `${this.t('chapter')} ${chapter.index}`,
       fileName: `${slug}_${chapter.index}.zip`,
@@ -93,13 +98,14 @@ export class DownloadService {
   }
 
   /** Queue a range of chapters bundled into one `<slug>_<start>-<end>.zip`. */
-  downloadRange(mangaName: string, chapters: ChapterRef[], thumbnail?: string): string {
+  downloadRange(mangaName: string, chapters: ChapterRef[], thumbnail?: string, mangaId?: string): string {
     const slug = this.slugify(mangaName);
     const sorted = [...chapters].sort((a, b) => a.index - b.index);
     const first = sorted[0].index;
     const last = sorted[sorted.length - 1].index;
     return this.enqueue({
       mangaName,
+      mangaId,
       thumbnail,
       label: `${this.t('chapter')} ${first} – ${last}`,
       fileName: `${slug}_${first}-${last}.zip`,
@@ -156,6 +162,7 @@ export class DownloadService {
   // ── Queue / processing ───────────────────────────────────────────────────────
   private enqueue(init: {
     mangaName: string;
+    mangaId?: string;
     thumbnail?: string;
     label: string;
     fileName: string;
@@ -166,6 +173,7 @@ export class DownloadService {
     const job: DownloadJob = {
       id,
       mangaName: init.mangaName,
+      mangaId: init.mangaId,
       thumbnail: init.thumbnail,
       label: init.label,
       fileName: init.fileName,
@@ -245,6 +253,7 @@ export class DownloadService {
       const manifest: OfflineManifest = {
         app: OFFLINE_APP,
         version: OFFLINE_VERSION,
+        mangaId: job.mangaId,
         mangaName: job.mangaName,
         thumbnail: job.thumbnail,
         type: job.type,

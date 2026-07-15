@@ -93,8 +93,9 @@
     </h3>
 
     <ng-container *ngIf="isFilterExpanded">
-    <!-- Year filter (custom dropdown — scrollable, never overflows the screen) -->
-    <div class="filter-year-row">
+    <!-- Year filter (custom dropdown — scrollable, never overflows the screen).
+         Ẩn ở đối tượng Tag: chỉ giữ danh sách thể loại. -->
+    <div class="filter-year-row" *ngIf="searchTarget !== 'tag'">
       <label>{{ 'SEARCH.FILTER_YEAR' | translate }}</label>
       <div class="year-dd" [class.year-dd--open]="yearOpen">
         <button type="button" class="year-dd__trigger" (click)="yearOpen = !yearOpen">
@@ -216,6 +217,37 @@
     </div>
     </ng-container>
     <!-- /isMangaTarget -->
+
+    <!-- Đối tượng Tag: danh sách thể loại (fill như manga) nhưng CHỈ chọn 1. -->
+    <ng-container *ngIf="searchTarget === 'tag'">
+    <div class="tag-grid-toggle-wrap" [class.tag-grid-toggle-wrap--active]="!!selectedTag">
+      <button class="tag-grid-toggle" type="button"
+        [class.tag-grid-toggle--open]="showTagGrid"
+        [class.tag-grid-toggle--active]="!!selectedTag"
+        (click)="showTagGrid = !showTagGrid">
+        <i class="fa-solid fa-tags me-1"></i>{{ 'SEARCH.TAG_LIST' | translate }}
+        <i class="fa-solid" [class.fa-angles-down]="!showTagGrid" [class.fa-angles-up]="showTagGrid"></i>
+      </button>
+    </div>
+    <div class="tag-filter-grid" *ngIf="showTagGrid">
+      <div class="tag-grid-filter-input">
+        <input type="text" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }"
+               [placeholder]="'SEARCH.FILTER_CATEGORY_PLACEHOLDER' | translate">
+        <span class="filter-invalid-label" *ngIf="isCategoryFilterInvalid">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
+        </span>
+      </div>
+      <div class="tag-group" *ngFor="let group of filteredGroupedCategories">
+        <span class="tag-group__letter">{{ group.letter }}</span>
+        <div class="tag-group__items">
+          <button class="tag-chip-filter" *ngFor="let cat of group.items"
+            [class.active]="selectedTag?.genreId === cat.genreId"
+            (click)="selectTagChip(cat)">{{ cat.genresIdName }}</button>
+        </div>
+      </div>
+    </div>
+    </ng-container>
+    <!-- /tag target -->
     </ng-container>
   </div>
   <!-- /filter-section -->
@@ -305,8 +337,48 @@
   </ng-container>
   <!-- /loại 1: Manga -->
 
-  <!-- Loại 2: info entity (Tag/Author/Artist) — DỰNG KHUNG, wiring ở tier sau -->
-  <ng-container *ngIf="!isMangaTarget">
+  <!-- Loại 2: đối tượng Tag — thông tin thể loại + grid manga (phân trang riêng) -->
+  <ng-container *ngIf="searchTarget === 'tag'">
+
+    <ng-container *ngIf="selectedTag; else tagInitial">
+      <!-- Part 1: thông tin thể loại (/tag/get-by-id) -->
+      <div class="tag-entity-head" *ngIf="tagInfo">
+        <h2 class="tag-entity-head__name"><i class="fa-solid fa-tag me-2"></i>{{ tagInfo.name }}</h2>
+        <p class="tag-entity-head__desc" *ngIf="tagInfo.description">{{ tagInfo.description }}</p>
+        <span class="tag-entity-head__count" *ngIf="hasSearched">
+          {{ totalCount }} {{ 'SEARCH.RESULTS_COUNT' | translate }}
+        </span>
+      </div>
+
+      <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
+
+      <!-- Part 2: grid manga theo tagId -->
+      <div class="manga-grid" *ngIf="!isLoading && results.length > 0">
+        <app-manga-sumary-card *ngFor="let m of results" [manga]="m" [showTags]="false"></app-manga-sumary-card>
+      </div>
+
+      <app-pagination *ngIf="!isLoading && hasSearched"
+        [currentPage]="currentPage" [totalCount]="totalCount" [pageSize]="pageSize"
+        [sticky]="true" (pageChange)="goToPage($event)"></app-pagination>
+
+      <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">
+        <i class="fa-regular fa-face-sad-tear"></i>
+        <h3>{{ 'SEARCH.NO_RESULTS' | translate }}</h3>
+        <p>{{ 'SEARCH.NO_RESULTS_HINT' | translate }}</p>
+      </div>
+    </ng-container>
+
+    <ng-template #tagInitial>
+      <div class="initial-state">
+        <i class="fa-solid fa-tags"></i>
+        <p>{{ 'SEARCH.TAG_PICK_HINT' | translate }}</p>
+      </div>
+    </ng-template>
+
+  </ng-container>
+
+  <!-- Loại 3: Author/Artist — DỰNG KHUNG, wiring ở tier sau -->
+  <ng-container *ngIf="searchTarget === 'author' || searchTarget === 'artist'">
     <div class="entity-result">
       <div class="entity-result__placeholder">
         <i class="fa-solid fa-screwdriver-wrench"></i>

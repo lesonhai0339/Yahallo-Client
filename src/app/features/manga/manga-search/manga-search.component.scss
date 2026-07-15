@@ -106,10 +106,37 @@
     border: none;
     border-radius: 0;
     padding: 0;
+    // Base `.filter-section` dùng `align-self: start` cho layout grid cũ (khi nó
+    // là grid item trực tiếp). Ở đây panel là flex column nên `start` co nó theo
+    // chiều ngang → hẹp hơn search-box. Ép stretch để full width bằng search-box
+    // (trục dọc vẫn hug content vì là main-axis của flex column).
+    align-self: stretch;
   }
 
   // search-box không cần margin dưới khi nằm trong panel.
   .search-box { margin-bottom: 0; }
+}
+
+// ── Result: tag entity header (name + description + count) ───────────────────
+.tag-entity-head {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+
+  &__name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+    i { color: var(--accent-primary); }
+  }
+  &__desc {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0 0 8px;
+  }
+  &__count { font-size: 0.8rem; color: var(--text-muted); }
 }
 
 // ── Result loại 2: info entity (tier - placeholder) ──────────────────────────
