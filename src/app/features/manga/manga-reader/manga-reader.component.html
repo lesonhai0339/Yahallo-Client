@@ -120,8 +120,9 @@
     (pageChange)="onPageChange($event)">
   </app-reader-viewer>
 
+  <!-- Skeleton loading — phác thảo các trang ảnh trong cột đọc -->
   <div class="reader-loading" *ngIf="isLoading">
-    <div class="spinner-border" style="color:var(--accent-primary)"></div>
+    <span class="skeleton reader-skel__page" *ngFor="let p of [1,2,3]"></span>
   </div>
 
   <!-- Bottom Bar — floating left on desktop, full-width on mobile -->

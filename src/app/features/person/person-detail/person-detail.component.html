@@ -12,58 +12,16 @@
       <p>{{ 'PERSON.NOT_FOUND' | translate }}</p>
     </div>
 
-    <ng-container *ngIf="!isLoading && person">
-      <!-- Header card -->
-      <section class="person-hero">
-        <div class="person-hero__avatar">
-          <i [class]="isAuthor ? 'fa-solid fa-pen-nib' : 'fa-solid fa-palette'"></i>
-        </div>
-        <div class="person-hero__body">
-          <span class="person-hero__role">
-            <i [class]="isAuthor ? 'fa-solid fa-pen-nib' : 'fa-solid fa-palette'"></i>
-            {{ (isAuthor ? 'PERSON.AUTHOR' : 'PERSON.ARTIST') | translate }}
-          </span>
-          <h1 class="person-hero__name">{{ person.name }}</h1>
-
-          <div class="person-hero__meta">
-            <span class="meta-chip" [class.meta-chip--deceased]="isDeceased">
-              <i class="fa-solid" [class.fa-heart]="!isDeceased" [class.fa-heart-crack]="isDeceased"></i>
-              {{ lifeStatusKey | translate }}
-            </span>
-            <span class="meta-chip" *ngIf="person.birth">
-              <i class="fa-solid fa-cake-candles"></i>
-              {{ 'PERSON.BIRTH' | translate }}: {{ person.birth | date:'dd/MM/yyyy' }}
-            </span>
-          </div>
-
-          <p class="person-hero__desc">
-            {{ person.depscription?.trim() ? person.depscription : ('PERSON.NO_DESCRIPTION' | translate) }}
-          </p>
-        </div>
-      </section>
-
-      <!-- Works -->
-      <section class="person-works">
-        <h2 class="section-title">
-          <i class="fa-solid fa-book-open me-2"></i>{{ 'PERSON.WORKS_BY' | translate }}
-        </h2>
-
-        <div class="person-works__notice" *ngIf="isMangaMock && !isMangaLoading">
-          <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ 'PERSON.MOCK_NOTICE' | translate }}
-        </div>
-
-        <app-loading-skeleton *ngIf="isMangaLoading" [count]="4" [cols]="4"></app-loading-skeleton>
-
-        <div class="manga-grid" *ngIf="!isMangaLoading && mangas.length > 0">
-          <app-manga-sumary-card *ngFor="let manga of mangas" [manga]="manga"></app-manga-sumary-card>
-        </div>
-
-        <div class="person-empty" *ngIf="!isMangaLoading && mangas.length === 0">
-          <i class="fa-regular fa-folder-open"></i>
-          <p>{{ 'PERSON.NO_WORKS' | translate }}</p>
-        </div>
-      </section>
-    </ng-container>
+    <app-entity-detail *ngIf="!isLoading && person"
+      [kind]="kind"
+      [name]="person.name"
+      [description]="person.depscription"
+      [birth]="person.birth"
+      [lifeStatus]="person.lifeStatus"
+      [mangas]="mangas"
+      [isLoading]="isMangaLoading"
+      [mockNotice]="isMangaMock">
+    </app-entity-detail>
 
   </div>
 </div>

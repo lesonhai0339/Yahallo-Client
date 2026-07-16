@@ -30,6 +30,7 @@ const routes: Routes = [
   { path: 'top-manga/:criterion', component: TopMangaComponent },
   { path: 'author/:id', component: PersonDetailComponent, data: { kind: 'author' } },
   { path: 'artist/:id', component: PersonDetailComponent, data: { kind: 'artist' } },
+  { path: 'tag/:id', component: PersonDetailComponent, data: { kind: 'tag' } },
   { path: 'auth/login', component: LoginComponent },
   { path: 'auth/register', component: RegisterComponent },
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },

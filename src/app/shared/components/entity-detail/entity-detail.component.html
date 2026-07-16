@@ -1,0 +1,56 @@
+<!-- Part 1: thông tin đối tượng (author / artist / tag) -->
+<section class="person-hero">
+  <div class="person-hero__avatar">
+    <i [class]="iconClass"></i>
+  </div>
+  <div class="person-hero__body">
+    <span class="person-hero__role">
+      <i [class]="iconClass"></i>
+      {{ roleKey | translate }}
+    </span>
+    <h1 class="person-hero__name">{{ name }}</h1>
+
+    <!-- Meta chỉ có ở author/artist (thể loại không có ngày sinh / tình trạng). -->
+    <div class="person-hero__meta" *ngIf="isPerson">
+      <span class="meta-chip" [class.meta-chip--deceased]="isDeceased">
+        <i class="fa-solid" [class.fa-heart]="!isDeceased" [class.fa-heart-crack]="isDeceased"></i>
+        {{ lifeStatusKey | translate }}
+      </span>
+      <span class="meta-chip" *ngIf="birth">
+        <i class="fa-solid fa-cake-candles"></i>
+        {{ 'PERSON.BIRTH' | translate }}: {{ birth | date:'dd/MM/yyyy' }}
+      </span>
+    </div>
+
+    <p class="person-hero__desc">
+      {{ description?.trim() ? description : ('PERSON.NO_DESCRIPTION' | translate) }}
+    </p>
+  </div>
+</section>
+
+<!-- Part 2: danh sách manga phụ thuộc đối tượng -->
+<section class="person-works">
+  <h2 class="section-title">
+    <i class="fa-solid fa-book-open me-2"></i>{{ worksTitleKey | translate }}
+    <span class="section-title__count" *ngIf="count != null">({{ count }})</span>
+  </h2>
+
+  <div class="person-works__notice" *ngIf="mockNotice && !isLoading">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ 'PERSON.MOCK_NOTICE' | translate }}
+  </div>
+
+  <app-loading-skeleton *ngIf="isLoading" [count]="4" [cols]="4"></app-loading-skeleton>
+
+  <div class="manga-grid" *ngIf="!isLoading && mangas.length > 0">
+    <app-manga-sumary-card *ngFor="let manga of mangas" [manga]="manga" [showTags]="showTags"></app-manga-sumary-card>
+  </div>
+
+  <app-pagination *ngIf="showPagination && !isLoading && mangas.length > 0"
+    [currentPage]="currentPage" [totalCount]="totalCount" [pageSize]="pageSize"
+    [sticky]="true" (pageChange)="pageChange.emit($event)"></app-pagination>
+
+  <div class="person-empty" *ngIf="!isLoading && mangas.length === 0">
+    <i class="fa-regular fa-folder-open"></i>
+    <p>{{ 'PERSON.NO_WORKS' | translate }}</p>
+  </div>
+</section>

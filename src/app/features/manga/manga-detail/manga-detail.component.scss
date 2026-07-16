@@ -577,3 +577,48 @@
     background: rgba(233, 69, 96, 0.06);
   }
 }
+
+// ── Loading skeleton (hero + chapter list) ──────────────────────────────────
+.detail-skeleton {
+  padding: 40px 0;
+
+  .ds-hero {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    margin-bottom: 32px;
+
+    @media (max-width: 768px) { flex-direction: column; gap: 20px; }
+  }
+
+  .ds-cover {
+    flex-shrink: 0;
+    width: 180px;
+    height: 260px;
+    border-radius: var(--radius-md);
+    @media (max-width: 768px) { width: 130px; height: 190px; }
+  }
+
+  .ds-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  .ds-line { display: block; border-radius: 6px; }
+  .ds-line--crumb { width: 140px; height: 12px; margin-bottom: 14px; }
+  .ds-line--title { width: 60%; height: 28px; margin-bottom: 16px; }
+  .ds-line--section { width: 200px; height: 18px; margin-bottom: 16px; }
+
+  .ds-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .ds-chip { width: 64px; height: 22px; border-radius: 999px; }
+
+  .ds-stats { display: flex; gap: 24px; margin-bottom: 22px; }
+  .ds-stat { width: 54px; height: 42px; border-radius: 8px; }
+
+  .ds-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ds-btn { width: 150px; height: 42px; border-radius: var(--radius-sm); }
+
+  .ds-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+  .ds-row { display: block; width: 100%; height: 44px; border-radius: var(--radius-sm); margin-bottom: 8px; }
+}

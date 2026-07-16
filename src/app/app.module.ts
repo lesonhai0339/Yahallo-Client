@@ -21,6 +21,7 @@ import { FooterComponent } from './Layout/footer/footer.component';
 import { MangaCardComponent } from './shared/components/manga-card/manga-card.component';
 import { MangaSumaryCardComponent } from './shared/components/manga-sumary-card/manga-sumary-card.component';
 import { LoadingSkeletonComponent } from './shared/components/loading-skeleton/loading-skeleton.component';
+import { EntityDetailComponent } from './shared/components/entity-detail/entity-detail.component';
 import { PaginationComponent } from './shared/components/pagination/pagination.component';
 import { ImageFallbackDirective } from './shared/directives/image-fallback.directive';
 import { TranslatePipe } from './shared/pipes/translate.pipe';
@@ -75,6 +76,7 @@ export function initTranslations(translation: TranslationService) {
     MangaCardComponent,
     MangaSumaryCardComponent,
     LoadingSkeletonComponent,
+    EntityDetailComponent,
     PaginationComponent,
     ImageFallbackDirective,
     TranslatePipe,

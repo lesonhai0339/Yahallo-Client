@@ -413,3 +413,19 @@
   &--cancel:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
   &--remove:hover { color: var(--text-primary); border-color: var(--border-light); }
 }
+
+// Skeleton placeholders for the following / history card-list.
+.follow-card--skel {
+  pointer-events: none;
+
+  .follow-card__thumb { display: block; }
+
+  .fc-skel {
+    display: block;
+    height: 12px;
+    border-radius: 4px;
+
+    &--title { width: 60%; height: 14px; }
+    &--meta { width: 40%; margin-top: 8px; }
+  }
+}

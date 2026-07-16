@@ -145,6 +145,8 @@
   "PERSON": {
     "AUTHOR": "Author",
     "ARTIST": "Artist",
+    "TAG": "Genre",
+    "MANGA_IN_TAG": "Manga in this genre",
     "ALIVE": "Alive",
     "DECEASED": "Deceased",
     "BIRTH": "Born",

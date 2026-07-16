@@ -237,9 +237,15 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(e: MouseEvent): void {
-    if (!this.host.nativeElement.contains(e.target as Node)) {
+    const target = e.target as HTMLElement;
+    // Đóng prefix/recommend khi click RA NGOÀI ô search — kể cả khi click sang
+    // vùng khác trong trang (filter, kết quả...), không chỉ khi ra ngoài component.
+    if (!target.closest('.search-box')) {
       this.showPrefixHints = false;
       this.showRecommend = false;
+    }
+    // Year dropdown đóng khi click ngoài chính nó.
+    if (!target.closest('.year-dd')) {
       this.yearOpen = false;
     }
   }

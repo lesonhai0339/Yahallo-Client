@@ -3,6 +3,7 @@ import {
 } from '@angular/core';
 import { CommentService } from '../../../core/services/comment.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { User } from '../../../core/models/interfaces';
 import { CommentData, DELETED_MARKER } from '../../../core/models/comment.interfaces';
 import { CommentEditorComponent } from '../comment-editor/comment-editor.component';
@@ -51,11 +52,14 @@ export class CommentSectionComponent implements OnInit {
     private commentService: CommentService,
     private auth: AuthService,
     private router: Router,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private prefs: UserPreferencesService
   ) {}
 
   ngOnInit(): void {
     this.currentUser = this.auth.currentUser;
+    // Đã login → dùng page-size trong cấu hình user; chưa login → default.
+    this.pageSize = this.currentUser ? this.prefs.current.defaultPageSize : DEFAULT_PAGE_SIZE;
     this.loadComments();
   }
 
@@ -116,8 +120,6 @@ export class CommentSectionComponent implements OnInit {
     if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
     if (!text.trim()) return;
 
-    const uid = this.currentUser!.id;
-
     // Optimistic: hiện ngay comment ở trạng thái pending (mờ, khoá tương tác) với
     // id tạm. Chỉ khi server trả commentId thật mới gán id + mở khoá; lỗi thì gỡ.
     const newComment: CommentData = {
@@ -146,8 +148,8 @@ export class CommentSectionComponent implements OnInit {
     this.quotedText = '';
 
     const create$ = this.chapterId
-      ? this.commentService.createChapterComment(uid, this.mangaId, this.chapterId, text)
-      : this.commentService.createComment(uid, this.mangaId, text, 1);
+      ? this.commentService.createChapterComment(this.mangaId, this.chapterId, text)
+      : this.commentService.createComment(this.mangaId, text, 1);
 
     create$.subscribe({
       next: (newId: string) => {

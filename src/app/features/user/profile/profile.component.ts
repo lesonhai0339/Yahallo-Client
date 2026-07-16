@@ -31,6 +31,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
   activeTab = 'info';
   readonly validTabs = ['info', 'following', 'history', 'frames', 'downloads', 'settings'];
   isLoading = true;
+  followingLoading = false;
+  historyLoading = false;
 
   // Temp profile cover until a per-user background field exists on the backend.
   readonly defaultCover = 'https://cdn.yahallo.online/public/user_backgrounds/1.jpg';
@@ -149,11 +151,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
   loadFollowing(page: number = this.followingPage): void {
     if (!this.user) return;
     this.followingPage = page;
+    this.followingLoading = true;
     this.userInteraction.getFollowing(this.user.id, page, this.followingPageSize)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.following = res.items;
-        this.followingTotal = res.totalCount;
+      .subscribe({
+        next: res => {
+          this.following = res.items;
+          this.followingTotal = res.totalCount;
+          this.followingLoading = false;
+        },
+        error: () => { this.followingLoading = false; },
       });
   }
 
@@ -164,11 +171,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
   loadHistory(page: number = this.historyPage): void {
     if (!this.user) return;
     this.historyPage = page;
+    this.historyLoading = true;
     this.readingProgress.getPaginated(this.user.id, page, this.historyPageSize)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.readingHistory = res.data;
-        this.historyTotal = res.totalCount;
+      .subscribe({
+        next: res => {
+          this.readingHistory = res.data;
+          this.historyTotal = res.totalCount;
+          this.historyLoading = false;
+        },
+        error: () => { this.historyLoading = false; },
       });
   }
 

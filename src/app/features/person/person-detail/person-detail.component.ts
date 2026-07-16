@@ -6,7 +6,7 @@ import { ArtistService } from '../../../core/services/artist.service';
 import { MangaService } from '../../../core/services/manga.service';
 import { TranslationService } from '../../../core/services/translation.service';
 
-type PersonKind = 'author' | 'artist';
+type PersonKind = 'author' | 'artist' | 'tag';
 
 interface PersonInfo {
   id: string;
@@ -66,11 +66,26 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   }
 
   get isAuthor(): boolean { return this.kind === 'author'; }
+  get isTag(): boolean { return this.kind === 'tag'; }
 
   private load(): void {
     this.isLoading = true;
     this.notFound = false;
     this.person = null;
+
+    if (this.isTag) {
+      // Thể loại: chỉ có Name/Description (không ngày sinh / tình trạng).
+      this.mangaService.getTagInfo(this.personId).pipe(takeUntil(this.destroy$)).subscribe({
+        next: info => {
+          if (!info?.id) { this.notFound = true; this.isLoading = false; return; }
+          this.person = { id: info.id, name: info.name, depscription: info.description ?? '' };
+          this.isLoading = false;
+        },
+        error: () => { this.notFound = true; this.isLoading = false; },
+      });
+      this.loadMangas();
+      return;
+    }
 
     const svc = this.isAuthor ? this.authorService : this.artistService;
     // filter-author / filter-artist trả về phân trang → lấy phần tử đầu theo id.
@@ -100,7 +115,9 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.isMangaMock = false;
     const params = this.isAuthor
       ? { pageNo: 1, pageSize: 12, authorId: this.personId }
-      : { pageNo: 1, pageSize: 12, artistId: this.personId };
+      : this.isTag
+        ? { pageNo: 1, pageSize: 12, tagIds: [this.personId] }
+        : { pageNo: 1, pageSize: 12, artistId: this.personId };
 
     this.mangaService.filterPaginated(params).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
@@ -140,14 +157,6 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       lastChapterIndex: `${Math.floor(Math.random() * 100)}`,
       lastChapterUpdate: new Date().toISOString(),
     }));
-  }
-
-  get lifeStatusKey(): string {
-    return this.person?.lifeStatus === 2 ? 'PERSON.DECEASED' : 'PERSON.ALIVE';
-  }
-
-  get isDeceased(): boolean {
-    return this.person?.lifeStatus === 2;
   }
 
   t(key: string): string {

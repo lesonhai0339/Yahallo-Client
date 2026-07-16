@@ -225,7 +225,7 @@ export class CommentItemComponent implements OnInit {
     // trả lời trực tiếp comment gốc: ParentId = root, ReplyCommentId = root
     const newReply = this.pushPendingReply(prefixed, this.comment.displayName, this.comment.id);
     this.isReplying = false;
-    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, this.comment.idUser, this.comment.id, this.mangaId).subscribe({
+    this.commentService.createReply(prefixed, this.chapterId ? 2 : 1, this.comment.id, this.mangaId, this.chapterId).subscribe({
       next: (newId: string) => this.confirmReply(newReply, newId),
       error: () => this.rollbackReply(newReply, 'Không thể gửi trả lời'),
     });
@@ -292,7 +292,7 @@ export class CommentItemComponent implements OnInit {
     // ParentId = root (giữ thread phẳng); ReplyCommentId = đúng reply được trả lời; CommentToUserId = tác giả reply
     const newReply = this.pushPendingReply(prefixed, reply.name, reply.id);
     this.replyingToId = null;
-    this.commentService.createReply(this.comment.id, this.currentUser.id, prefixed, 1, reply.idUser, reply.id, this.mangaId).subscribe({
+    this.commentService.createReply(prefixed, this.chapterId ? 2 : 1, reply.id, this.mangaId, this.chapterId).subscribe({
       next: (newId: string) => this.confirmReply(newReply, newId),
       error: () => this.rollbackReply(newReply, 'Không thể gửi trả lời'),
     });

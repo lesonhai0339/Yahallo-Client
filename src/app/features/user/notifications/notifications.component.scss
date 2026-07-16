@@ -40,3 +40,12 @@ h1 { font-size: 1.4rem; }
 }
 
 .empty-state { text-align: center; padding: 48px 16px; color: var(--text-muted); i { font-size: 3rem; display: block; margin-bottom: 12px; } }
+
+// Skeleton placeholders — reuse .notif-item spacing/size.
+.notif-skel {
+  &__img { display: block; width: 100%; height: 100%; border-radius: 6px; }
+  &__body { display: flex; flex-direction: column; gap: 8px; }
+  &__line { display: block; height: 13px; border-radius: 4px; }
+  &__line--title { width: 65%; }
+  &__line--date { width: 30%; height: 11px; }
+}

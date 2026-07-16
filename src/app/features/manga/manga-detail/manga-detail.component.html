@@ -288,8 +288,28 @@
   </div>
 </div>
 
-<div class="loading-state container py-5" *ngIf="isLoading">
-  <div class="d-flex justify-content-center">
-    <div class="spinner-border" style="color:var(--accent-primary)" role="status"></div>
+<!-- Skeleton loading — phác thảo hero (cover + thông tin + stats) và list chương -->
+<div class="detail-skeleton" *ngIf="isLoading">
+  <div class="container">
+    <div class="ds-hero">
+      <span class="skeleton ds-cover"></span>
+      <div class="ds-info">
+        <span class="skeleton ds-line ds-line--crumb"></span>
+        <span class="skeleton ds-line ds-line--title"></span>
+        <div class="ds-chips">
+          <span class="skeleton ds-chip" *ngFor="let c of [1,2,3,4,5]"></span>
+        </div>
+        <div class="ds-stats">
+          <span class="skeleton ds-stat" *ngFor="let s of [1,2,3,4]"></span>
+        </div>
+        <div class="ds-actions">
+          <span class="skeleton ds-btn" *ngFor="let b of [1,2,3]"></span>
+        </div>
+      </div>
+    </div>
+    <div class="ds-card">
+      <span class="skeleton ds-line ds-line--section"></span>
+      <span class="skeleton ds-row" *ngFor="let r of [1,2,3,4,5,6]"></span>
+    </div>
   </div>
 </div>

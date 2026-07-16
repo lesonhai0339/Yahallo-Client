@@ -145,6 +145,8 @@
   "PERSON": {
     "AUTHOR": "Tác giả",
     "ARTIST": "Họa sĩ",
+    "TAG": "Thể loại",
+    "MANGA_IN_TAG": "Truyện thuộc thể loại",
     "ALIVE": "Còn sống",
     "DECEASED": "Đã mất",
     "BIRTH": "Ngày sinh",

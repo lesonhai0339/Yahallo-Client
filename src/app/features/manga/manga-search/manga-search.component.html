@@ -20,8 +20,10 @@
   <!-- Panel: search-bar + danh mục lọc (dính liền tab active) -->
   <div class="search-left__panel">
 
-  <!-- Search Input with Prefix Hints -->
-  <div class="search-box">
+  <!-- Search Input with Prefix Hints.
+       Ẩn ở đối tượng Tag: đã load full danh sách thể loại (chọn trực tiếp) và
+       vẫn có prefix "tag:" ở các đối tượng khác nên field này không cần thiết. -->
+  <div class="search-box" *ngIf="searchTarget !== 'tag'">
     <div class="search-input-group" [class.search-input-group--prefix]="!!activePrefixOption">
 
       <!-- Search icon — click to show prefix hints -->
@@ -341,31 +343,22 @@
   <ng-container *ngIf="searchTarget === 'tag'">
 
     <ng-container *ngIf="selectedTag; else tagInitial">
-      <!-- Part 1: thông tin thể loại (/tag/get-by-id) -->
-      <div class="tag-entity-head" *ngIf="tagInfo">
-        <h2 class="tag-entity-head__name"><i class="fa-solid fa-tag me-2"></i>{{ tagInfo.name }}</h2>
-        <p class="tag-entity-head__desc" *ngIf="tagInfo.description">{{ tagInfo.description }}</p>
-        <span class="tag-entity-head__count" *ngIf="hasSearched">
-          {{ totalCount }} {{ 'SEARCH.RESULTS_COUNT' | translate }}
-        </span>
-      </div>
-
-      <app-loading-skeleton *ngIf="isLoading" [count]="12" [cols]="6"></app-loading-skeleton>
-
-      <!-- Part 2: grid manga theo tagId -->
-      <div class="manga-grid" *ngIf="!isLoading && results.length > 0">
-        <app-manga-sumary-card *ngFor="let m of results" [manga]="m" [showTags]="false"></app-manga-sumary-card>
-      </div>
-
-      <app-pagination *ngIf="!isLoading && hasSearched"
-        [currentPage]="currentPage" [totalCount]="totalCount" [pageSize]="pageSize"
-        [sticky]="true" (pageChange)="goToPage($event)"></app-pagination>
-
-      <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">
-        <i class="fa-regular fa-face-sad-tear"></i>
-        <h3>{{ 'SEARCH.NO_RESULTS' | translate }}</h3>
-        <p>{{ 'SEARCH.NO_RESULTS_HINT' | translate }}</p>
-      </div>
+      <!-- 2 phần (info thể loại + grid manga cùng tag) — dùng chung template với
+           person-detail (author/artist). Phân trang riêng qua (pageChange). -->
+      <app-entity-detail
+        kind="tag"
+        [name]="tagInfo?.name || selectedTag.genresIdName"
+        [description]="tagInfo?.description"
+        [mangas]="results"
+        [isLoading]="isLoading"
+        [showTags]="false"
+        [count]="hasSearched ? totalCount : null"
+        [showPagination]="true"
+        [currentPage]="currentPage"
+        [totalCount]="totalCount"
+        [pageSize]="pageSize"
+        (pageChange)="goToPage($event)">
+      </app-entity-detail>
     </ng-container>
 
     <ng-template #tagInitial>

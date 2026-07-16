@@ -66,25 +66,27 @@ export class CommentService {
     return this.filter({ mangaId, chapterId , pageSize: 50 });
   }
 
-  /** Tạo comment; trả về commentId vừa tạo (chuỗi rỗng nếu backend không trả id). */
-  createComment(userId: string, mangaId: string, message: string, type: number , commentToUserId = '', chapterId = '', parentId = '', replyCommentId = ''): Observable<string> {
+  /**
+   * Tạo comment; trả về commentId vừa tạo (chuỗi rỗng nếu backend không trả id).
+   * Không gửi UserId (server lấy từ currentUser), không gửi ParentId (server tự
+   * suy root từ ReplyCommentId) và không gửi CommentToUserId (server tự lấy chủ
+   * của comment được trả lời).
+   */
+  createComment(mangaId: string, message: string, type: number, chapterId = '', replyCommentId = ''): Observable<string> {
     const form = new FormData();
-    form.append('UserId', userId);
     form.append('MangaId', mangaId);
     form.append('Message', message);
     form.append('Type', type.toString());
     if (chapterId) form.append('ChapterId', chapterId);
-    if (parentId) form.append('ParentId', parentId);
     if (replyCommentId) form.append('ReplyCommentId', replyCommentId);
-    if(commentToUserId) form.append('CommentToUserId', commentToUserId);
     return this.http.post(`${this.base}/create`, form).pipe(
       tap(() => this.invalidateComments()),
       map(res => this.extractCommentId(res)),
     );
   }
 
-  createChapterComment(userId: string, mangaId: string, chapterId: string, message: string): Observable<string> {
-    return this.createComment(userId, mangaId, message, 2, '', chapterId, '', '');
+  createChapterComment(mangaId: string, chapterId: string, message: string): Observable<string> {
+    return this.createComment(mangaId, message, 2, chapterId, '');
   }
 
   editComment(commentId: string, message: string): Observable<any> {
@@ -104,9 +106,13 @@ export class CommentService {
     return this.filter({ parentId: commentId, pageSize: 50 });
   }
 
-  /** Tạo reply; trả về commentId của reply vừa tạo. */
-  createReply(parentId: string, userId: string, message: string, type: number, commentToUserId: string, replyCommentId = '', mangaId = '', chapterId = ''): Observable<string> {
-    return this.createComment(userId, mangaId, message, type, commentToUserId, chapterId, parentId, replyCommentId);
+  /**
+   * Tạo reply; trả về commentId của reply vừa tạo. Chỉ cần `replyCommentId` là
+   * comment ĐƯỢC trả lời (root hay reply đều được) — server tự suy root từ đó.
+   * `chapterId` gửi kèm khi reply trong ngữ cảnh đọc chương (manga-reader).
+   */
+  createReply(message: string, type: number, replyCommentId: string, mangaId = '', chapterId = ''): Observable<string> {
+    return this.createComment(mangaId, message, type, chapterId, replyCommentId);
   }
 
   getCount(mangaId: string): Observable<any> {
