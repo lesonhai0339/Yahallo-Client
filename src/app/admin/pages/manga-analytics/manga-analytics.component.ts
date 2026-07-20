@@ -23,10 +23,13 @@ interface DetailPanel {
 export class MangaAnalyticsComponent implements OnInit {
   mangaId = '';
   mangaName = '';
-  createdYear?: number;   // năm tạo truyện — mốc bắt đầu cho range 'yearly'
   loading = true;
+  // selectedRange giờ là cách NHÓM dữ liệu (GroupBy: Day/Month/Year), không còn
+  // quyết định khoảng thời gian — khoảng đó do From/To người dùng chọn.
   selectedRange: TimeRange = 'daily';
   ranges: TimeRange[] = ['daily', 'monthly', 'yearly'];
+  fromDate = '';   // yyyy-MM-dd (input type=date)
+  toDate = '';     // yyyy-MM-dd
   analytics: MangaAnalytics | null = null;
 
   viewsChartType: ChartType = 'area';
@@ -58,12 +61,31 @@ export class MangaAnalyticsComponent implements OnInit {
   ngOnInit(): void {
     this.mangaId = this.route.snapshot.paramMap.get('id') ?? '';
     if (!this.mangaId) { this.router.navigate(['/admin/manga']); return; }
+    this.initDefaultDates();
     this.loadMangaInfo();
     this.loadAnalytics();
   }
 
+  /** Mặc định: từ đầu tháng hiện tại → hôm nay. */
+  private initDefaultDates(): void {
+    const now = new Date();
+    this.fromDate = this.toInputDate(new Date(now.getFullYear(), now.getMonth(), 1));
+    this.toDate = this.toInputDate(now);
+  }
+
+  /** Chọn option GroupBy (Ngày/Tháng/Năm) — chỉ đổi lựa chọn, áp khi bấm "Đi". */
   onRangeChange(range: TimeRange): void {
     this.selectedRange = range;
+  }
+
+  /** Khoảng From/To hợp lệ để bấm "Đi". */
+  get canApply(): boolean {
+    return !!this.fromDate && !!this.toDate && this.fromDate <= this.toDate;
+  }
+
+  /** Bấm "Đi" → áp khoảng From/To đang chọn và nạp lại. */
+  applyFilter(): void {
+    if (!this.canApply) return;
     this.closeDetail();
     this.loadAnalytics();
   }
@@ -98,10 +120,26 @@ export class MangaAnalyticsComponent implements OnInit {
     return type === 'bar' ? 'bar' : 'line';
   }
 
-  /** Nhãn cửa sổ thời gian cho block theo range (khớp cửa sổ theo lịch). */
+  /** Nhãn block theo range = khoảng From/To đang chọn. */
   get rangeLabel(): string {
-    return this.selectedRange === 'daily' ? 'Tháng này'
-         : this.selectedRange === 'monthly' ? 'Năm nay' : 'Từ khi tạo';
+    if (!this.fromDate || !this.toDate) return '';
+    return `${this.toDisplayDate(this.fromDate)} → ${this.toDisplayDate(this.toDate)}`;
+  }
+
+  private toInputDate(d: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  private toDisplayDate(s: string): string {
+    const [y, m, d] = s.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  /** yyyy-MM-dd → Date. `endOfDay` để To bao trọn cả ngày (23:59:59). */
+  private parseInputDate(s: string, endOfDay: boolean): Date {
+    const [y, m, d] = s.split('-').map(Number);
+    return endOfDay ? new Date(y, m - 1, d, 23, 59, 59) : new Date(y, m - 1, d, 0, 0, 0);
   }
 
   /** Dựng 2 block mini-stat: toàn thời gian (top-level API) + theo range (tổng bucket). */
@@ -146,22 +184,17 @@ export class MangaAnalyticsComponent implements OnInit {
       next: (res: any) => {
         const body = res?.value ?? res;
         this.mangaName = body?.name ?? 'Unknown';
-        // Năm tạo truyện → mốc bắt đầu cho range 'yearly'. Nếu đang xem 'yearly'
-        // và trước đó dùng fallback thì nạp lại đúng mốc.
-        const created = body?.createDate ?? body?.createdDate ?? body?.dateCreate;
-        const year = created ? new Date(created).getFullYear() : NaN;
-        if (!isNaN(year)) {
-          this.createdYear = year;
-          if (this.selectedRange === 'yearly') this.loadAnalytics();
-        }
       },
       error: () => { this.mangaName = 'Unknown'; }
     });
   }
 
   private loadAnalytics(): void {
+    if (!this.fromDate || !this.toDate) return;
     this.loading = true;
-    this.analyticsService.getMangaAnalytics(this.mangaId, this.selectedRange, this.createdYear).subscribe(data => {
+    const from = this.parseInputDate(this.fromDate, false);
+    const to = this.parseInputDate(this.toDate, true);
+    this.analyticsService.getMangaAnalytics(this.mangaId, from, to, this.selectedRange).subscribe(data => {
       this.analytics = data;
       this.viewsData = data.viewsByTime;
       this.commentsData = data.commentsByTime;

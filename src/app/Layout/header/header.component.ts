@@ -1,5 +1,8 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRouteSnapshot } from '@angular/router';
+import { AuthGuard } from '../../core/guards/auth.guard';
+import { AdminGuard } from '../../core/guards/admin.guard';
+import { PermissionGuard } from '../../core/guards/permission.guard';
 import { Subject, of, timer, debounce, distinctUntilChanged, switchMap, takeUntil, finalize, catchError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { SearchService, SuggestType, SuggestResult } from '../../core/services/search.service';
@@ -421,8 +424,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
         ? this.notifService.markMentionSeen(item.id)
         : this.userInteraction.markNotificationRead(item.id);
       seen$.subscribe();
-      this.notifService.decrementUnread();
-      item.seen = true;
+      // Bỏ khỏi danh sách chưa đọc + trừ badge ngay (optimistic).
+      this.notifService.markSeen(item.id);
     }
     const link = this.notifService.linkFor(item);
     const queryParams = this.notifService.queryParamsFor(item);
@@ -436,9 +439,29 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    this.auth.logout().subscribe(rs => {});
-    this.notifService.stopHub();
-    this.router.navigate(['/']);
+    // Trang hiện tại có yêu cầu đăng nhập không → quyết định sau khi logout xong:
+    // cần login thì về home, còn lại reload tại chỗ để reset state sang khách.
+    const needsAuth = this.currentRouteNeedsAuth();
+    const done = () => {
+      this.notifService.stopHub();
+      // Full reload để dọn sạch mọi state in-memory (user, notifications, cache…):
+      // cần login → về home; còn lại reload trang hiện tại.
+      if (needsAuth) window.location.href = '/';
+      else window.location.reload();
+    };
+    this.auth.logout().subscribe({ next: done, error: done });
+  }
+
+  /** Route đang active (kể cả route con) có gắn guard yêu cầu đăng nhập không. */
+  private currentRouteNeedsAuth(): boolean {
+    const authGuards = [AuthGuard, AdminGuard, PermissionGuard];
+    let route: ActivatedRouteSnapshot | null = this.router.routerState.snapshot.root;
+    while (route) {
+      const guards = route.routeConfig?.canActivate ?? [];
+      if (guards.some(g => authGuards.includes(g))) return true;
+      route = route.firstChild;
+    }
+    return false;
   }
   t(key: string): string {
     return this.translation.get(key);

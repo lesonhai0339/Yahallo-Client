@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, delay, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { toDateTimeOffset, getTimeZone } from '../../core/utils/date.util';
 
 export type TimeRange = 'daily' | 'monthly' | 'yearly';
 export type ChartType = 'line' | 'bar' | 'area';
@@ -103,28 +104,29 @@ export class AnalyticsService {
 
   /**
    * Real endpoint: GET {mangaApi}/analytics
-   *   ?MangaId&From&To&FilterBy(Day|Month|Year)
+   *   ?MangaId&From&To&TimeZone&GroupBy(Day|Month|Year)
    *   → JsonResponse<GetMangaAnalyticsResult { totalChapter, mangaAnalytics[] }>
    * Each bucket carries per-period sums (totalView/totalComment/totalFollower) tagged
    * with day/month/year. Backend only returns non-empty buckets, so we scaffold the
    * full label/date axis (same window as the charts) and zero-fill the gaps.
    */
   /**
-   * Cửa sổ theo LỊCH (không phải rolling):
-   *  - daily   → các ngày trong tháng hiện tại
-   *  - monthly → các tháng trong năm hiện tại
-   *  - yearly  → từ `startYear` (năm tạo truyện) tới năm hiện tại
+   * Khoảng thời gian do người dùng chọn (From/To tùy ý) + cách nhóm (GroupBy).
+   * Trục biểu đồ được dựng liên tục từ From→To theo GroupBy và zero-fill khoảng
+   * trống; dữ liệu hiển thị đúng theo result server trả về. Server chịu trách
+   * nhiệm validate khoảng thời gian.
    */
-  getMangaAnalytics(mangaId: string, range: TimeRange, startYear?: number): Observable<MangaAnalytics> {
-    const { from, to } = this.calWindow(range, startYear);
+  getMangaAnalytics(mangaId: string, from: Date, to: Date, groupBy: TimeRange): Observable<MangaAnalytics> {
+    const { labels, dates } = this.rangeAxis(from, to, groupBy);
     const params = new HttpParams()
       .set('MangaId', mangaId)
-      .set('From', from.toISOString())
-      .set('To', to.toISOString())
-      .set('FilterBy', this.filterByOf(range));
+      .set('From', toDateTimeOffset(from)!)
+      .set('To', toDateTimeOffset(to)!)
+      .set('TimeZone', getTimeZone())
+      .set('GroupBy', this.filterByOf(groupBy));
     return this.http.get(`${this.mangaBase}/analytics`, { params }).pipe(
-      map(res => this.mapMangaAnalytics(res, range, startYear)),
-      catchError(() => of(this.mockMangaAnalytics(range, startYear)))
+      map(res => this.mapMangaAnalytics(res, labels, dates, groupBy)),
+      catchError(() => of(this.emptyMangaAnalytics(labels, dates)))
     );
   }
 
@@ -337,7 +339,7 @@ export class AnalyticsService {
 
   // ── Count endpoint helpers ──────────────────────────────────────────────
 
-  /** Build From/To/CountBy/paging params matching the selected range. */
+  /** Build From/To/GroupBy/paging params matching the selected range. */
   private buildCountParams(range: TimeRange): HttpParams {
     const now = new Date();
     const from = new Date(now);
@@ -352,15 +354,11 @@ export class AnalyticsService {
       from.setFullYear(from.getFullYear() - 4);
       countBy = 'Year';
     }
-    // Backend convention: minutes east of UTC (Vietnam UTC+7 → 420). JS
-    // getTimezoneOffset() returns the opposite sign, so negate it.
-    const timeZoneOffset = -now.getTimezoneOffset();
-
     return new HttpParams()
-      .set('From', from.toISOString())
-      .set('To', now.toISOString())
-      .set('CountBy', countBy)
-      .set('TimeZoneOffset', String(timeZoneOffset))
+      .set('From', toDateTimeOffset(from)!)
+      .set('To', toDateTimeOffset(now)!)
+      .set('TimeZone', getTimeZone())
+      .set('GroupBy', countBy)
       .set('PageNo', '1')
       .set('PageSize', '1000');
   }
@@ -383,6 +381,56 @@ export class AnalyticsService {
     else if (range === 'monthly') from = new Date(now.getFullYear(), 0, 1);
     else from = new Date(this.safeStartYear(startYear), 0, 1);
     return { from, to: now };
+  }
+
+  /**
+   * Trục [labels/dates] liên tục từ `from` → `to` theo GroupBy (zero-fill khoảng
+   * trống), khớp format key của rowKey: `y-mm-dd` | `y-mm` | `y`. Chặn số bucket
+   * tối đa để range quá rộng không làm treo UI (server mới validate chính).
+   */
+  private rangeAxis(from: Date, to: Date, groupBy: TimeRange): { labels: string[]; dates: string[] } {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const monthNames = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+    const labels: string[] = [];
+    const dates: string[] = [];
+    const MAX = 1000;
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) return { labels, dates };
+
+    if (groupBy === 'daily') {
+      const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+      const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+      while (d <= end && labels.length < MAX) {
+        labels.push(`${d.getDate()}/${d.getMonth() + 1}`);
+        dates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+        d.setDate(d.getDate() + 1);
+      }
+    } else if (groupBy === 'monthly') {
+      const d = new Date(from.getFullYear(), from.getMonth(), 1);
+      const end = new Date(to.getFullYear(), to.getMonth(), 1);
+      while (d <= end && labels.length < MAX) {
+        const y = d.getFullYear(), m = d.getMonth() + 1;
+        labels.push(`${monthNames[m - 1]}/${y}`);
+        dates.push(`${y}-${pad(m)}`);
+        d.setMonth(d.getMonth() + 1);
+      }
+    } else {
+      for (let yr = from.getFullYear(); yr <= to.getFullYear() && labels.length < MAX; yr++) {
+        labels.push(`${yr}`);
+        dates.push(`${yr}`);
+      }
+    }
+    return { labels, dates };
+  }
+
+  /** Analytics rỗng (zero-fill theo trục) — dùng khi request lỗi. */
+  private emptyMangaAnalytics(labels: string[], dates: string[]): MangaAnalytics {
+    return {
+      allTimeViews: 0, allTimeComments: 0, allTimeFollows: 0, allTimeChapters: 0,
+      totalViews: 0, totalComments: 0, totalFollows: 0, totalChapters: 0,
+      viewsByTime: labels.map((label, i) => ({ label, date: dates[i], value: 0 })),
+      commentsByTime: labels.map((label, i) => ({ label, date: dates[i], value: 0 })),
+    };
   }
 
   /** startYear hợp lệ (không vượt năm hiện tại); thiếu → mặc định 5 năm gần nhất. */
@@ -430,9 +478,7 @@ export class AnalyticsService {
    * the scaffolded axis by day/month/year; summary stats are the range totals (sum of
    * the per-period buckets), totalChapters comes straight from the backend.
    */
-  private mapMangaAnalytics(res: any, range: TimeRange, startYear?: number): MangaAnalytics {
-    const labels = this.calLabels(range, startYear);
-    const dates = this.calDates(range, startYear);
+  private mapMangaAnalytics(res: any, labels: string[], dates: string[], groupBy: TimeRange): MangaAnalytics {
     const body = res?.value ?? res;
     const rows: any[] = body?.mangaAnalytics ?? body?.MangaAnalytics ?? [];
 
@@ -441,7 +487,7 @@ export class AnalyticsService {
     let totalViews = 0, totalComments = 0, totalFollows = 0;
 
     for (const row of rows) {
-      const key = this.rowKey(row, range);
+      const key = this.rowKey(row, groupBy);
       if (!key) continue;
       const v = row?.totalView ?? row?.TotalView ?? 0;
       const c = row?.totalComment ?? row?.TotalComment ?? 0;

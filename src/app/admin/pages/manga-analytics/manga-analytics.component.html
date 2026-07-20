@@ -31,10 +31,27 @@
       </div>
     </div>
 
-    <!-- Combo ngày / tháng / năm -->
-    <div class="range-toggle range-toggle--inline">
-      <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
-        {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
+    <!-- Bộ lọc 1 hàng: Từ – Đến | Ngày | Tháng | Năm | Đi (Ngày/Tháng/Năm = GroupBy) -->
+    <div class="analytics-filter">
+      <div class="date-fields">
+        <label class="date-field">
+          <span class="date-field__label">Từ</span>
+          <input type="date" class="date-field__input" [(ngModel)]="fromDate" [max]="toDate">
+        </label>
+        <span class="date-fields__sep">–</span>
+        <label class="date-field">
+          <span class="date-field__label">Đến</span>
+          <input type="date" class="date-field__input" [(ngModel)]="toDate" [min]="fromDate">
+        </label>
+      </div>
+      <div class="range-toggle range-toggle--inline">
+        <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
+          {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
+        </button>
+      </div>
+      <button class="go-btn" [disabled]="!canApply" (click)="applyFilter()">
+        <span class="material-icons">arrow_forward</span>
+        Đi
       </button>
     </div>
 

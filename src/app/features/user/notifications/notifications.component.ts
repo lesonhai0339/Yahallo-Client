@@ -52,10 +52,10 @@ export class NotificationsComponent implements OnInit, OnDestroy {
       const seen$ = this.notifService.isMention(notif)
         ? this.notifService.markMentionSeen(notif.id)
         : this.userInteraction.markNotificationRead(notif.id);
-      seen$.subscribe(() => {
-        notif.seen = true;
-        this.notifService.decrementUnread();
-      });
+      seen$.subscribe();
+      // Danh sách chỉ chứa thông báo chưa đọc → đã đọc thì bỏ khỏi list + trừ badge.
+      this.notifications = this.notifications.filter(n => n.id !== notif.id);
+      this.notifService.markSeen(notif.id);
     }
     const link = this.notifService.linkFor(notif);
     const queryParams = this.notifService.queryParamsFor(notif);
@@ -64,7 +64,8 @@ export class NotificationsComponent implements OnInit, OnDestroy {
 
   markAllRead(): void {
     this.notifService.markAllRead().subscribe(() => {
-      this.notifications.forEach(n => n.isRead = true);
+      this.notifications = [];
+      this.notifService.setNotifications([]);
     });
   }
 }

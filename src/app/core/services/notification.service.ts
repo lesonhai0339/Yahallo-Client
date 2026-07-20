@@ -97,6 +97,16 @@ export class NotificationService {
     this.unreadCount$.next(count);
   }
 
+  /**
+   * Đã đọc 1 notification → bỏ khỏi store (store chỉ giữ các thông báo CHƯA đọc)
+   * và tính lại unreadCount. Re-emit để header/dropdown cập nhật ngay.
+   */
+  markSeen(id: string): void {
+    const next = this.notifications$.value.filter(n => n.id !== id);
+    this.notifications$.next(next);
+    this.unreadCount$.next(next.filter(n => !n.seen).length);
+  }
+
   /** Mention (kind = 5) — đánh dấu đã xem qua markMentionSeen() thay vì markRead. */
   isMention(n: Notification): boolean {
     return +n.kind === NotificationType.Mention;
