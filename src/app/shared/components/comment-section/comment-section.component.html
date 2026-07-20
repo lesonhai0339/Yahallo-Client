@@ -58,6 +58,7 @@
       [mangaId]="mangaId",
       [chapterId]="chapterId",
       [showChapterLabel]="!!chapterId === false"
+      [deepLinkCommentId]="c.id === focusRootCommentId ? focusCommentId : undefined"
       (quoteRequest)="onQuoteRequest($event)">
     </app-comment-item>
   </div>

@@ -102,8 +102,13 @@ export class CommentService {
       .pipe(tap(() => this.invalidateComments()));
   }
 
-  getReplies(commentId: string): Observable<any> {
-    return this.filter({ parentId: commentId, pageSize: 50 });
+  /**
+   * Reply của 1 root — phân trang qua chính filter-comment (ParentId).
+   * `orderByDateDesc: false` → cũ nhất trước, khớp thứ tự hiển thị hội thoại nên
+   * "xem thêm" nối tiếp ở cuối. Response kèm `totalCount` để client biết còn nữa không.
+   */
+  getReplies(commentId: string, page = 1, pageSize = 10): Observable<any> {
+    return this.filter({ parentId: commentId, page, pageSize, orderByDateDesc: false });
   }
 
   /**
@@ -117,6 +122,54 @@ export class CommentService {
 
   getCount(mangaId: string): Observable<any> {
     return this.filter({ mangaId, pageSize: 1 });
+  }
+
+  // ── Deep-link (mention) ─────────────────────────────────────────────────────
+  // Dạng load mới: BE tự tính TRANG chứa comment mục tiêu qua anchor id, trả về
+  // PagedResult { totalCount, pageCount, pageSize, pageNumber, data }.
+
+  /**
+   * Load 1 trang ROOT comment. Truyền `rootCommentId`/`commentId` để BE trả đúng
+   * trang chứa root cần deep-link (thay vì phải đoán page phía client).
+   */
+  loadRootPage(query: {
+    userId: string;
+    mangaId?: string;
+    chapterId?: string;
+    blogId?: string;
+    rootCommentId?: string;
+    commentId?: string;
+    page?: number;
+    pageSize?: number;
+  }): Observable<any> {
+    let hp = new HttpParams()
+      .set('PageNo', query.page ?? 1)
+      .set('PageSize', query.pageSize ?? 10)
+      .set('UserId', query.userId ?? '');
+    if (query.mangaId) hp = hp.set('MangaId', query.mangaId);
+    if (query.chapterId) hp = hp.set('ChapterId', query.chapterId);
+    if (query.blogId) hp = hp.set('BlogId', query.blogId);
+    if (query.rootCommentId) hp = hp.set('RootCommentId', query.rootCommentId);
+    if (query.commentId) hp = hp.set('CommentId', query.commentId);
+    return this.http.get(`${this.base}/load`, { params: hp });
+  }
+
+  /**
+   * Load 1 trang CHILD comment của `parentCommentId`. Anchor bằng `commentId`
+   * (comment mention) để BE trả đúng trang con chứa nó.
+   */
+  loadChildPage(query: {
+    parentCommentId: string;
+    commentId: string;
+    page?: number;
+    pageSize?: number;
+  }): Observable<any> {
+    const hp = new HttpParams()
+      .set('PageNo', query.page ?? 1)
+      .set('PageSize', query.pageSize ?? 10)
+      .set('ParentCommentId', query.parentCommentId)
+      .set('CommentId', query.commentId);
+    return this.http.get(`${this.base}/load-child`, { params: hp });
   }
 
   likeComment(commentId: string): Observable<any> {

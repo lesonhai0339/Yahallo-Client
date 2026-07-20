@@ -1,4 +1,6 @@
-<div class="comment-item" [class.is-reply]="isReply" [class.deleted]="isDeleted" [class.pending]="comment.pending">
+<div class="comment-item" [attr.id]="'c-' + comment.id"
+     [class.is-reply]="isReply" [class.deleted]="isDeleted" [class.pending]="comment.pending"
+     [class.highlight]="highlightId === comment.id">
 
   <!-- Avatar -->
   <div class="comment-avatar">
@@ -142,13 +144,27 @@
       <!-- Reply list (lồng 1 cấp theo replyToCommentId) -->
       <div class="replies-list" *ngIf="comment.showReplies && comment.replies?.length">
         <ng-container *ngFor="let node of threadedReplies">
-          <div class="reply-item" [class.pending]="node.reply.pending">
+          <div class="reply-item" [attr.id]="'c-' + node.reply.id"
+               [class.pending]="node.reply.pending" [class.highlight]="highlightId === node.reply.id">
             <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: node.reply }"></ng-container>
           </div>
-          <div class="reply-item reply-child" *ngFor="let child of node.children" [class.pending]="child.pending">
+          <div class="reply-item reply-child" *ngFor="let child of node.children"
+               [attr.id]="'c-' + child.id"
+               [class.pending]="child.pending" [class.highlight]="highlightId === child.id">
             <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: child }"></ng-container>
           </div>
         </ng-container>
+
+        <!-- Xem thêm reply (paginate qua filter-comment) -->
+        <button *ngIf="hasMoreReplies" class="load-more-replies-btn"
+                (click)="loadMoreReplies()" [disabled]="loadingMore">
+          <ng-container *ngIf="loadingMore">
+            <i class="fa-solid fa-spinner fa-spin me-1"></i>{{ 'COMMENT.LOADING' | translate }}
+          </ng-container>
+          <ng-container *ngIf="!loadingMore">
+            <i class="fa-solid fa-chevron-down me-1"></i>{{ 'COMMENT.LOAD_MORE_REPLIES' | translate: { count: nextReplyBatch.toString() } }}
+          </ng-container>
+        </button>
       </div>
 
       <!-- Template render 1 reply (dùng chung cho top-level và child) -->

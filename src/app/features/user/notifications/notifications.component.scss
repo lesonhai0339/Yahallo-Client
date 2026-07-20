@@ -16,11 +16,17 @@ h1 { font-size: 1.4rem; }
     &:hover { background: rgba(255,255,255,0.03); }
     &.unread { background: rgba(233,69,96,0.04); }
 
-    .notif-img img {
-      width: 52px;
-      height: 70px;
-      object-fit: cover;
-      border-radius: 6px;
+    .notif-img {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(233, 69, 96, 0.1);
+      color: var(--accent-primary);
+      font-size: 1rem;
     }
 
     .notif-body {
@@ -43,7 +49,7 @@ h1 { font-size: 1.4rem; }
 
 // Skeleton placeholders — reuse .notif-item spacing/size.
 .notif-skel {
-  &__img { display: block; width: 100%; height: 100%; border-radius: 6px; }
+  &__img { display: block; width: 100%; height: 100%; border-radius: 50%; }
   &__body { display: flex; flex-direction: column; gap: 8px; }
   &__line { display: block; height: 13px; border-radius: 4px; }
   &__line--title { width: 65%; }

@@ -26,6 +26,10 @@ export interface CommentData {
   replies?: ReplyData[];
   repliesLoaded?: boolean;
   showReplies?: boolean;
+  /** Trang reply đã load gần nhất (paginate qua filter-comment, 0 = chưa load). */
+  replyPage?: number;
+  /** Tổng số trang reply (từ PagedResult.pageCount) — dùng để biết còn trang sau. */
+  replyPageCount?: number;
   userReaction?: Reaction;
   pendingReaction?: Reaction;
   /** True khi đang chờ server trả id — UI hiển thị mờ và khoá tương tác. */

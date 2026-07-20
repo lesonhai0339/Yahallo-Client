@@ -412,10 +412,21 @@ export class HeaderComponent implements OnInit, OnDestroy {
     });
   }
 
+  notifIcon(n: any): string { return this.notifService.iconFor(n); }
+
   openNotif(item: any): void {
-    this.userInteraction.markNotificationRead(item.id).subscribe();
-    this.notifService.decrementUnread();
-    if (item.idTarget) this.router.navigate(['/manga', item.idTarget]);
+    if (!item.seen) {
+      // Mention (kind = 5) dùng endpoint riêng; còn lại dùng mark-read thường.
+      const seen$ = this.notifService.isMention(item)
+        ? this.notifService.markMentionSeen(item.id)
+        : this.userInteraction.markNotificationRead(item.id);
+      seen$.subscribe();
+      this.notifService.decrementUnread();
+      item.seen = true;
+    }
+    const link = this.notifService.linkFor(item);
+    const queryParams = this.notifService.queryParamsFor(item);
+    if (link) this.router.navigate(link, queryParams ? { queryParams } : undefined);
     this.isNotifOpen = false;
   }
 

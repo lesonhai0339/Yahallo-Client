@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
-import { Notification } from '../models/interfaces';
+import { Notification, NotificationType } from '../models/interfaces';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -81,14 +81,77 @@ export class NotificationService {
     return this.http.put(`${this.base}/mark-all-read`, {});
   }
 
+  /** Đánh dấu mention (kind = 5) đã xem sau khi click. Body: UpdateMentionCommand { Id }. */
+  markMentionSeen(id: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/mention/update`, { id });
+  }
+
   setNotifications(items: Notification[]): void {
     const arr = Array.isArray(items) ? items : [];
     this.notifications$.next(arr);
-    this.unreadCount$.next(arr.filter(n => !n.isRead).length);
+    this.unreadCount$.next(arr.filter(n => !n.seen).length);
   }
 
   decrementUnread(): void {
     const count = Math.max(0, this.unreadCount$.value - 1);
     this.unreadCount$.next(count);
+  }
+
+  /** Mention (kind = 5) — đánh dấu đã xem qua markMentionSeen() thay vì markRead. */
+  isMention(n: Notification): boolean {
+    return +n.kind === NotificationType.Mention;
+  }
+
+  /**
+   * Icon theo `kind` — thay cho ảnh/avatar (notification không tham chiếu trực
+   * tiếp object nên không giữ ImageUrl để tránh URL obsolote). Suy từ enum.
+   */
+  iconFor(n: Notification): string {
+    switch (+n.kind) {
+      case NotificationType.NewChapter: return 'fa-solid fa-book';
+      case NotificationType.NewManga:   return 'fa-solid fa-book-open';
+      case NotificationType.Comment:    return 'fa-solid fa-comment';
+      case NotificationType.Mention:    return 'fa-solid fa-at';
+      case NotificationType.System:
+      default:                          return 'fa-solid fa-bell';
+    }
+  }
+
+  /**
+   * Router commands cho đích của 1 notification (null nếu không điều hướng).
+   * Điều hướng theo `kind`:
+   *  - NewChapter / Comment → manga-reader (mangaId + chapterId) nếu có, else manga-detail
+   *  - NewManga            → manga-detail
+   *  - Mention             → TẠM manga-detail (sau này deep-link tới comment)
+   *  - System              → không điều hướng
+   */
+  linkFor(n: Notification): any[] | null {
+    const mangaId = n.mangaId ?? n.targetId;
+    switch (+n.kind) {
+      case NotificationType.NewChapter:
+      case NotificationType.Comment:
+        if (n.mangaId && n.chapterId) return ['/manga', n.mangaId, 'chapter', n.chapterId, '0'];
+        return mangaId ? ['/manga', mangaId] : null;
+      case NotificationType.NewManga:
+        return mangaId ? ['/manga', mangaId] : null;
+      case NotificationType.Mention:
+        // Deep-link tới comment: điều hướng tới manga-detail, kèm queryParams
+        // (rootCommentId + commentId) — xem queryParamsFor().
+        return n.mangaId ? ['/manga', n.mangaId] : null;
+      case NotificationType.System:
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Query params đi kèm khi điều hướng 1 notification (null nếu không có).
+   * Mention → { rootCommentId, commentId } để comment-section deep-link tới đúng
+   * trang root + trang child chứa comment được mention.
+   */
+  queryParamsFor(n: Notification): { [k: string]: string } | null {
+    if (+n.kind !== NotificationType.Mention) return null;
+    if (!n.rootCommentId || !n.commentId) return null;
+    return { rootCommentId: n.rootCommentId, commentId: n.commentId };
   }
 }

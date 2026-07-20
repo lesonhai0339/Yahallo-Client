@@ -224,6 +224,35 @@
   .rotated { transform: rotate(180deg); transition: transform 0.2s; }
 }
 
+// Deep-link (mention từ notification): nháy nền một lúc rồi tắt để chỉ rõ comment mục tiêu.
+.comment-item.highlight,
+.reply-item.highlight {
+  border-radius: 8px;
+  animation: comment-highlight 3.5s ease-out;
+}
+
+@keyframes comment-highlight {
+  0%, 30%   { background: rgba(233, 69, 96, 0.22); }  // --accent-primary @ 22%
+  100%      { background: transparent; }
+}
+
+.load-more-replies-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: var(--accent-primary);
+  cursor: pointer;
+  padding: 4px 2px;
+  transition: var(--transition);
+
+  &:hover:not(:disabled) { opacity: 0.8; }
+  &:disabled { opacity: 0.6; cursor: default; }
+}
+
 .replies-list {
   margin-top: 10px;
   padding-left: 16px;

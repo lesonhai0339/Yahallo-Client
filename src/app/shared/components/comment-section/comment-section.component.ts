@@ -20,6 +20,9 @@ const DEFAULT_PAGE_SIZE = 10;
 export class CommentSectionComponent implements OnInit {
   @Input() mangaId!: string;
   @Input() chapterId?: string;
+  /** Deep-link (mention từ notification): comment + root của nó cần nhảy tới. */
+  @Input() focusCommentId?: string;
+  @Input() focusRootCommentId?: string;
 
   @ViewChild('topEditor') topEditorRef?: CommentEditorComponent;
 
@@ -60,7 +63,42 @@ export class CommentSectionComponent implements OnInit {
     this.currentUser = this.auth.currentUser;
     // Đã login → dùng page-size trong cấu hình user; chưa login → default.
     this.pageSize = this.currentUser ? this.prefs.current.defaultPageSize : DEFAULT_PAGE_SIZE;
-    this.loadComments();
+    // Deep-link mention: nhảy thẳng tới trang chứa root comment (BE tự tính page).
+    // Cần đăng nhập (UserId bắt buộc) và không ở ngữ cảnh đọc chương.
+    if (this.focusRootCommentId && this.currentUser && !this.chapterId) {
+      this.deepLinkLoad();
+    } else {
+      this.loadComments();
+    }
+  }
+
+  // ── Deep-link (mention) ─────────────────────────────────────────────────────
+
+  /** Load trang root chứa comment được mention; comment-item lo phần child + highlight. */
+  private deepLinkLoad(): void {
+    this.loading = true;
+    this.commentService.loadRootPage({
+      userId: this.currentUser!.id,
+      mangaId: this.mangaId,
+      rootCommentId: this.focusRootCommentId,
+      commentId: this.focusCommentId,
+      pageSize: this.pageSize,
+    }).subscribe({
+      next: (res: any) => {
+        const payload = res?.value ?? res;
+        const raw: any[] = Array.isArray(payload)
+          ? payload
+          : (payload?.items ?? payload?.data ?? []);
+        this.comments = raw
+          .map(c => this.mapApiComment(c))
+          .sort((a, b) => new Date(b.dateComment).getTime() - new Date(a.dateComment).getTime());
+        this.totalCount = payload?.totalCount ?? this.comments.length;
+        this.currentPage = payload?.pageNumber ?? 1;
+        this.loading = false;
+      },
+      // BE lỗi / không có comment → fallback về load thường trang 1.
+      error: () => { this.loading = false; this.loadComments(); }
+    });
   }
 
   // ── Load ──────────────────────────────────────────────────────────────────

@@ -318,6 +318,7 @@
     "NO": "Hủy",
     "VIEW_REPLIES": "Xem {{count}} trả lời",
     "HIDE_REPLIES": "Ẩn trả lời",
+    "LOAD_MORE_REPLIES": "Xem thêm {{count}} trả lời",
     "SHOW_MORE": "Xem thêm bình luận",
     "LOADING": "Đang tải...",
     "EMPTY": "Chưa có bình luận. Hãy là người đầu tiên!",

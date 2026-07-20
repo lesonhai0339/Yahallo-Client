@@ -10,11 +10,6 @@
         <p class="manga-title">{{ mangaName }}</p>
       </div>
     </div>
-    <div class="range-toggle">
-      <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
-        {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
-      </button>
-    </div>
   </div>
 
   <!-- Loading -->
@@ -24,34 +19,33 @@
   </div>
 
   <ng-container *ngIf="!loading && analytics">
-    <!-- Summary stats -->
+    <!-- Block 1: toàn thời gian -->
+    <div class="stats-section-title">Toàn thời gian</div>
     <div class="stats-row">
-      <div class="mini-stat">
-        <span class="material-icons mini-stat__icon" style="color: #0ea5e9">visibility</span>
+      <div class="mini-stat" *ngFor="let s of allTimeStats">
+        <span class="material-icons mini-stat__icon" [style.color]="s.color">{{ s.icon }}</span>
         <div class="mini-stat__info">
-          <div class="mini-stat__value">{{ analytics.totalViews | number }}</div>
-          <div class="mini-stat__label">Lượt xem</div>
+          <div class="mini-stat__value">{{ s.value | number }}</div>
+          <div class="mini-stat__label">{{ s.label }}</div>
         </div>
       </div>
-      <div class="mini-stat">
-        <span class="material-icons mini-stat__icon" style="color: #8b5cf6">chat_bubble</span>
+    </div>
+
+    <!-- Combo ngày / tháng / năm -->
+    <div class="range-toggle range-toggle--inline">
+      <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
+        {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
+      </button>
+    </div>
+
+    <!-- Block 2: theo range đang chọn -->
+    <div class="stats-section-title">{{ rangeLabel }}</div>
+    <div class="stats-row">
+      <div class="mini-stat" *ngFor="let s of rangeStats">
+        <span class="material-icons mini-stat__icon" [style.color]="s.color">{{ s.icon }}</span>
         <div class="mini-stat__info">
-          <div class="mini-stat__value">{{ analytics.totalComments | number }}</div>
-          <div class="mini-stat__label">Bình luận</div>
-        </div>
-      </div>
-      <div class="mini-stat">
-        <span class="material-icons mini-stat__icon" style="color: #e94560">favorite</span>
-        <div class="mini-stat__info">
-          <div class="mini-stat__value">{{ analytics.totalFollows | number }}</div>
-          <div class="mini-stat__label">Theo dõi</div>
-        </div>
-      </div>
-      <div class="mini-stat">
-        <span class="material-icons mini-stat__icon" style="color: #10b981">library_books</span>
-        <div class="mini-stat__info">
-          <div class="mini-stat__value">{{ analytics.totalChapters | number }}</div>
-          <div class="mini-stat__label">Chương</div>
+          <div class="mini-stat__value">{{ s.value | number }}</div>
+          <div class="mini-stat__label">{{ s.label }}</div>
         </div>
       </div>
     </div>

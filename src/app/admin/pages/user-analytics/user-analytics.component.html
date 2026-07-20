@@ -10,11 +10,6 @@
         <p class="sub-title">{{ userName }}</p>
       </div>
     </div>
-    <div class="range-toggle">
-      <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
-        {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
-      </button>
-    </div>
   </div>
 
   <div *ngIf="loading" class="loading-state">
@@ -22,20 +17,33 @@
   </div>
 
   <ng-container *ngIf="!loading && analytics">
-    <!-- Summary -->
+    <!-- Block 1: toàn thời gian -->
+    <div class="stats-section-title">Toàn thời gian</div>
     <div class="stats-row">
-      <div class="mini-stat">
-        <span class="material-icons mini-stat__icon" style="color: #3b82f6">chat_bubble</span>
+      <div class="mini-stat" *ngFor="let s of allTimeStats">
+        <span class="material-icons mini-stat__icon" [style.color]="s.color">{{ s.icon }}</span>
         <div class="mini-stat__info">
-          <div class="mini-stat__value">{{ analytics.totalComments | number }}</div>
-          <div class="mini-stat__label">Bình luận</div>
+          <div class="mini-stat__value">{{ s.value | number }}</div>
+          <div class="mini-stat__label">{{ s.label }}</div>
         </div>
       </div>
-      <div class="mini-stat">
-        <span class="material-icons mini-stat__icon" style="color: #10b981">menu_book</span>
+    </div>
+
+    <!-- Combo ngày / tháng / năm -->
+    <div class="range-toggle range-toggle--inline">
+      <button *ngFor="let r of ranges" class="range-btn" [class.active]="selectedRange === r" (click)="onRangeChange(r)">
+        {{ r === 'daily' ? 'Ngày' : r === 'monthly' ? 'Tháng' : 'Năm' }}
+      </button>
+    </div>
+
+    <!-- Block 2: theo range đang chọn -->
+    <div class="stats-section-title">{{ rangeLabel }}</div>
+    <div class="stats-row">
+      <div class="mini-stat" *ngFor="let s of rangeStats">
+        <span class="material-icons mini-stat__icon" [style.color]="s.color">{{ s.icon }}</span>
         <div class="mini-stat__info">
-          <div class="mini-stat__value">{{ analytics.totalMangaRead | number }}</div>
-          <div class="mini-stat__label">Truyện đã đọc</div>
+          <div class="mini-stat__value">{{ s.value | number }}</div>
+          <div class="mini-stat__label">{{ s.label }}</div>
         </div>
       </div>
     </div>

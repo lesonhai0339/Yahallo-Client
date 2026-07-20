@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ChartConfiguration } from 'chart.js';
 import {
-  AnalyticsService, UserAnalytics, TimeRange, ChartType, DateDetail, TimeSeriesPoint
+  AnalyticsService, UserAnalytics, TimeRange, ChartType, DateDetail, TimeSeriesPoint, StatCell
 } from '../../services/analytics.service';
 import { AdminService } from '../../services/admin.service';
 
@@ -23,6 +23,7 @@ interface DetailPanel {
 export class UserAnalyticsComponent implements OnInit {
   userId = '';
   userName = '';
+  createdYear?: number;   // năm tạo tài khoản — mốc bắt đầu cho range 'yearly'
   loading = true;
   selectedRange: TimeRange = 'daily';
   ranges: TimeRange[] = ['daily', 'monthly', 'yearly'];
@@ -34,6 +35,10 @@ export class UserAnalyticsComponent implements OnInit {
 
   activityData: TimeSeriesPoint[] = [];
   commentsData: TimeSeriesPoint[] = [];
+
+  // 2 block mini-stat: toàn thời gian + theo range đang chọn
+  allTimeStats: StatCell[] = [];
+  rangeStats: StatCell[] = [];
 
   activityChart: any = { labels: [], datasets: [] };
   commentsChart: any = { labels: [], datasets: [] };
@@ -108,6 +113,26 @@ export class UserAnalyticsComponent implements OnInit {
     return type === 'bar' ? 'bar' : 'line';
   }
 
+  /** Nhãn cửa sổ thời gian cho block theo range (khớp cửa sổ theo lịch). */
+  get rangeLabel(): string {
+    return this.selectedRange === 'daily' ? 'Tháng này'
+         : this.selectedRange === 'monthly' ? 'Năm nay' : 'Từ khi tham gia';
+  }
+
+  /** Dựng 2 block mini-stat: toàn thời gian + theo range (tổng chuỗi thời gian). */
+  private buildStats(data: UserAnalytics): void {
+    this.allTimeStats = [
+      { label: 'Bình luận', value: data.totalComments, icon: 'chat_bubble', color: '#3b82f6' },
+      { label: 'Truyện đã đọc', value: data.totalMangaRead, icon: 'menu_book', color: '#10b981' },
+    ];
+    const activitySum = data.activityByTime.reduce((s, p) => s + p.value, 0);
+    const commentSum = data.commentsByTime.reduce((s, p) => s + p.value, 0);
+    this.rangeStats = [
+      { label: 'Hoạt động', value: activitySum, icon: 'bolt', color: '#10b981' },
+      { label: 'Bình luận', value: commentSum, icon: 'chat_bubble', color: '#3b82f6' },
+    ];
+  }
+
   private handleChartClick(
     chartKey: string, event: any, dataPoints: TimeSeriesPoint[]
   ): void {
@@ -127,17 +152,27 @@ export class UserAnalyticsComponent implements OnInit {
 
   private loadUserInfo(): void {
     this.adminService.getUserById(this.userId).subscribe({
-      next: (res: any) => { this.userName = (res?.value ?? res)?.name ?? (res?.value ?? res)?.userName ?? 'Unknown'; },
+      next: (res: any) => {
+        const body = res?.value ?? res;
+        this.userName = body?.name ?? body?.userName ?? 'Unknown';
+        const created = body?.createDate ?? body?.createdDate ?? body?.dateCreate;
+        const year = created ? new Date(created).getFullYear() : NaN;
+        if (!isNaN(year)) {
+          this.createdYear = year;
+          if (this.selectedRange === 'yearly') this.loadAnalytics();
+        }
+      },
       error: () => { this.userName = 'Unknown'; }
     });
   }
 
   private loadAnalytics(): void {
     this.loading = true;
-    this.analyticsService.getUserAnalytics(this.userId, this.selectedRange).subscribe(data => {
+    this.analyticsService.getUserAnalytics(this.userId, this.selectedRange, this.createdYear).subscribe(data => {
       this.analytics = data;
       this.activityData = data.activityByTime;
       this.commentsData = data.commentsByTime;
+      this.buildStats(data);
       this.rebuildActivityChart();
       this.rebuildCommentsChart();
       this.buildActiveHoursChart(data);

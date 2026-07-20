@@ -13,7 +13,21 @@ export interface TimeSeriesPoint {
   date: string;
 }
 
+/** 1 ô mini-stat trong stats-row (dùng chung cho block toàn thời gian + theo range). */
+export interface StatCell {
+  label: string;
+  value: number;
+  icon: string;
+  color: string;
+}
+
 export interface MangaAnalytics {
+  // Toàn thời gian (top-level từ API, không đổi theo range)
+  allTimeViews: number;
+  allTimeComments: number;
+  allTimeFollows: number;
+  allTimeChapters: number;
+  // Theo range đã chọn (tổng các bucket trong cửa sổ)
   totalViews: number;
   totalComments: number;
   totalFollows: number;
@@ -95,24 +109,30 @@ export class AnalyticsService {
    * with day/month/year. Backend only returns non-empty buckets, so we scaffold the
    * full label/date axis (same window as the charts) and zero-fill the gaps.
    */
-  getMangaAnalytics(mangaId: string, range: TimeRange): Observable<MangaAnalytics> {
-    const { from, to } = this.rangeWindow(range);
+  /**
+   * Cửa sổ theo LỊCH (không phải rolling):
+   *  - daily   → các ngày trong tháng hiện tại
+   *  - monthly → các tháng trong năm hiện tại
+   *  - yearly  → từ `startYear` (năm tạo truyện) tới năm hiện tại
+   */
+  getMangaAnalytics(mangaId: string, range: TimeRange, startYear?: number): Observable<MangaAnalytics> {
+    const { from, to } = this.calWindow(range, startYear);
     const params = new HttpParams()
       .set('MangaId', mangaId)
       .set('From', from.toISOString())
       .set('To', to.toISOString())
       .set('FilterBy', this.filterByOf(range));
     return this.http.get(`${this.mangaBase}/analytics`, { params }).pipe(
-      map(res => this.mapMangaAnalytics(res, range)),
-      catchError(() => of(this.mockMangaAnalytics(range)))
+      map(res => this.mapMangaAnalytics(res, range, startYear)),
+      catchError(() => of(this.mockMangaAnalytics(range, startYear)))
     );
   }
 
-  getUserAnalytics(userId: string, range: TimeRange): Observable<UserAnalytics> {
-    if (USE_MOCK) return of(this.mockUserAnalytics(range));
+  getUserAnalytics(userId: string, range: TimeRange, startYear?: number): Observable<UserAnalytics> {
+    if (USE_MOCK) return of(this.mockUserAnalytics(range, startYear));
     return this.http.get<UserAnalytics>(
       `${this.baseUrl}/analytics/user/${userId}`, { params: { range } }
-    ).pipe(catchError(() => of(this.mockUserAnalytics(range))));
+    ).pipe(catchError(() => of(this.mockUserAnalytics(range, startYear))));
   }
 
   // ── Detail endpoints (click on a specific date) ─────────────────────────
@@ -170,10 +190,14 @@ export class AnalyticsService {
     };
   }
 
-  private mockMangaAnalytics(range: TimeRange): MangaAnalytics {
-    const labels = this.generateLabels(range);
-    const dates = this.generateDates(range);
+  private mockMangaAnalytics(range: TimeRange, startYear?: number): MangaAnalytics {
+    const labels = this.calLabels(range, startYear);
+    const dates = this.calDates(range, startYear);
     return {
+      allTimeViews: this.rand(50000, 500000),
+      allTimeComments: this.rand(2000, 20000),
+      allTimeFollows: this.rand(5000, 50000),
+      allTimeChapters: this.rand(50, 500),
       totalViews: this.rand(5000, 100000),
       totalComments: this.rand(50, 2000),
       totalFollows: this.rand(100, 5000),
@@ -183,9 +207,9 @@ export class AnalyticsService {
     };
   }
 
-  private mockUserAnalytics(range: TimeRange): UserAnalytics {
-    const labels = this.generateLabels(range);
-    const dates = this.generateDates(range);
+  private mockUserAnalytics(range: TimeRange, startYear?: number): UserAnalytics {
+    const labels = this.calLabels(range, startYear);
+    const dates = this.calDates(range, startYear);
     return {
       totalComments: this.rand(10, 500),
       totalMangaRead: this.rand(5, 200),
@@ -346,14 +370,59 @@ export class AnalyticsService {
     return range === 'daily' ? 'Day' : range === 'monthly' ? 'Month' : 'Year';
   }
 
-  /** [From, To] window matching the chart axis (30 ngày / 12 tháng / 5 năm). */
-  private rangeWindow(range: TimeRange): { from: Date; to: Date } {
+  /**
+   * [From, To] theo lịch:
+   *  - daily   → đầu tháng hiện tại → nay
+   *  - monthly → đầu năm hiện tại → nay
+   *  - yearly  → đầu năm `startYear` (năm tạo) → nay
+   */
+  private calWindow(range: TimeRange, startYear?: number): { from: Date; to: Date } {
     const now = new Date();
-    const from = new Date(now);
-    if (range === 'daily') from.setDate(from.getDate() - 29);
-    else if (range === 'monthly') from.setMonth(from.getMonth() - 11);
-    else from.setFullYear(from.getFullYear() - 4);
+    let from: Date;
+    if (range === 'daily') from = new Date(now.getFullYear(), now.getMonth(), 1);
+    else if (range === 'monthly') from = new Date(now.getFullYear(), 0, 1);
+    else from = new Date(this.safeStartYear(startYear), 0, 1);
     return { from, to: now };
+  }
+
+  /** startYear hợp lệ (không vượt năm hiện tại); thiếu → mặc định 5 năm gần nhất. */
+  private safeStartYear(startYear?: number): number {
+    const cur = new Date().getFullYear();
+    if (!startYear || startYear > cur || startYear < 1970) return cur - 4;
+    return startYear;
+  }
+
+  /** Nhãn trục theo lịch — khớp key của calDates/rowKey. */
+  private calLabels(range: TimeRange, startYear?: number): string[] {
+    const now = new Date();
+    const y = now.getFullYear();
+    const labels: string[] = [];
+    if (range === 'daily') {
+      const m = now.getMonth() + 1;
+      for (let d = 1; d <= now.getDate(); d++) labels.push(`${d}/${m}`);
+    } else if (range === 'monthly') {
+      const names = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+      for (let mo = 0; mo <= now.getMonth(); mo++) labels.push(names[mo]);
+    } else {
+      for (let yr = this.safeStartYear(startYear); yr <= y; yr++) labels.push(`${yr}`);
+    }
+    return labels;
+  }
+
+  /** Key trục (khớp rowKey): `y-mm-dd` | `y-mm` | `y`. */
+  private calDates(range: TimeRange, startYear?: number): string[] {
+    const now = new Date();
+    const y = now.getFullYear();
+    const dates: string[] = [];
+    if (range === 'daily') {
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      for (let d = 1; d <= now.getDate(); d++) dates.push(`${y}-${m}-${String(d).padStart(2, '0')}`);
+    } else if (range === 'monthly') {
+      for (let mo = 1; mo <= now.getMonth() + 1; mo++) dates.push(`${y}-${String(mo).padStart(2, '0')}`);
+    } else {
+      for (let yr = this.safeStartYear(startYear); yr <= y; yr++) dates.push(`${yr}`);
+    }
+    return dates;
   }
 
   /**
@@ -361,9 +430,9 @@ export class AnalyticsService {
    * the scaffolded axis by day/month/year; summary stats are the range totals (sum of
    * the per-period buckets), totalChapters comes straight from the backend.
    */
-  private mapMangaAnalytics(res: any, range: TimeRange): MangaAnalytics {
-    const labels = this.generateLabels(range);
-    const dates = this.generateDates(range);
+  private mapMangaAnalytics(res: any, range: TimeRange, startYear?: number): MangaAnalytics {
+    const labels = this.calLabels(range, startYear);
+    const dates = this.calDates(range, startYear);
     const body = res?.value ?? res;
     const rows: any[] = body?.mangaAnalytics ?? body?.MangaAnalytics ?? [];
 
@@ -382,11 +451,18 @@ export class AnalyticsService {
       totalViews += v; totalComments += c; totalFollows += f;
     }
 
+    const allTimeChapters = body?.totalChapter ?? body?.TotalChapter ?? 0;
     return {
+      // Toàn thời gian: lấy thẳng total top-level của API (14/27/2/5 trong ví dụ).
+      allTimeViews: body?.totalView ?? body?.TotalView ?? 0,
+      allTimeComments: body?.totalComment ?? body?.TotalComment ?? 0,
+      allTimeFollows: body?.totalFollowing ?? body?.TotalFollowing ?? 0,
+      allTimeChapters,
+      // Theo range: tổng các bucket trong cửa sổ đã chọn.
       totalViews,
       totalComments,
       totalFollows,
-      totalChapters: body?.totalChapter ?? body?.TotalChapter ?? 0,
+      totalChapters: allTimeChapters,
       viewsByTime: labels.map((label, i) => ({ label, date: dates[i], value: views.get(dates[i]) ?? 0 })),
       commentsByTime: labels.map((label, i) => ({ label, date: dates[i], value: comments.get(dates[i]) ?? 0 })),
     };

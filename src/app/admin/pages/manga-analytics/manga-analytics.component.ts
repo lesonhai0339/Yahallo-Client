@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import 'chart.js';
 import {
-  AnalyticsService, MangaAnalytics, TimeRange, ChartType, DateDetail, TimeSeriesPoint
+  AnalyticsService, MangaAnalytics, TimeRange, ChartType, DateDetail, TimeSeriesPoint, StatCell
 } from '../../services/analytics.service';
 import { AdminMangaService } from '../../services/admin-manga.service';
 
@@ -23,6 +23,7 @@ interface DetailPanel {
 export class MangaAnalyticsComponent implements OnInit {
   mangaId = '';
   mangaName = '';
+  createdYear?: number;   // năm tạo truyện — mốc bắt đầu cho range 'yearly'
   loading = true;
   selectedRange: TimeRange = 'daily';
   ranges: TimeRange[] = ['daily', 'monthly', 'yearly'];
@@ -34,6 +35,10 @@ export class MangaAnalyticsComponent implements OnInit {
 
   viewsData: TimeSeriesPoint[] = [];
   commentsData: TimeSeriesPoint[] = [];
+
+  // 2 block mini-stat: toàn thời gian + theo range đang chọn
+  allTimeStats: StatCell[] = [];
+  rangeStats: StatCell[] = [];
 
   viewsChart: any = { labels: [], datasets: [] };
   commentsChart: any = { labels: [], datasets: [] };
@@ -93,6 +98,27 @@ export class MangaAnalyticsComponent implements OnInit {
     return type === 'bar' ? 'bar' : 'line';
   }
 
+  /** Nhãn cửa sổ thời gian cho block theo range (khớp cửa sổ theo lịch). */
+  get rangeLabel(): string {
+    return this.selectedRange === 'daily' ? 'Tháng này'
+         : this.selectedRange === 'monthly' ? 'Năm nay' : 'Từ khi tạo';
+  }
+
+  /** Dựng 2 block mini-stat: toàn thời gian (top-level API) + theo range (tổng bucket). */
+  private buildStats(data: MangaAnalytics): void {
+    this.allTimeStats = [
+      { label: 'Lượt xem', value: data.allTimeViews, icon: 'visibility', color: '#0ea5e9' },
+      { label: 'Bình luận', value: data.allTimeComments, icon: 'chat_bubble', color: '#8b5cf6' },
+      { label: 'Theo dõi', value: data.allTimeFollows, icon: 'favorite', color: '#e94560' },
+      { label: 'Chương', value: data.allTimeChapters, icon: 'library_books', color: '#10b981' },
+    ];
+    this.rangeStats = [
+      { label: 'Lượt xem', value: data.totalViews, icon: 'visibility', color: '#0ea5e9' },
+      { label: 'Bình luận', value: data.totalComments, icon: 'chat_bubble', color: '#8b5cf6' },
+      { label: 'Theo dõi', value: data.totalFollows, icon: 'favorite', color: '#e94560' },
+    ];
+  }
+
   private handleChartClick(
     chartKey: string,
     event: any,
@@ -117,17 +143,29 @@ export class MangaAnalyticsComponent implements OnInit {
 
   private loadMangaInfo(): void {
     this.mangaService.getDetail(this.mangaId).subscribe({
-      next: (res: any) => { this.mangaName = (res?.value ?? res)?.name ?? 'Unknown'; },
+      next: (res: any) => {
+        const body = res?.value ?? res;
+        this.mangaName = body?.name ?? 'Unknown';
+        // Năm tạo truyện → mốc bắt đầu cho range 'yearly'. Nếu đang xem 'yearly'
+        // và trước đó dùng fallback thì nạp lại đúng mốc.
+        const created = body?.createDate ?? body?.createdDate ?? body?.dateCreate;
+        const year = created ? new Date(created).getFullYear() : NaN;
+        if (!isNaN(year)) {
+          this.createdYear = year;
+          if (this.selectedRange === 'yearly') this.loadAnalytics();
+        }
+      },
       error: () => { this.mangaName = 'Unknown'; }
     });
   }
 
   private loadAnalytics(): void {
     this.loading = true;
-    this.analyticsService.getMangaAnalytics(this.mangaId, this.selectedRange).subscribe(data => {
+    this.analyticsService.getMangaAnalytics(this.mangaId, this.selectedRange, this.createdYear).subscribe(data => {
       this.analytics = data;
       this.viewsData = data.viewsByTime;
       this.commentsData = data.commentsByTime;
+      this.buildStats(data);
       this.rebuildViewsChart();
       this.rebuildCommentsChart();
       this.loading = false;

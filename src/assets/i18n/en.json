@@ -318,6 +318,7 @@
     "NO": "Cancel",
     "VIEW_REPLIES": "View {{count}} replies",
     "HIDE_REPLIES": "Hide replies",
+    "LOAD_MORE_REPLIES": "View {{count}} more replies",
     "SHOW_MORE": "Show more comments",
     "LOADING": "Loading...",
     "EMPTY": "No comments yet. Be the first!",

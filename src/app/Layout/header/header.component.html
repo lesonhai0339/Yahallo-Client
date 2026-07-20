@@ -119,11 +119,11 @@
             </a>
           </div>
           <ul class="notif-list">
-            <li *ngFor="let n of notifications" (click)="openNotif(n)" [class.unread]="!n.isRead">
-              <img [src]="n.targetImage || n.imagerarget" [alt]="n.target" appImageFallback>
+            <li *ngFor="let n of notifications" (click)="openNotif(n)" [class.unread]="!n.seen">
+              <span class="notif-icon"><i [class]="notifIcon(n)"></i></span>
               <div class="notif-content">
                 <p>{{ n.message }}</p>
-                <span>{{ n.date | date:'dd/MM HH:mm' }}</span>
+                <span>{{ n.createDate | date:'dd/MM HH:mm' }}</span>
               </div>
             </li>
             <li *ngIf="notifications.length === 0" class="notif-empty">

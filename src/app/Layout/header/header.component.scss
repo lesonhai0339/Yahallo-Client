@@ -457,8 +457,9 @@ $header-height: 60px;
   right: 2px;
   min-width: 16px;
   height: 16px;
-  background: var(--accent-primary);
-  color: white;
+  // Đỏ nền / trắng chữ cố định — không theo theme (light theme accent là xanh).
+  background: #e94560;
+  color: #fff;
   font-size: 0.65rem;
   border-radius: 8px;
   display: flex;
@@ -509,12 +510,17 @@ $header-height: 60px;
     &:hover { background: var(--overlay-light); }
     &.unread { background: rgba(233,69,96,0.05); }
 
-    img {
-      width: 44px;
-      height: 60px;
-      object-fit: cover;
-      border-radius: 4px;
+    .notif-icon {
       flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--icon-btn-bg, rgba(233, 69, 96, 0.1));
+      color: var(--accent-primary);
+      font-size: 0.9rem;
     }
 
     .notif-content {

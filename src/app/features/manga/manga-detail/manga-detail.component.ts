@@ -57,6 +57,10 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   }
 
   mangaId!: string;
+  // Deep-link mention: khi tới từ notification, comment-section load thẳng tới
+  // trang chứa comment được mention (root + child) rồi highlight.
+  focusCommentId?: string;
+  focusRootCommentId?: string;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -116,6 +120,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
       this.mangaId = params['id'];
       this.loadManga();
       this.loadChapters();
+    });
+    // Deep-link tới comment được mention (từ notification).
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(qp => {
+      this.focusRootCommentId = qp['rootCommentId'] || undefined;
+      this.focusCommentId = qp['commentId'] || undefined;
     });
   }
 

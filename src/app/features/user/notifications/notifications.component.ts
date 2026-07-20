@@ -44,14 +44,22 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     });
   }
 
+  notifIcon(n: any): string { return this.notifService.iconFor(n); }
+
   markRead(notif: any): void {
-    this.userInteraction.markNotificationRead(notif.id).subscribe(() => {
-      notif.isRead = true;
-      this.notifService.decrementUnread();
-    });
-    if (notif.idTarget) {
-      this.router.navigate(['/manga', notif.idTarget]);
+    if (!notif.seen) {
+      // Mention (kind = 5) dùng endpoint riêng; còn lại dùng mark-read thường.
+      const seen$ = this.notifService.isMention(notif)
+        ? this.notifService.markMentionSeen(notif.id)
+        : this.userInteraction.markNotificationRead(notif.id);
+      seen$.subscribe(() => {
+        notif.seen = true;
+        this.notifService.decrementUnread();
+      });
     }
+    const link = this.notifService.linkFor(notif);
+    const queryParams = this.notifService.queryParamsFor(notif);
+    if (link) this.router.navigate(link, queryParams ? { queryParams } : undefined);
   }
 
   markAllRead(): void {

@@ -21,15 +21,25 @@ export class CommentItemComponent implements OnInit {
   @Input() showChapterLabel = false;
   @Input() mangaId = '';
   @Input() chapterId? = '';
+  /** Deep-link (mention): id comment cần nhảy tới. Nếu = comment.id thì highlight
+   *  chính root này; nếu là 1 child thì load trang child chứa nó rồi highlight. */
+  @Input() deepLinkCommentId?: string;
+
+  /** Id đang được highlight (root hoặc reply) khi deep-link tới. */
+  highlightId?: string;
   @Output() deleted = new EventEmitter<string>();
   @Output() quoteRequest = new EventEmitter<{ author: string; text: string }>();
 
   @ViewChild('replyEditor') replyEditorRef?: CommentEditorComponent;
 
+  /** Số reply load mỗi lần (paginate qua filter-comment). */
+  private static readonly REPLY_PAGE_SIZE = 10;
+
   currentUser: User | null = null;
   isReplying = false;
   isEditing = false;
-  repliesLoading = false;
+  repliesLoading = false;   // load trang đầu (toggle)
+  loadingMore = false;      // load "xem thêm" (giữ toggle ổn định)
   showConfirmDelete = false;
   replyingToId: string | null = null;   // id của reply đang được trả lời (Model A: phẳng)
   threadedReplies: ThreadedReply[] = []; // replies gom theo replyToCommentId (lồng 1 cấp)
@@ -87,6 +97,50 @@ export class CommentItemComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.auth.currentUser;
+    if (this.deepLinkCommentId && !this.isReply) this.handleDeepLink(this.deepLinkCommentId);
+  }
+
+  // ── Deep-link (mention) ─────────────────────────────────────────────────────
+
+  /** Nhảy tới comment được mention: highlight root, hoặc load trang child chứa nó. */
+  private handleDeepLink(targetId: string): void {
+    if (targetId === this.comment.id) {
+      this.flashHighlight(targetId);   // mention chính là root comment này
+      return;
+    }
+    // Mention là 1 reply → load đúng trang child chứa nó (anchor API) rồi highlight.
+    this.repliesLoading = true;
+    this.commentService.loadChildPage({
+      parentCommentId: this.comment.id,
+      commentId: targetId,
+      pageSize: CommentItemComponent.REPLY_PAGE_SIZE,
+    }).subscribe({
+      next: (res: any) => {
+        const payload = res?.value ?? res;
+        const raw: any[] = Array.isArray(payload)
+          ? payload
+          : (payload?.items ?? payload?.data ?? []);
+        this.comment.replies = raw.map(r => this.mapApiReply(r));
+        if (payload?.totalCount != null) this.comment.replyCount = payload.totalCount;
+        this.comment.replyPage = payload?.pageNumber ?? 1;
+        this.comment.replyPageCount = payload?.pageCount ?? this.comment.replyPage;
+        this.comment.repliesLoaded = true;
+        this.comment.showReplies = true;
+        this.repliesLoading = false;
+        this.rebuildThread();
+        this.flashHighlight(targetId);
+      },
+      error: () => { this.repliesLoading = false; }
+    });
+  }
+
+  /** Scroll tới phần tử + nháy highlight tạm thời (tự tắt sau vài giây). */
+  private flashHighlight(id: string): void {
+    this.highlightId = id;
+    setTimeout(() => {
+      document.getElementById('c-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    setTimeout(() => { this.highlightId = undefined; }, 3500);
   }
 
   // ── Reactions ──────────────────────────────────────────────────────────────
@@ -122,20 +176,61 @@ export class CommentItemComponent implements OnInit {
     }
   }
 
+  /** Trang đầu (hoặc mở lại lần đầu): thay toàn bộ danh sách reply. */
   loadReplies(): void {
-    this.repliesLoading = true;
-    this.commentService.getReplies(this.comment.id).subscribe((res: any) => {
-      // API wraps the page in `value`: { value: { data: [...] } }
-      const payload = res?.value ?? res;
-      const raw: any[] = Array.isArray(payload)
-        ? payload
-        : (payload?.items ?? payload?.data ?? []);
-      this.comment.replies = raw.map(r => this.mapApiReply(r));
-      this.comment.repliesLoaded = true;
-      this.comment.showReplies = true;
-      this.repliesLoading = false;
-      this.rebuildThread();
-    });
+    this.fetchReplies(1, false);
+  }
+
+  /** "Xem thêm N trả lời": load trang kế tiếp và nối vào cuối. */
+  loadMoreReplies(): void {
+    if (this.repliesLoading || this.loadingMore) return;
+    this.fetchReplies((this.comment.replyPage ?? 0) + 1, true);
+  }
+
+  /**
+   * Còn reply chưa load. Ưu tiên so trang (replyPage < pageCount) khi có pageCount
+   * — chuẩn cả khi deep-link nhảy vào trang giữa; nếu API không trả pageCount thì
+   * fallback so số lượng (đúng cho luồng tuần tự từ trang 1).
+   */
+  get hasMoreReplies(): boolean {
+    const pageCount = this.comment.replyPageCount ?? 0;
+    if (pageCount > 0) return (this.comment.replyPage ?? 0) < pageCount;
+    return (this.comment.replies?.length ?? 0) < (this.comment.replyCount ?? 0);
+  }
+
+  /** Số reply sẽ hiện ở lần "xem thêm" kế tiếp (tối đa 1 trang). */
+  get nextReplyBatch(): number {
+    const remaining = (this.comment.replyCount ?? 0) - (this.comment.replies?.length ?? 0);
+    return Math.max(0, Math.min(CommentItemComponent.REPLY_PAGE_SIZE, remaining));
+  }
+
+  private fetchReplies(page: number, append: boolean): void {
+    if (append) this.loadingMore = true; else this.repliesLoading = true;
+    this.commentService.getReplies(this.comment.id, page, CommentItemComponent.REPLY_PAGE_SIZE)
+      .subscribe({
+        next: (res: any) => {
+          // API wraps the page in `value`: { value: { totalCount, data: [...] } }
+          const payload = res?.value ?? res;
+          const raw: any[] = Array.isArray(payload)
+            ? payload
+            : (payload?.items ?? payload?.data ?? []);
+          const mapped = raw.map(r => this.mapApiReply(r));
+          // Nối (loại trùng id — phòng reply optimistic đã có sẵn) hoặc thay mới.
+          const base = append ? (this.comment.replies ?? []) : [];
+          const seen = new Set(base.map(r => r.id));
+          this.comment.replies = [...base, ...mapped.filter(r => r.id && !seen.has(r.id))];
+          // totalCount từ server là nguồn chuẩn để biết còn nữa không.
+          if (payload?.totalCount != null) this.comment.replyCount = payload.totalCount;
+          if (payload?.pageCount != null) this.comment.replyPageCount = payload.pageCount;
+          this.comment.replyPage = page;
+          this.comment.repliesLoaded = true;
+          this.comment.showReplies = true;
+          this.repliesLoading = false;
+          this.loadingMore = false;
+          this.rebuildThread();
+        },
+        error: () => { this.repliesLoading = false; this.loadingMore = false; }
+      });
   }
 
   /**

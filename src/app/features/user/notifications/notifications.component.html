@@ -8,15 +8,15 @@
 
   <div class="notif-list card" *ngIf="!isLoading">
     <div class="notif-item" *ngFor="let n of notifications"
-      (click)="markRead(n)" [class.unread]="!n.isRead">
+      (click)="markRead(n)" [class.unread]="!n.seen">
       <div class="notif-img">
-        <img [src]="n.targetImage ?? n.imagerarget" [alt]="n.target" appImageFallback>
+        <i [class]="notifIcon(n)"></i>
       </div>
       <div class="notif-body">
         <p>{{ n.message }}</p>
-        <span class="notif-date">{{ n.date | date:'dd/MM/yyyy - HH:mm' }}</span>
+        <span class="notif-date">{{ n.createDate | date:'dd/MM/yyyy - HH:mm' }}</span>
       </div>
-      <div class="notif-status" *ngIf="!n.isRead">
+      <div class="notif-status" *ngIf="!n.seen">
         <span class="unread-dot"></span>
       </div>
     </div>

@@ -99,11 +99,16 @@
 
 .emoji-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  // minmax(0, 1fr) để cột luôn co được → không tràn ngang (bỏ horizontal scroll).
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 2px;
   padding: 8px;
+  margin: 8px;
   max-height: 180px;
-  overflow-y: auto;
+  overflow-y: auto;   // chỉ cho cuộn dọc
+  overflow-x: hidden; // chặn cuộn ngang
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
 }
 
 .emoji-btn {

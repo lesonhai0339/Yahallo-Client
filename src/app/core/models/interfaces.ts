@@ -209,15 +209,40 @@ export interface ReadingHistoryItem {
   lastReadAt: string;
 }
 
+/** Loại notification (khớp backend NotificationType). */
+export enum NotificationType {
+  NewChapter = 1,
+  NewManga = 2,
+  Comment = 3,
+  System = 4,
+  Mention = 5,
+}
+
+/** Nguồn của mention (khớp backend MentionFrom). */
+export enum MentionFrom {
+  None = 0,
+  MangaComment = 1,
+  ChapterComment = 2,
+  BlogComment = 3,
+}
+
+/**
+ * Feed thông báo hợp nhất (mention + notification) — khớp backend NotificationDto.
+ * Điều hướng khi click dựa vào `kind` (+ các id target tuỳ loại).
+ */
 export interface Notification {
   id: string;
-  type: string;
-  message: string;
-  targetImage: string;
-  idTarget: string;
-  target: string;
-  date: string;
-  isRead: boolean;
+  kind: NotificationType;
+  createDate: string;
+  seen: boolean;
+  mangaId?: string;
+  chapterId?: string;
+  blogId?: string;
+  rootCommentId?: string;
+  commentId?: string;
+  targetId?: string;
+  message?: string;
+  mentionFrom?: MentionFrom;
 }
 
 export interface Comment {
