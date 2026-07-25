@@ -1,0 +1,60 @@
+<!-- ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md -->
+<div class="tb-page">
+  <header class="tb-page__head">
+    <div>
+      <h1 class="tb-page__title">Thùng rác</h1>
+      <p class="tb-page__sub">Bản ghi đã xoá mềm — có thể phục hồi lại.</p>
+    </div>
+  </header>
+
+  <div class="tb-tabs">
+    <button *ngFor="let t of tabs" class="tb-tab" [class.active]="activeKind === t.kind"
+            (click)="selectTab(t.kind)">
+      <span class="material-icons">{{ t.icon }}</span>{{ t.label }}
+    </button>
+  </div>
+
+  <!-- Skeleton dang bang -->
+  <app-table-skeleton *ngIf="isLoading" [rows]="6" [cols]="2"></app-table-skeleton>
+
+  <div class="tb-empty" *ngIf="!isLoading && items.length === 0">
+    <span class="material-icons">delete_outline</span>
+    <p>Không có {{ activeLabel | lowercase }} nào trong thùng rác</p>
+    <small class="tb-empty__note">
+      Nếu bạn chắc là có bản ghi đã xoá, backend cần hỗ trợ lọc
+      <code>IsDeleted</code> ở endpoint filter tương ứng.
+    </small>
+  </div>
+
+  <!-- Wrapper cho phep bang tu cuon ngang tren mobile, khong day ca trang -->
+  <div class="tb-scroll" *ngIf="!isLoading && items.length > 0">
+  <table class="tb-table">
+    <thead>
+      <tr>
+        <th>Tên</th>
+        <th>Thuộc về</th>
+        <th>Xoá lúc</th>
+        <th class="tb-table__actions">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of items; trackBy: trackById">
+        <td class="tb-table__name">{{ item.name }}</td>
+        <td class="tb-table__muted">{{ item.note || '—' }}</td>
+        <td class="tb-table__muted">
+          {{ item.deletedAt ? (item.deletedAt | date:'dd/MM/yyyy HH:mm') : '—' }}
+        </td>
+        <td class="tb-table__actions">
+          <button class="tb-btn" [disabled]="busyId === item.id" (click)="restore(item)">
+            <span class="material-icons">restore</span> Phục hồi
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tb-pager" *ngIf="!isLoading && items.length > 0">
+    <span class="tb-pager__info">{{ totalCount }} bản ghi</span>
+  </div>
+</div>

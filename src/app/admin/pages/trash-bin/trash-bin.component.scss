@@ -1,0 +1,133 @@
+// ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md
+.tb-page { padding: 4px 0 32px; }
+
+.tb-page__head { margin-bottom: 16px; }
+.tb-page__title { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+.tb-page__sub { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0; }
+
+.tb-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.tb-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 1rem; }
+  &:hover { border-color: var(--border-light); color: var(--text-primary); }
+  &.active {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(233, 69, 96, 0.1);
+  }
+}
+
+.tb-loading, .tb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 16px;
+  color: var(--text-muted);
+  text-align: center;
+
+  .material-icons { font-size: 2.4rem; opacity: 0.6; }
+  p { margin: 0; font-size: 0.9rem; }
+
+  &__note {
+    max-width: 420px;
+    font-size: 0.76rem;
+    opacity: 0.8;
+    line-height: 1.5;
+
+    code {
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--bg-secondary);
+      font-size: 0.74rem;
+    }
+  }
+}
+
+// Bang tu cuon ngang, khong lam trang bi tran.
+.tb-scroll {
+  overflow-x: auto;
+
+  &::-webkit-scrollbar { height: 7px; }
+  &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+}
+
+.tb-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--overlay-light, rgba(255,255,255,0.03)); }
+
+  &__name { color: var(--text-primary); font-weight: 500; overflow-wrap: anywhere; }
+  &__muted { color: var(--text-muted); }
+  &__actions { width: 1%; white-space: nowrap; }
+}
+
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 0.95rem; }
+  &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+.tb-pager {
+  margin-top: 14px;
+  text-align: center;
+
+  &__info { font-size: 0.8rem; color: var(--text-muted); }
+}
+
+@media (max-width: 640px) {
+  // Da co scroll ngang nen KHONG an cot nua (an di se mat thong tin ngay xoa).
+  .tb-page__title { font-size: 1.1rem; }
+  .tb-tab { flex: 1 1 auto; justify-content: center; }
+}

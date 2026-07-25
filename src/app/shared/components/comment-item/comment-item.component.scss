@@ -6,7 +6,15 @@
 
   &:last-child { border-bottom: none; }
   &.is-reply { padding: 10px 0; }
-  &.deleted { opacity: 0.65; }
+}
+
+// ── Bình luận đã xoá ─────────────────────────────────────────────────────────
+// Không avatar (ẩn ở template) → body chiếm hết chiều ngang.
+.comment-item.deleted,
+.reply-item.deleted {
+  padding: 10px 0;
+
+  .comment-body { flex: 1; min-width: 0; }
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
@@ -134,11 +142,19 @@
   }
 }
 
+// Khung xám nhạt cho bình luận/reply đã xoá. Đặt trên CHÍNH dòng thông báo (không
+// phải .comment-body) vì .replies-section nằm trong body — bọc body sẽ lồng cả cây
+// reply vào trong khung.
 .deleted-text {
+  display: block;
   font-size: 0.83rem;
   color: var(--text-muted);
   font-style: italic;
   margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────

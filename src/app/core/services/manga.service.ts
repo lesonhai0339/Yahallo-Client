@@ -14,6 +14,8 @@ export class MangaService {
   private readonly base = environment.mangaApi;
   private readonly chapterBase = environment.chapterApi;
   private readonly tagBase = environment.tagApi;
+  private readonly authorBase = environment.authorApi;
+  private readonly artistBase = environment.artistApi;
 
   constructor(private http: HttpClient, private cache: CacheService) {}
 
@@ -290,6 +292,26 @@ export class MangaService {
       map((res: any) => {  
         const tags: any[] = res?.value ?? [];
         return tags.map((t: any) => ({ genreId: t.id, genresIdName: t.name }));
+      })
+    );
+  }
+
+  /** All authors — { id, name } — from `author/get-all` (GetAllAuthorResult). */
+  getAllAuthors(): Observable<{ id: string; name: string }[]> {
+    return this.http.get<any>(`${this.authorBase}/get-all`).pipe(
+      map((res: any) => {
+        const list: any[] = res?.value ?? res ?? [];
+        return list.map((a: any) => ({ id: a.id, name: a.name }));
+      })
+    );
+  }
+
+  /** All artists — { id, name } — from `artist/get-all` (GetAllArtistResult). */
+  getAllArtists(): Observable<{ id: string; name: string }[]> {
+    return this.http.get<any>(`${this.artistBase}/get-all`).pipe(
+      map((res: any) => {
+        const list: any[] = res?.value ?? res ?? [];
+        return list.map((a: any) => ({ id: a.id, name: a.name }));
       })
     );
   }

@@ -1,6 +1,7 @@
 import { Component, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { TaxonomyType } from '../../services/taxonomy.service';
+import { toIsoWithOffset } from '../../../core/utils/date-format';
 
 export interface TaxonomyFormData {
   type: TaxonomyType;
@@ -90,7 +91,9 @@ export class TaxonomyFormDialogComponent {
       ...(editing ? { id: model.id } : {}),
       name: this.name.trim(),
       depscription: this.depscription.trim(),
-      birth: new Date(this.birth).toISOString(),
+      // Server yêu cầu ISO 8601 KÈM OFFSET (JsonConverter<DateTimeOffset> validate
+      // bằng regex). `toISOString()` cho ra "...000Z" → bị từ chối. Xem date-format.ts.
+      birth: toIsoWithOffset(this.birth),
       lifeStatus: Number(this.lifeStatus),
     };
     // Backend field name differs: artist *create* uses countryCode; everything

@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subject, of, timer, debounce, distinctUntilChanged, switchMap, takeUntil, finalize, catchError } from 'rxjs';
+import { Subject, of, timer, debounce, switchMap, takeUntil, finalize, catchError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { SearchService, SuggestType, SuggestResult } from '../../core/services/search.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -121,9 +121,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     // Header search: mọi type đều gọi /services/search/suggest (startsWith) và
     // đều trả về MANGA. Author/artist search tức thì (0ms), còn lại đợi 0.5s.
+    // KHÔNG dùng distinctUntilChanged: nhánh xoá keyword (onSearchInput) không
+    // đẩy giá trị rỗng vào subject, nên distinct sẽ "nhớ" từ khoá cũ và chặn lần
+    // gõ lại y hệt (gõ "e" → xoá → gõ "e" lại sẽ không search). debounce đã gộp
+    // các phím gõ nhanh rồi, và subject chỉ next khi input thực sự đổi.
     this.searchSubject.pipe(
       debounce(() => timer(this.isInstantSuggest ? 0 : 500)),
-      distinctUntilChanged(),
       switchMap(() => {
         const keyword = this.getSearchKeyword();
         if (keyword.length === 0) {

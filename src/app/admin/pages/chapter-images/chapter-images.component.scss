@@ -1,0 +1,517 @@
+// ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md
+.ci-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 4px 0 32px;
+
+  // Khi mở editor: chia đôi, sidebar dính bên phải.
+  &--editing {
+    grid-template-columns: minmax(0, 1fr) 460px;
+
+    @media (max-width: 1200px) { grid-template-columns: minmax(0, 1fr); }
+  }
+}
+
+.ci-main { min-width: 0; }
+
+.ci-side {
+  position: sticky;
+  top: 16px;
+  height: calc(100vh - 120px);
+  min-width: 0;
+
+  // <=1200px: DRAWER co dinh ben phai. Truoc day dung `position: static` nen
+  // panel bi day xuong duoi toan bo danh sach anh (cao hang nghin px) => bam
+  // "Sua anh" tuong nhu khong chay. Fixed thi luon hien ngay trong viewport.
+  @media (max-width: 1200px) {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(460px, 100%);
+    height: auto;
+    z-index: 200;
+    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.35);
+    animation: ciDrawerIn 0.16s ease;
+  }
+}
+
+@keyframes ciDrawerIn {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+// Nen mo: chi co nghia khi panel la drawer (man hep).
+.ci-backdrop {
+  display: none;
+
+  @media (max-width: 1200px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 199;
+    background: rgba(0, 0, 0, 0.45);
+  }
+}
+
+// ── Header ──────────────────────────────────────────────────────────────────
+.ci-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  &__title { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+  &__sub { font-size: 0.82rem; color: var(--text-muted); margin: 3px 0 0; }
+}
+
+.ci-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  &:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+}
+
+// ── Thanh thông tin chương + thêm ảnh ───────────────────────────────────────
+.ci-infobar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    label { font-size: 0.72rem; color: var(--text-muted); }
+
+    input {
+      padding: 6px 9px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm, 6px);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      &:focus { outline: none; border-color: var(--accent-primary); }
+      &::placeholder { color: var(--text-muted); }
+    }
+
+    // So chuong hep hon tieu de.
+    input[type="number"] { width: 92px; }
+  }
+
+  // Tieu de an het cho trong con lai.
+  &__field--grow { flex: 1 1 220px; min-width: 0; input { width: 100%; box-sizing: border-box; } }
+}
+
+// ── Thanh chọn số ảnh tải ───────────────────────────────────────────────────
+.ci-loadbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+
+  &__label { font-size: 0.78rem; color: var(--text-muted); }
+}
+
+// Don nhom lua chon (va cac nut sau no) ve ben phai, chi de nhan o ben trai.
+.ci-choices {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.ci-choice {
+  padding: 5px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover { border-color: var(--border-light); color: var(--text-primary); }
+  &.active {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(233, 69, 96, 0.1);
+  }
+}
+
+// Bien the input cua .ci-choice.
+// Mac dinh THU GON bang co mot nut, chi hien placeholder "…"; khi click (focus)
+// hoac dang o che do tuy y thi BUNG RA thanh o nhap du rong de go so.
+.ci-choice--input {
+  width: 42px;
+  transition: width 0.18s ease, border-color 0.15s, color 0.15s;
+  text-align: center;
+  font-family: inherit;
+  // Bo mui tang/giam cua input number cho gon bang cac nut khac.
+  -moz-appearance: textfield;
+  appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  &:focus,
+  &.active { width: 86px; }
+
+  &:focus { outline: none; border-color: var(--accent-primary); color: var(--accent-primary); }
+  // Placeholder "…" hien to hon chut cho de thay khi o dang thu gon.
+  &::placeholder { color: var(--text-muted); font-size: 0.95rem; letter-spacing: 1px; }
+}
+
+.ci-loading, .ci-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  color: var(--text-muted);
+
+  .material-icons { font-size: 2.3rem; opacity: 0.6; }
+  p { margin: 0; font-size: 0.9rem; }
+}
+
+// ── Danh sách ảnh ───────────────────────────────────────────────────────────
+.ci-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.ci-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  transition: var(--transition);
+
+  &--dirty { border-color: var(--accent-primary); }
+  &--deleted { opacity: 0.55; border-left: 3px solid #e5484d; }
+  &--editing { box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.35); }
+
+  &__num {
+    flex: none;
+    width: 46px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    strong { font-size: 1rem; color: var(--text-primary); }
+  }
+
+  &__moved {
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: rgba(66, 135, 245, 0.16);
+    color: #6ba3f7;
+    white-space: nowrap;
+  }
+
+  &__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+
+  // Nut xoa: phan tu cuoi cua __info. `__info` la flex column nen
+  // `align-self: flex-end` = sat phai, `margin-top: auto` = day xuong day.
+  &__delete { align-self: flex-end; margin-top: auto; }
+}
+
+.ci-thumb {
+  position: relative;
+  flex: none;
+  width: 110px;
+  min-height: 90px;
+  max-height: 190px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--bg-secondary);
+
+  img { width: 100%; height: auto; display: block; }
+
+  &__placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    height: 120px;
+    border: 1px dashed var(--border-color);
+    border-radius: 5px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    cursor: pointer;
+
+    .material-icons { font-size: 1.3rem; }
+    &:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+  }
+}
+
+.ci-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+
+  &--new { background: #2ecc71; }
+  // Anh moi them (chua ton tai tren server) — mau khac de phan biet voi "anh moi
+  // thay the" cua mot trang da co.
+  &--add { background: #4287f5; }
+  &--del { background: #e5484d; }
+}
+
+.ci-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+// Actions chia thanh cac row: [sua anh | thay the] / [len | xuong ... | xoa]
+.ci-actions { display: flex; flex-direction: column; gap: 6px; }
+
+.ci-actions__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ci-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  cursor: pointer;
+  transition: var(--transition);
+  // Nhan khong duoc xuong dong lam nut cao gap doi; dai qua thi cat.
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .material-icons { font-size: 0.92rem; }
+  &:hover:not(:disabled) { border-color: var(--border-light); color: var(--text-primary); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  // Nút mở editor nổi hơn các nút còn lại.
+  &--edit {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    &:hover:not(:disabled) { background: rgba(233, 69, 96, 0.1); color: var(--accent-primary); }
+  }
+
+  // Chia deu chieu ngang trong row (sua anh / thay the).
+  // Chia deu chieu ngang NHUNG co tran: `flex: 1 1 0` khong co max-width se lam
+  // moi nut an ~50% be ngang item (item rat rong tren desktop) => nut dai vo ly.
+  // Cap 148px nen tren man rong ca hai nut deu dung o 148px => van bang nhau.
+  &--grow {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 148px;
+    justify-content: center;
+  }
+
+  // Len / xuong: o vuong bang nhau cho can doi.
+  &--sq {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    flex: none;
+    justify-content: center;
+  }
+
+  // Xoa LUON mau do (khong chi khi hover) de nhan ro day la hanh dong pha huy.
+  &--danger {
+    border-color: rgba(229, 72, 77, 0.5);
+    color: #e5484d;
+    &:hover:not(:disabled) {
+      border-color: #e5484d;
+      color: #e5484d;
+      background: rgba(229, 72, 77, 0.1);
+    }
+  }
+}
+
+// Tiến độ PUT trực tiếp lên S3.
+.ci-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &__bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-secondary);
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    background: var(--accent-primary);
+    transition: width 0.15s linear;
+  }
+
+  &__pct { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+}
+
+// Kết quả upload từng ảnh.
+.ci-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  flex-wrap: wrap;
+
+  .material-icons { font-size: 0.98rem; }
+
+  &--ok { color: #2ecc71; }
+  &--fail { color: #e5484d; }
+
+  &__msg { flex: 1; min-width: 0; }
+}
+
+.ci-save-row {
+  display: flex;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+// ── Nút chung ───────────────────────────────────────────────────────────────
+.ci-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.79rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 0.98rem; }
+  &:hover:not(:disabled) { border-color: var(--border-light); color: var(--text-primary); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  &--sm { padding: 5px 10px; font-size: 0.74rem; }
+
+  &--primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+    &:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
+}
+
+// ── Tải thêm ở cuối ─────────────────────────────────────────────────────────
+.ci-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-card);
+
+  p { margin: 0; font-size: 0.82rem; color: var(--text-muted); }
+}
+
+// ── Lưu/huỷ toàn bộ (dính đáy) ──────────────────────────────────────────────
+.ci-bulk {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+
+  &__info { font-size: 0.82rem; color: var(--text-secondary); }
+  &__actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+
+  // Thống kê nhanh: đang tải / thành công / thất bại.
+  &__stat {
+    font-weight: 600;
+    &--up { color: var(--accent-primary); }
+    &--ok { color: #2ecc71; }
+    &--fail { color: #e5484d; }
+  }
+}
+
+@media (max-width: 768px) {
+  // Thanh chon so anh tai: xep doc cho de bam tren mobile.
+  .ci-loadbar { flex-direction: column; align-items: stretch; }
+  .ci-loadbar .ci-btn { width: 100%; }
+  .ci-choices { justify-content: space-between; }
+}
+
+@media (max-width: 640px) {
+  .ci-head__title { font-size: 1.05rem; }
+  .ci-item { flex-wrap: wrap; }
+  .ci-thumb { width: 84px; }
+  // So trang ve hang ngang cho khoi chiem cot rieng.
+  .ci-item__num { width: auto; flex-direction: row; gap: 6px; }
+  // Chi cho nut trong row 1 gian ra; o vuong len/xuong giu nguyen kich thuoc.
+  .ci-act--grow { flex: 1 1 0; justify-content: center; }
+  .ci-bulk { flex-direction: column; align-items: stretch; }
+  .ci-bulk__actions { margin-left: 0; .ci-btn { flex: 1 1 auto; } }
+  .ci-more { flex-direction: column; align-items: stretch; }
+}
+
+@media (max-width: 768px) {
+  // Thanh thong tin: xep doc, cac o nhap tran chieu ngang cho de bam.
+  .ci-infobar { flex-direction: column; align-items: stretch; }
+  .ci-infobar__field input[type="number"] { width: 100%; }
+  .ci-infobar .ci-btn { width: 100%; }
+}

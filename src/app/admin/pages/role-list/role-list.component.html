@@ -1,0 +1,97 @@
+<!-- ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md -->
+<div class="rl-page">
+  <header class="rl-page__head">
+    <div>
+      <h1 class="rl-page__title">Quản lý Role</h1>
+      <p class="rl-page__sub">Tạo / sửa / xoá role và tra cứu quyền của từng role.</p>
+    </div>
+    <button class="rl-add" (click)="openCreate()" *ngIf="!showForm">
+      <span class="material-icons">add</span> Thêm role
+    </button>
+  </header>
+
+  <!-- Form thêm/sửa -->
+  <div class="rl-form" *ngIf="showForm">
+    <h3 class="rl-form__title">{{ editingId ? 'Sửa role' : 'Thêm role mới' }}</h3>
+    <div class="rl-form__row">
+      <label>Tên role</label>
+      <input type="text" [(ngModel)]="nameInput" placeholder="vd: moderator" />
+    </div>
+    <div class="rl-form__row">
+      <label>Mô tả</label>
+      <input type="text" [(ngModel)]="descInput" placeholder="Mô tả ngắn (không bắt buộc)" />
+    </div>
+    <div class="rl-form__actions">
+      <button class="rl-btn rl-btn--primary" [disabled]="saving" (click)="save()">
+        <span class="material-icons">check</span> Lưu
+      </button>
+      <button class="rl-btn" [disabled]="saving" (click)="cancelForm()">Huỷ</button>
+    </div>
+  </div>
+
+  <!-- Skeleton dang bang -->
+  <app-table-skeleton *ngIf="isLoading" [rows]="5" [cols]="2"></app-table-skeleton>
+
+  <div class="rl-empty" *ngIf="!isLoading && roles.length === 0">
+    <span class="material-icons">badge</span>
+    <p>Chưa có role nào</p>
+  </div>
+
+  <!-- Wrapper cho phep bang tu cuon ngang tren mobile -->
+  <div class="rl-scroll" *ngIf="!isLoading && roles.length > 0">
+  <table class="rl-table">
+    <thead>
+      <tr>
+        <th>Tên</th>
+        <th>Mô tả</th>
+        <th>Số user</th>
+        <th class="rl-table__actions">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of roles; trackBy: trackById">
+        <td class="rl-table__name">{{ r.name }}</td>
+        <td class="rl-table__muted">{{ r.description || '—' }}</td>
+        <td class="rl-table__muted">{{ r.userCount != null ? r.userCount : '—' }}</td>
+        <td class="rl-table__actions">
+          <button class="rl-btn" [disabled]="busyId === r.id" (click)="openEdit(r)">
+            <span class="material-icons">edit</span>
+          </button>
+          <button class="rl-btn rl-btn--danger" [disabled]="busyId === r.id" (click)="askDelete(r)">
+            <span class="material-icons">delete</span>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- Ma trận quyền (tham chiếu client-side) -->
+  <section class="rl-matrix">
+    <h2 class="rl-matrix__title">Ma trận quyền (tham chiếu)</h2>
+    <p class="rl-matrix__note">
+      Bảng này đọc từ hằng số <code>ROLE_PERMISSIONS</code> trong
+      <code>core/models/permission.model.ts</code> — không phải cấu hình từ backend.
+      Muốn đổi quyền thì sửa trong file đó.
+    </p>
+    <div class="rl-matrix__scroll">
+      <table class="rl-table rl-table--matrix">
+        <thead>
+          <tr>
+            <th>Quyền</th>
+            <th *ngFor="let role of matrixRoles">{{ role }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of allPermissions">
+            <td class="rl-table__name">{{ permLabel(p) }}</td>
+            <td *ngFor="let role of matrixRoles" class="rl-cell">
+              <span class="material-icons rl-cell__yes" *ngIf="roleHas(role, p)">check_circle</span>
+              <span class="rl-cell__no" *ngIf="!roleHas(role, p)">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

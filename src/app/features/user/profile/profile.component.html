@@ -113,7 +113,7 @@
             </div>
             <div class="info-row" *ngIf="profile?.createDate">
               <span class="info-label">{{ 'USER.MEMBER_SINCE' | translate }}</span>
-              <span>{{ profile?.createDate | date:'dd/MM/yyyy' }}</span>
+              <span>{{ profile?.createDate | utcDate | date:'dd/MM/yyyy' }}</span>
             </div>
           </div>
 
@@ -208,7 +208,7 @@
             <div class="follow-card__body">
               <div class="follow-card__title">{{ m.displayName }}</div>
               <div class="follow-card__meta">
-                <i class="fa-regular fa-clock me-1"></i>{{ m.lastChapterUpdate ? (m.lastChapterUpdate | date:'dd/MM/yyyy HH:mm') : '—' }}
+                <i class="fa-regular fa-clock me-1"></i>{{ m.lastChapterUpdate ? (m.lastChapterUpdate | utcDate | date:'dd/MM/yyyy HH:mm') : '—' }}
               </div>
             </div>
             <i class="fa-solid fa-chevron-right follow-card__chev"></i>
@@ -252,7 +252,7 @@
                 <i class="fa-solid fa-bookmark me-1"></i>{{ chapterName(h) }}
               </div>
               <div class="follow-card__meta">
-                <i class="fa-regular fa-clock me-1"></i>{{ h.lastReadAt ? (h.lastReadAt | date:'dd/MM/yyyy HH:mm') : '—' }}
+                <i class="fa-regular fa-clock me-1"></i>{{ h.lastReadAt ? (h.lastReadAt | utcDate | date:'dd/MM/yyyy HH:mm') : '—' }}
               </div>
             </div>
             <i class="fa-solid fa-chevron-right follow-card__chev"></i>

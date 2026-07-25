@@ -147,6 +147,8 @@ export class CommentItemComponent implements OnInit {
 
   react(type: 'like' | 'dislike'): void {
     if (this.comment.pending) return;
+    // Không cho tương tác với comment đã xoá (UI đã ẩn nút, đây là chốt cuối).
+    if (this.isDeleted) return;
     if (!this.currentUser) { this.router.navigate(['/auth/login']); return; }
     const current = this.comment.userReaction;
     if (current === type) {
@@ -167,6 +169,14 @@ export class CommentItemComponent implements OnInit {
   }
 
   // ── Replies ────────────────────────────────────────────────────────────────
+
+  /**
+   * Có hiện nút "xem trả lời" không? Chỉ cần dựa vào `replyCount` — server trả
+   * ReplyCount cho CẢ comment đã xoá, nên comment đã xoá vẫn mở được reply.
+   */
+  get showRepliesToggle(): boolean {
+    return (this.comment.replyCount ?? 0) > 0;
+  }
 
   toggleReplies(): void {
     if (!this.comment.repliesLoaded) {

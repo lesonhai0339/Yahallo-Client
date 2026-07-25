@@ -29,8 +29,7 @@
   <!-- Table (desktop) -->
   <div class="table-wrapper desktop-only">
     <div *ngIf="loading" class="table-loading">
-      <div class="spinner"></div>
-      <span>Đang tải...</span>
+      <app-table-skeleton leading="cover" [rows]="7" [cols]="2"></app-table-skeleton>
     </div>
 
     <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
@@ -151,7 +150,9 @@
 
   <!-- Cards (mobile) -->
   <div class="mcard-list mobile-only">
-    <div *ngIf="loading" class="table-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+    <div *ngIf="loading" class="table-loading">
+      <app-table-skeleton variant="card" leading="cover" [rows]="5" [cols]="2"></app-table-skeleton>
+    </div>
 
     <div class="mcard" *ngFor="let m of dataSource.filteredData" [class.mcard--open]="expandedId === m.id">
       <div class="mcard__head" (click)="toggleExpand(m)">

@@ -1,0 +1,257 @@
+<!-- ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md -->
+<div class="ie-page">
+  <header class="ie-head">
+    <div>
+      <h1 class="ie-head__title">Sửa ảnh nhanh</h1>
+      <p class="ie-head__sub">
+        Xoá SFX · ghi đè chữ · đổi màu vùng · cắt ảnh dài.
+        Mọi xử lý chạy trên máy bạn, không upload lên server.
+      </p>
+    </div>
+    <div class="ie-head__actions" *ngIf="hasImage">
+      <span class="ie-chip">{{ fileName }} · {{ imgW }}×{{ imgH }}</span>
+      <button class="ie-btn" (click)="reset()"><span class="material-icons">close</span> Đóng ảnh</button>
+    </div>
+  </header>
+
+  <!-- Chưa có ảnh: vùng kéo-thả -->
+  <div class="ie-drop" *ngIf="!hasImage" (drop)="onDrop($event)" (dragover)="onDragOver($event)">
+    <span class="material-icons">add_photo_alternate</span>
+    <p>Kéo ảnh vào đây, dán bằng <kbd>Ctrl</kbd>+<kbd>V</kbd>, hoặc</p>
+    <button class="ie-btn ie-btn--primary" (click)="fileInput.click()">
+      <span class="material-icons">folder_open</span> Chọn ảnh
+    </button>
+    <input #fileInput type="file" accept="image/*" hidden (change)="onPickFile($event)">
+  </div>
+
+  <div class="ie-layout" *ngIf="hasImage">
+
+    <!-- ── Thanh công cụ + tuỳ chọn ───────────────────────────────────────── -->
+    <aside class="ie-side">
+
+      <div class="ie-card">
+        <h3 class="ie-card__title">Công cụ</h3>
+        <div class="ie-tools">
+          <button class="ie-tool" [class.active]="tool === 'select'" (click)="tool = 'select'"
+                  title="Chọn vùng (kéo chuột)">
+            <span class="material-icons">crop_free</span><span>Chọn vùng</span>
+          </button>
+          <button class="ie-tool" [class.active]="tool === 'pick'" (click)="tool = 'pick'"
+                  title="Hút màu: click lên ảnh">
+            <span class="material-icons">colorize</span><span>Hút màu</span>
+          </button>
+        </div>
+        <p class="ie-hint">
+          <span class="material-icons">info</span>
+          Kéo chuột <em>hoặc miết ngón tay</em> trên ảnh để chọn vùng.
+          <kbd>Esc</kbd> bỏ chọn · <kbd>Ctrl</kbd>+<kbd>Z</kbd> hoàn tác.
+        </p>
+      </div>
+
+      <!-- Bảng màu lân cận -->
+      <div class="ie-card">
+        <h3 class="ie-card__title">
+          Màu vùng lân cận
+          <button class="ie-mini" (click)="refreshPalette()" title="Lấy lại">
+            <span class="material-icons">refresh</span>
+          </button>
+        </h3>
+        <p class="ie-muted" *ngIf="palette.length === 0">
+          Chọn một vùng để xem các màu xung quanh — bấm vào ô màu để dùng.
+        </p>
+        <div class="ie-swatches" *ngIf="palette.length > 0">
+          <button class="ie-swatch" *ngFor="let s of palette" (click)="useSwatch(s)"
+                  [style.background]="s.hex" [title]="s.hex + ' (' + s.count + 'px)'">
+            <span class="ie-swatch__hex">{{ s.hex }}</span>
+          </button>
+        </div>
+        <div class="ie-field">
+          <label>Màu đang dùng</label>
+          <div class="ie-color-row">
+            <input type="color" [(ngModel)]="fillColor">
+            <input type="text" class="ie-hex" [(ngModel)]="fillColor">
+          </div>
+        </div>
+      </div>
+
+      <!-- Xoá SFX / tô vùng -->
+      <div class="ie-card">
+        <h3 class="ie-card__title">Xoá SFX / tô vùng</h3>
+        <button class="ie-btn ie-btn--primary ie-btn--block" (click)="applyPatch(true)">
+          <span class="material-icons">auto_fix_high</span> Tô bằng màu nền lân cận
+        </button>
+        <button class="ie-btn ie-btn--block" (click)="applyPatch(false)">
+          <span class="material-icons">format_color_fill</span> Tô bằng màu đang dùng
+        </button>
+      </div>
+
+      <!-- Đổi màu vùng -->
+      <div class="ie-card">
+        <h3 class="ie-card__title">Đổi màu trong vùng</h3>
+        <div class="ie-field">
+          <label>Màu cần thay</label>
+          <div class="ie-color-row">
+            <input type="color" [(ngModel)]="targetColor">
+            <input type="text" class="ie-hex" [(ngModel)]="targetColor">
+          </div>
+        </div>
+        <div class="ie-field">
+          <label>Ngưỡng sai khác: {{ tolerance }}</label>
+          <input type="range" min="0" max="255" step="1" [(ngModel)]="tolerance">
+        </div>
+        <button class="ie-btn ie-btn--block" (click)="applyRecolor()">
+          <span class="material-icons">palette</span> Đổi sang màu đang dùng
+        </button>
+      </div>
+
+      <!-- Ghi chữ -->
+      <div class="ie-card">
+        <h3 class="ie-card__title">Ghi chữ lên vùng</h3>
+        <textarea class="ie-textarea" rows="3" [(ngModel)]="text"
+                  placeholder="Nội dung dịch... (Enter để xuống dòng)"></textarea>
+
+        <label class="ie-check">
+          <input type="checkbox" [(ngModel)]="clearBeforeText">
+          Tô nền trước khi viết (xoá chữ gốc)
+        </label>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Cỡ chữ</label>
+            <input type="number" min="6" max="200" [(ngModel)]="fontSize">
+          </div>
+          <div class="ie-field">
+            <label>Font</label>
+            <select [(ngModel)]="fontFamily">
+              <option *ngFor="let f of fontOptions" [value]="f">{{ f }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Màu chữ</label>
+            <input type="color" [(ngModel)]="textColor">
+          </div>
+          <div class="ie-field">
+            <label>Canh lề</label>
+            <select [(ngModel)]="align">
+              <option value="left">Trái</option>
+              <option value="center">Giữa</option>
+              <option value="right">Phải</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ie-inline">
+          <label class="ie-check"><input type="checkbox" [(ngModel)]="bold"> In đậm</label>
+          <label class="ie-check"><input type="checkbox" [(ngModel)]="italic"> In nghiêng</label>
+        </div>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Viền chữ: {{ strokeWidth }}px</label>
+            <input type="range" min="0" max="8" step="1" [(ngModel)]="strokeWidth">
+          </div>
+          <div class="ie-field">
+            <label>Màu viền</label>
+            <input type="color" [(ngModel)]="strokeColor">
+          </div>
+        </div>
+
+        <button class="ie-btn ie-btn--primary ie-btn--block" (click)="applyText()">
+          <span class="material-icons">title</span> Ghi chữ vào vùng chọn
+        </button>
+      </div>
+
+      <!-- Cắt & xuất -->
+      <div class="ie-card">
+        <h3 class="ie-card__title">Cắt ảnh & xuất</h3>
+        <div class="ie-field">
+          <label>Chiều cao mỗi phần (px)</label>
+          <input type="number" min="100" step="50" [(ngModel)]="partHeight">
+        </div>
+        <p class="ie-muted">
+          Sẽ cắt thành <strong>{{ splitPreview.length }}</strong> phần
+          <ng-container *ngIf="splitPreview.length > 1">(xem vạch cắt trên ảnh)</ng-container>
+        </p>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Định dạng</label>
+            <select [(ngModel)]="exportType">
+              <option value="image/png">PNG</option>
+              <option value="image/jpeg">JPEG</option>
+              <option value="image/webp">WebP</option>
+            </select>
+          </div>
+          <div class="ie-field" *ngIf="exportType !== 'image/png'">
+            <label>Chất lượng</label>
+            <input type="range" min="0.5" max="1" step="0.02" [(ngModel)]="jpegQuality">
+          </div>
+        </div>
+
+        <button class="ie-btn ie-btn--block" [disabled]="isExporting" (click)="exportSingle()">
+          <span class="material-icons">download</span> Tải ảnh nguyên tấm
+        </button>
+        <button class="ie-btn ie-btn--primary ie-btn--block" [disabled]="isExporting"
+                (click)="exportSplitZip()">
+          <span class="material-icons">content_cut</span>
+          {{ isExporting ? 'Đang xử lý...' : 'Cắt & tải zip' }}
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Khung ảnh ──────────────────────────────────────────────────────── -->
+    <section class="ie-stage">
+      <div class="ie-stagebar">
+        <button class="ie-mini" [disabled]="!canUndo" (click)="undo()" title="Hoàn tác (Ctrl+Z)">
+          <span class="material-icons">undo</span>
+        </button>
+        <button class="ie-mini" [disabled]="!canRedo" (click)="redo()" title="Làm lại (Ctrl+Y)">
+          <span class="material-icons">redo</span>
+        </button>
+        <span class="ie-sep"></span>
+        <button class="ie-mini" (click)="setZoom(zoom - 0.1)" title="Thu nhỏ">
+          <span class="material-icons">zoom_out</span>
+        </button>
+        <span class="ie-zoom">{{ (zoom * 100) | number:'1.0-0' }}%</span>
+        <button class="ie-mini" (click)="setZoom(zoom + 0.1)" title="Phóng to">
+          <span class="material-icons">zoom_in</span>
+        </button>
+        <button class="ie-mini" (click)="fitZoom()" title="Vừa khung">
+          <span class="material-icons">fit_screen</span>
+        </button>
+        <span class="ie-sep"></span>
+        <span class="ie-selinfo" *ngIf="sel">
+          Vùng chọn: {{ sel.w }}×{{ sel.h }} tại ({{ sel.x }}, {{ sel.y }})
+          <button class="ie-mini" (click)="clearSelection()" title="Bỏ chọn">
+            <span class="material-icons">close</span>
+          </button>
+        </span>
+        <span class="ie-selinfo ie-muted" *ngIf="!sel">Chưa chọn vùng</span>
+      </div>
+
+      <div class="ie-canvas-wrap">
+        <div class="ie-canvas-inner"
+             [style.width.px]="imgW * zoom"
+             [style.height.px]="imgH * zoom">
+          <canvas #cv
+                  class="ie-canvas"
+                  [class.ie-canvas--pick]="tool === 'pick'"
+                  [style.width.px]="imgW * zoom"
+                  [style.height.px]="imgH * zoom"
+                  (mousedown)="onCanvasMouseDown($event)"
+                  (touchstart)="onCanvasTouchStart($event)"
+                  (touchmove)="onCanvasTouchMove($event)"></canvas>
+
+          <!-- Vạch chỉ đường cắt -->
+          <div class="ie-guide" *ngFor="let y of splitGuides" [style.top.px]="y"></div>
+
+          <!-- Khung vùng chọn -->
+          <div class="ie-sel" [ngStyle]="selStyle"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

@@ -35,6 +35,16 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
     private toastr: ToastrService
   ) {}
 
+  /**
+   * ⚠️ MODULE MỚI THÊM — mo trang quan ly anh cua chuong
+   * (docs/ADMIN_MODULES_ADDED.md).
+   */
+  manageImages(chapter: any): void {
+    this.router.navigate(['/admin/chapter', chapter.id, 'images'], {
+      queryParams: { mangaId: this.mangaId, index: chapter.index, title: chapter.title ?? '' },
+    });
+  }
+
   ngOnInit(): void {
     this.mangaId = this.route.snapshot.paramMap.get('mangaId') ?? '';
     this.loadChapters();

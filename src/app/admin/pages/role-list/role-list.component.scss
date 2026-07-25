@@ -1,0 +1,184 @@
+// ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md
+.rl-page { padding: 4px 0 32px; }
+
+.rl-page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.rl-page__title { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+.rl-page__sub { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0; }
+
+.rl-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  .material-icons { font-size: 1.05rem; }
+  &:hover { filter: brightness(1.08); }
+}
+
+.rl-form {
+  padding: 16px;
+  margin-bottom: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+
+  &__title { font-size: 0.98rem; font-weight: 600; color: var(--text-primary); margin: 0 0 12px; }
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+
+    label { font-size: 0.78rem; color: var(--text-muted); }
+
+    input {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.86rem;
+
+      &:focus { outline: none; border-color: var(--accent-primary); }
+      &::placeholder { color: var(--text-muted); }
+    }
+  }
+
+  &__actions { display: flex; gap: 8px; margin-top: 4px; }
+}
+
+.rl-loading, .rl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  color: var(--text-muted);
+
+  .material-icons { font-size: 2.4rem; opacity: 0.6; }
+  p { margin: 0; font-size: 0.9rem; }
+}
+
+// Bang chinh tu cuon ngang tren mobile.
+.rl-scroll {
+  overflow-x: auto;
+
+  &::-webkit-scrollbar { height: 7px; }
+  &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+}
+
+.rl-table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--overlay-light, rgba(255,255,255,0.03)); }
+
+  &__name { color: var(--text-primary); font-weight: 500; }
+  &__muted { color: var(--text-muted); }
+  &__actions { width: 1%; white-space: nowrap; }
+
+  // Ma trận: cột role hẹp, canh giữa.
+  &--matrix {
+    th:not(:first-child), td:not(:first-child) { text-align: center; width: 90px; }
+  }
+}
+
+.rl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 0.95rem; }
+  &:hover:not(:disabled) { border-color: var(--border-light); color: var(--text-primary); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  &--primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+    &:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
+  &--danger:hover:not(:disabled) { border-color: #e5484d; color: #e5484d; }
+}
+
+.rl-matrix {
+  margin-top: 28px;
+
+  &__title { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); margin: 0 0 6px; }
+
+  &__note {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0 0 12px;
+    line-height: 1.55;
+
+    code {
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--bg-secondary);
+      font-size: 0.75rem;
+    }
+  }
+
+  // Bảng rộng phải tự scroll ngang, không đẩy cả trang.
+  &__scroll { overflow-x: auto; }
+}
+
+.rl-cell {
+  &__yes { font-size: 1.05rem; color: #2ecc71; }
+  &__no { color: var(--text-muted); opacity: 0.5; }
+}
+
+// ── Responsive ──────────────────────────────────────────────────────────────
+@media (max-width: 640px) {
+  .rl-page__title { font-size: 1.1rem; }
+  .rl-add { width: 100%; justify-content: center; }
+  .rl-form__actions { flex-direction: column-reverse; .rl-btn { width: 100%; } }
+  // Ma tran quyen: cot role hep lai de nhieu cot van xem duoc khi cuon.
+  .rl-table--matrix { min-width: 420px; th:not(:first-child), td:not(:first-child) { width: 64px; } }
+}

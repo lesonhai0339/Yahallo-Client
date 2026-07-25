@@ -1,0 +1,244 @@
+<!-- ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md -->
+<div class="ci-page" [class.ci-page--editing]="editingIndex !== null">
+
+  <div class="ci-main">
+    <header class="ci-head">
+      <button class="ci-back" (click)="goBack()">
+        <span class="material-icons">arrow_back</span>
+      </button>
+      <div>
+        <h1 class="ci-head__title">Ảnh của chương <span *ngIf="chapterLabel">· {{ chapterLabel }}</span></h1>
+        <p class="ci-head__sub">
+          {{ items.length }} ảnh · đã tải {{ loadedCount }}
+          <span *ngIf="dirtyCount"> · <strong>{{ dirtyCount }} thay đổi chưa lưu</strong></span>
+        </p>
+      </div>
+    </header>
+
+    <!-- Thông tin chương: gộp phần "sửa chương" vào đây thay vì dialog riêng -->
+    <div class="ci-infobar">
+      <div class="ci-infobar__field ci-infobar__field--grow">
+        <label>Tiêu đề chương</label>
+        <input type="text" [(ngModel)]="chapterTitle" placeholder="Tiêu đề...">
+      </div>
+      <div class="ci-infobar__field">
+        <label>Số chương</label>
+        <input type="number" step="0.01" [(ngModel)]="chapterIndex" placeholder="1">
+      </div>
+      <button class="ci-btn ci-btn--primary" [disabled]="!infoDirty || savingInfo"
+              (click)="saveChapterInfo()">
+        <span class="material-icons">save</span>
+        {{ savingInfo ? 'Đang lưu...' : 'Lưu thông tin' }}
+      </button>
+
+      <button class="ci-btn" (click)="addInput.click()" title="Thêm ảnh vào cuối chương">
+        <span class="material-icons">add_photo_alternate</span> Thêm ảnh
+      </button>
+      <input #addInput type="file" accept="image/*" multiple hidden (change)="onAddPick($event)">
+    </div>
+
+    <!-- Tuỳ chọn số ảnh tải -->
+    <div class="ci-loadbar">
+      <span class="ci-loadbar__label">Số ảnh tải mỗi lần</span>
+      <div class="ci-choices">
+        <button class="ci-choice" [class.active]="batch === '1'" (click)="batch = '1'">1</button>
+        <button class="ci-choice" [class.active]="batch === '5'" (click)="batch = '5'">5</button>
+        <!-- Ô "…" chính là input: gõ số vào đây là tự chuyển sang chế độ tuỳ ý -->
+        <input class="ci-choice ci-choice--input" [class.active]="batch === 'custom'"
+               type="number" min="1" [(ngModel)]="customBatch"
+               placeholder="…" title="Nhập số ảnh tuỳ ý"
+               (focus)="batch = 'custom'" (ngModelChange)="batch = 'custom'">
+        <button class="ci-choice" [class.active]="batch === 'all'" (click)="batch = 'all'">Tất cả</button>
+      </div>
+      <button class="ci-btn ci-btn--primary" [disabled]="!hasMore" (click)="loadMore()">
+        <span class="material-icons">download</span>
+        Tải {{ hasMore ? 'thêm' : '' }}
+      </button>
+      <button class="ci-btn" [disabled]="!hasMore" (click)="loadAll()">Tải hết ({{ remaining }})</button>
+    </div>
+
+    <!-- Skeleton: mo phong hang anh (thumb doc + 2 dong meta) -->
+    <app-table-skeleton *ngIf="isLoading"
+      variant="card" leading="cover" [rows]="4" [cols]="3"></app-table-skeleton>
+
+    <div class="ci-empty" *ngIf="!isLoading && items.length === 0">
+      <span class="material-icons">image_not_supported</span>
+      <p>Chương này chưa có ảnh</p>
+    </div>
+
+    <!-- Danh sách ảnh -->
+    <ul class="ci-list" *ngIf="!isLoading && items.length">
+      <li class="ci-item" *ngFor="let item of items; let i = index; trackBy: trackByMeta"
+          [class.ci-item--deleted]="item.markedDelete"
+          [class.ci-item--dirty]="isDirty(item) && !item.markedDelete"
+          [class.ci-item--editing]="editingIndex === i">
+
+        <div class="ci-item__num">
+          <strong>{{ item.meta.index }}</strong>
+          <span class="ci-item__moved" *ngIf="item.movedFrom !== null"
+                [title]="'Trước đây là trang ' + item.movedFrom">đã đổi</span>
+        </div>
+
+        <!-- Ảnh: chỉ set src khi đã được phép tải -->
+        <div class="ci-thumb">
+          <img *ngIf="item.loaded" [src]="srcOf(item)" [alt]="'Trang ' + item.meta.index"
+               loading="lazy" appImageFallback>
+          <button class="ci-thumb__placeholder" *ngIf="!item.loaded"
+                  (click)="item.loaded = true" title="Tải ảnh này">
+            <span class="material-icons">cloud_download</span>
+            <span>Chưa tải</span>
+          </button>
+          <span class="ci-badge ci-badge--add" *ngIf="item.isNew">mới thêm</span>
+          <span class="ci-badge ci-badge--new" *ngIf="!item.isNew && item.pendingBlob">ảnh mới</span>
+          <span class="ci-badge ci-badge--del" *ngIf="item.markedDelete">sẽ xoá</span>
+        </div>
+
+        <div class="ci-item__info">
+          <div class="ci-meta">
+            <span *ngIf="item.meta.width">{{ item.meta.width }}×{{ item.meta.height }}</span>
+            <span *ngIf="item.meta.contentType">{{ item.meta.contentType }}</span>
+          </div>
+
+          <div class="ci-actions">
+            <!-- Row 1: sửa ảnh + thay thế (2 nút chia đều) -->
+            <div class="ci-actions__row">
+              <button class="ci-act ci-act--edit ci-act--grow" (click)="openEditor(i)"
+                      title="Sửa ảnh (xoá SFX, ghi chữ...)">
+                <span class="material-icons">brush</span> Sửa ảnh
+              </button>
+              <button class="ci-act ci-act--grow" (click)="replaceInput.click()"
+                      title="Thay bằng file khác">
+                <span class="material-icons">swap_horiz</span> Thay thế
+              </button>
+              <input #replaceInput type="file" accept="image/*" hidden
+                     (change)="onReplacePick($event, item)">
+            </div>
+
+            <!-- Row 2: lên / xuống (2 ô vuông cân nhau) -->
+            <div class="ci-actions__row">
+              <button class="ci-act ci-act--sq" [disabled]="i === 0"
+                      (click)="moveUp(i)" title="Lên trên">
+                <span class="material-icons">arrow_upward</span>
+              </button>
+              <button class="ci-act ci-act--sq" [disabled]="i === items.length - 1"
+                      (click)="moveDown(i)" title="Xuống dưới">
+                <span class="material-icons">arrow_downward</span>
+              </button>
+
+              <!-- Chèn ảnh ngay sau trang này — dùng index thập phân (vd 3.5) -->
+              <button class="ci-act ci-act--sq" (click)="insertInput.click()"
+                      title="Chèn ảnh ngay sau trang này">
+                <span class="material-icons">playlist_add</span>
+              </button>
+              <input #insertInput type="file" accept="image/*" multiple hidden
+                     (change)="onInsertPick($event, i)">
+            </div>
+          </div>
+
+          <!-- Tiến độ upload riêng của từng ảnh (client PUT trực tiếp lên S3) -->
+          <div class="ci-progress" *ngIf="item.uploadStatus === 'uploading'">
+            <div class="ci-progress__bar">
+              <div class="ci-progress__fill" [style.width.%]="item.uploadPercent"></div>
+            </div>
+            <span class="ci-progress__pct">Đang tải lên S3 {{ item.uploadPercent }}%</span>
+          </div>
+
+          <!-- Kết quả upload: thành công / thất bại + thử lại -->
+          <div class="ci-status ci-status--ok" *ngIf="item.uploadStatus === 'success'">
+            <span class="material-icons">check_circle</span> Upload thành công
+          </div>
+          <div class="ci-status ci-status--fail" *ngIf="item.uploadStatus === 'failed'">
+            <span class="material-icons">error_outline</span>
+            <span class="ci-status__msg">Thất bại: {{ item.uploadError }}</span>
+            <button class="ci-btn ci-btn--sm ci-btn--primary" [disabled]="item.saving"
+                    (click)="retryItem(item)">
+              <span class="material-icons">refresh</span> Thử lại
+            </button>
+          </div>
+
+          <!-- Lưu / huỷ cho từng ảnh -->
+          <div class="ci-save-row" *ngIf="isDirty(item)">
+            <button class="ci-btn ci-btn--primary ci-btn--sm" [disabled]="item.saving"
+                    (click)="saveItem(item)">
+              <span class="material-icons">save</span>
+              {{ item.saving ? 'Đang lưu...' : 'Lưu ảnh này' }}
+            </button>
+            <button class="ci-btn ci-btn--sm" [disabled]="item.saving" (click)="cancelItem(item)">
+              Huỷ
+            </button>
+          </div>
+
+          <!-- Xoá: phần tử CUỐI của ci-item__info nên nằm ở bottom-right -->
+          <!-- Ảnh mới chưa upload → bỏ khỏi danh sách luôn, không cần confirm -->
+          <button class="ci-act ci-act--danger ci-item__delete" *ngIf="item.isNew"
+                  (click)="removeNewItem(item)" title="Bỏ ảnh vừa thêm">
+            <span class="material-icons">close</span> Bỏ
+          </button>
+          <button class="ci-act ci-act--danger ci-item__delete"
+                  *ngIf="!item.isNew && !item.markedDelete"
+                  (click)="askDelete(item, i)" title="Xoá ảnh">
+            <span class="material-icons">delete</span> Xoá
+          </button>
+          <button class="ci-act ci-item__delete" *ngIf="!item.isNew && item.markedDelete"
+                  (click)="undoDelete(item)">
+            <span class="material-icons">undo</span> Bỏ xoá
+          </button>
+        </div>
+      </li>
+    </ul>
+
+    <!-- Tải thêm ở cuối danh sách -->
+    <div class="ci-more" *ngIf="!isLoading && hasMore">
+      <p>Còn <strong>{{ remaining }}</strong> ảnh chưa tải</p>
+      <div class="ci-choices">
+        <button class="ci-btn" (click)="batch = '1'; loadMore()">+1</button>
+        <button class="ci-btn" (click)="batch = '5'; loadMore()">+5</button>
+        <button class="ci-btn" (click)="batch = 'custom'; loadMore()">+{{ customBatch }}</button>
+        <button class="ci-btn ci-btn--primary" (click)="loadAll()">Tải hết</button>
+      </div>
+    </div>
+
+    <!-- Lưu / huỷ toàn bộ -->
+    <div class="ci-bulk" *ngIf="items.length">
+      <span class="ci-bulk__info">
+        <ng-container *ngIf="hasAnyDirty">{{ dirtyCount }} ảnh có thay đổi chưa lưu</ng-container>
+        <ng-container *ngIf="!hasAnyDirty">Chưa có thay đổi nào</ng-container>
+        <span class="ci-bulk__stat ci-bulk__stat--up" *ngIf="uploadingCount">
+          · đang tải {{ uploadingCount }}
+        </span>
+        <span class="ci-bulk__stat ci-bulk__stat--ok" *ngIf="successCount">
+          · thành công {{ successCount }}
+        </span>
+        <span class="ci-bulk__stat ci-bulk__stat--fail" *ngIf="failedCount">
+          · thất bại {{ failedCount }}
+        </span>
+      </span>
+      <div class="ci-bulk__actions">
+        <button class="ci-btn" *ngIf="hasFailed" (click)="retryAllFailed()">
+          <span class="material-icons">refresh</span> Thử lại {{ failedCount }} ảnh lỗi
+        </button>
+        <button class="ci-btn" [disabled]="!hasAnyDirty" (click)="cancelAll()">
+          <span class="material-icons">close</span> Huỷ tất cả
+        </button>
+        <button class="ci-btn ci-btn--primary" [disabled]="!hasAnyDirty || uploadingCount > 0"
+                (click)="saveAll()">
+          <span class="material-icons">save</span> Lưu tất cả
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nen mo phia sau drawer (chi hien tren man hep, xem SCSS) -->
+  <div class="ci-backdrop" *ngIf="editingIndex !== null" (click)="closeEditor()"></div>
+
+  <!-- Sidebar editor. Tren man hep day la DRAWER co dinh (position: fixed) — neu
+       de static thi no nam duoi ca danh sach anh, bam vao nhu khong co gi xay ra. -->
+  <aside class="ci-side" *ngIf="editingItem as item">
+    <app-image-editor-panel
+      [src]="srcOf(item)"
+      [label]="'Trang ' + item.meta.index"
+      (applied)="onEdited($event)"
+      (closed)="closeEditor()">
+    </app-image-editor-panel>
+  </aside>
+</div>

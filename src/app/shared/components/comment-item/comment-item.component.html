@@ -2,8 +2,9 @@
      [class.is-reply]="isReply" [class.deleted]="isDeleted" [class.pending]="comment.pending"
      [class.highlight]="highlightId === comment.id">
 
-  <!-- Avatar -->
-  <div class="comment-avatar">
+  <!-- Avatar. Ẩn hẳn khi comment đã xoá: server không trả avatar/khung nữa, và
+       hiện ảnh mặc định chỉ gây nhiễu. -->
+  <div class="comment-avatar" *ngIf="!isDeleted">
     <app-avatar-frame [src]="comment.avatar || '/assets/user.jpg'"
       [alt]="comment.displayName"
       [frameId]="comment.avatarFrame || 'default'"
@@ -13,8 +14,9 @@
 
   <div class="comment-body">
 
-    <!-- Header -->
-    <div class="comment-header">
+    <!-- Header. Ẩn khi comment đã xoá: DTO lúc đó chỉ còn id/quan hệ, không có
+         displayName/role/level/thời gian → header sẽ trống trơ trọi. -->
+    <div class="comment-header" *ngIf="!isDeleted">
       <span class="comment-author">{{ comment.displayName }}</span>
       <span *ngIf="topRole(authorRoles(comment)) as role" class="role-badge" [ngClass]="roleClass(role)">{{ role }}</span>
       <span *ngIf="authorLevel(comment) as lv" class="level-badge" [ngClass]="levelClass(lv)">Lv.{{ lv }}</span>
@@ -56,8 +58,9 @@
       </ng-template>
     </div>
 
-    <!-- Action bar -->
-    <div class="comment-actions" *ngIf="!isEditing">
+    <!-- Action bar. Comment đã xoá thì KHÔNG còn hành động nào (kể cả like/dislike)
+         — nút "xem trả lời" nằm ở .replies-section bên dưới nên vẫn hiện. -->
+    <div class="comment-actions" *ngIf="!isEditing && !isDeleted">
 
       <!-- Like -->
       <button class="action-btn" [class.active]="comment.userReaction === 'like'"
@@ -73,7 +76,7 @@
         <span *ngIf="comment.dislikeCount">{{ comment.dislikeCount }}</span>
       </button>
 
-      <ng-container *ngIf="!isDeleted">
+      <ng-container>
         <!-- Reply -->
         <button *ngIf="!isReply" class="action-btn" (click)="startReply()">
           <i class="fa-solid fa-reply"></i>
@@ -126,8 +129,8 @@
     <!-- Replies section (root comments only) -->
     <div class="replies-section" *ngIf="!isReply">
 
-      <!-- Toggle replies -->
-      <button *ngIf="(comment.replyCount ?? 0) > 0" class="toggle-replies-btn"
+      <!-- Toggle replies. Comment đã xoá vẫn mở được (xem showRepliesToggle). -->
+      <button *ngIf="showRepliesToggle" class="toggle-replies-btn"
               (click)="toggleReplies()">
         <ng-container *ngIf="repliesLoading">
           <i class="fa-solid fa-spinner fa-spin me-1"></i>{{ 'COMMENT.LOADING' | translate }}
@@ -145,12 +148,14 @@
       <div class="replies-list" *ngIf="comment.showReplies && comment.replies?.length">
         <ng-container *ngFor="let node of threadedReplies">
           <div class="reply-item" [attr.id]="'c-' + node.reply.id"
-               [class.pending]="node.reply.pending" [class.highlight]="highlightId === node.reply.id">
+               [class.pending]="node.reply.pending" [class.highlight]="highlightId === node.reply.id"
+               [class.deleted]="node.reply.isDeleted">
             <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: node.reply }"></ng-container>
           </div>
           <div class="reply-item reply-child" *ngFor="let child of node.children"
                [attr.id]="'c-' + child.id"
-               [class.pending]="child.pending" [class.highlight]="highlightId === child.id">
+               [class.pending]="child.pending" [class.highlight]="highlightId === child.id"
+               [class.deleted]="child.isDeleted">
             <ng-container *ngTemplateOutlet="replyTpl; context: { $implicit: child }"></ng-container>
           </div>
         </ng-container>
@@ -169,11 +174,8 @@
 
       <!-- Template render 1 reply (dùng chung cho top-level và child) -->
       <ng-template #replyTpl let-reply>
-        <!-- Deleted reply -->
+        <!-- Deleted reply — không avatar, chỉ dòng thông báo. -->
         <ng-container *ngIf="reply.isDeleted; else liveReply">
-          <div class="comment-avatar reply-avatar">
-            <img src="/assets/user.jpg" alt="">
-          </div>
           <div class="comment-body">
             <p class="deleted-text">
               <i class="fa-solid fa-ban me-1"></i>{{ 'COMMENT.DELETED_MSG' | translate }}

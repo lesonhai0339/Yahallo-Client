@@ -20,6 +20,14 @@ export enum Permission {
   // Tag / Author / Artist library
   ManageTaxonomy = 'manage_taxonomy',   // admin: create/edit/delete + approve requests
   RequestTaxonomy = 'request_taxonomy', // mod/trans: submit add requests for admin review
+
+  /**
+   * Kiểm duyệt bình luận (/admin/comments). Quyền RIÊNG, KHÔNG dùng ManageManga:
+   * Trans cũng có ManageManga (để up chương truyện của mình) nên nếu gate bằng
+   * ManageManga thì Translator vào được trang kiểm duyệt — không đúng.
+   * Chỉ Admin + Moderator.
+   */
+  ModerateComments = 'moderate_comments',
 }
 
 export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
@@ -35,6 +43,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     Permission.LockUsers,
     Permission.ViewAnalytics,
     Permission.ManageTaxonomy,
+    Permission.ModerateComments,
   ],
   [AppRole.Moderator]: [
     Permission.ViewDashboard,
@@ -45,6 +54,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     Permission.ManageUsers,
     Permission.ViewAnalytics,
     Permission.RequestTaxonomy,
+    Permission.ModerateComments,
   ],
   [AppRole.Trans]: [
     Permission.ViewDashboard,

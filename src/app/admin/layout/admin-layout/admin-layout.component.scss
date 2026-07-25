@@ -152,7 +152,7 @@ $header-h: 56px;
     .material-icons { font-size: 1.3rem; }
   }
 
-  &__right { display: flex; align-items: center; gap: 16px; }
+  &__right { display: flex; align-items: center; gap: 8px; min-width: 0; }
 
   &__user { display: flex; align-items: center; gap: 10px; }
 
@@ -169,6 +169,228 @@ $header-h: 56px;
     font-weight: 500;
     color: var(--text-primary);
   }
+}
+
+// ── Topbar controls: theme / ngôn ngữ / thông báo / menu profile ────────────
+// Nút icon dùng chung cho theme, cờ ngôn ngữ, chuông thông báo.
+.admin-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+
+  &:hover { background: var(--icon-btn-bg-hover); color: var(--text-primary); }
+  .material-icons { font-size: 1.2rem; }
+}
+
+.admin-lang {
+  position: relative;
+
+  &__flag {
+    width: 18px;
+    height: 12px;
+    object-fit: cover;
+    border-radius: 2px;
+    flex: none;
+  }
+  &__code { font-size: 0.78rem; font-weight: 600; }
+}
+
+.admin-notif {
+  position: relative;
+
+  &__badge {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--accent-primary);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  &__item {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: var(--icon-btn-bg-hover); color: var(--text-primary); }
+    // Chưa đọc: nền nhạt + vạch accent bên trái.
+    &.unseen {
+      background: rgba(233, 69, 96, 0.06);
+      box-shadow: inset 2px 0 0 var(--accent-primary);
+    }
+  }
+
+  &__icon { font-size: 1.05rem; color: var(--accent-primary); flex: none; }
+
+  &__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+  &__text {
+    font-size: 0.82rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  &__time { font-size: 0.7rem; color: var(--text-muted); }
+}
+
+.admin-user-menu {
+  position: relative;
+
+  &__trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover { background: var(--icon-btn-bg-hover); }
+  }
+
+  &__chev { font-size: 1.05rem; color: var(--text-muted); }
+}
+
+// Dropdown dùng chung cho 3 menu ở topbar.
+.admin-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+  min-width: 210px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-dropdown, 0 6px 24px rgba(0, 0, 0, 0.28));
+  overflow: hidden;
+  animation: adminDropIn 0.12s ease;
+
+  &--sm { min-width: 130px; }
+  &--wide { min-width: 320px; max-height: 380px; overflow-y: auto; }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  &__link {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+    font-size: 0.76rem;
+    color: var(--accent-primary);
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    padding: 22px 12px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    .material-icons { font-size: 1.1rem; }
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition);
+
+    .material-icons { font-size: 1.05rem; }
+    &:hover { background: var(--icon-btn-bg-hover); color: var(--text-primary); }
+    &.active { color: var(--accent-primary); }
+    &--danger:hover { color: #e5484d; }
+  }
+
+  &__check { margin-left: auto; font-size: 1rem; color: var(--accent-primary); }
+
+  &__sep { height: 1px; background: var(--border-color); margin: 4px 0; }
+}
+
+@keyframes adminDropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Thu gon header theo be ngang ────────────────────────────────────────────
+// Header co 5 nhom control (view-as / theme / ngon ngu / thong bao / avatar) nen
+// tren man hep se tran. Cach xu ly: chuyen theme + ngon ngu + view-as vao menu
+// avatar, header chi con thong bao + avatar.
+.admin-only-sm { display: none; }   // chi hien khi hep (dinh nghia trong media)
+
+@media (max-width: 900px) {
+  // An 3 control phu khoi thanh header...
+  .admin-only-lg { display: none !important; }
+  // ...va hien chung trong menu avatar.
+  .admin-only-sm { display: flex; }
+  .admin-dropdown__sep.admin-only-sm { display: block; }
+}
+
+@media (max-width: 768px) {
+  // Bo chu cho gon, chi giu icon + avatar.
+  .admin-header__username { display: none; }
+  .admin-dropdown--wide { min-width: 260px; }
+  .admin-header { padding: 0 12px; }
+}
+
+@media (max-width: 480px) {
+  // Man rat hep: bo luon role badge (van xem duoc trong menu avatar).
+  .admin-header__right .role-badge { display: none; }
+  .admin-user-menu__chev { display: none; }
 }
 
 // ── Role Badge ──────────────────────────────────────────────────────────────
@@ -214,10 +436,13 @@ $header-h: 56px;
   position: relative;
 
   &__trigger {
+    // Chi con icon -> o vuong, khong con padding ngang cho chu.
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     background: var(--bg-card);
@@ -238,8 +463,6 @@ $header-h: 56px;
       color: #f59e0b;
     }
   }
-
-  &__label { display: inline; }
 
   &__dropdown {
     position: absolute;
