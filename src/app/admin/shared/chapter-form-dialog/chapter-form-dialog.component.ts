@@ -5,14 +5,8 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { lastValueFrom } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AdminMangaService } from '../../services/admin-manga.service';
-import { AuthService } from '../../../core/services/auth.service';
-import {
-  ImageUploadService,
-  FileUploadState,
-  FileUploadResult,
-  ImageUploadMeta,
-  FileStatus,
-} from '../../services/image-upload.service';
+import { ChapterImageService, CreateChapterImageItem } from '../../services/chapter-image.service';
+import { ImageUploadService, FileStatus } from '../../services/image-upload.service';
 
 export interface ChapterFormData {
   mangaId: string;
@@ -80,8 +74,8 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private mangaService: AdminMangaService,
+    private chapterImages: ChapterImageService,
     private imageUpload: ImageUploadService,
-    private auth: AuthService,
     private toastr: ToastrService,
     public dialogRef: MatDialogRef<ChapterFormDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ChapterFormData
@@ -90,9 +84,18 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const ch = this.data.chapter;
     this.form = this.fb.group({
-      title: [ch?.title ?? '', Validators.required],
+      // Title là MÔ TẢ chương — nhiều bộ không có, nên không bắt buộc.
+      title: [ch?.title ?? ''],
       index: [ch?.index ?? 1, [Validators.required, Validators.min(0)]],
+      subIndex: [ch?.subIndex ?? 0, [Validators.min(0)]],
     });
+  }
+
+  /** Nhãn chương ghép từ index + subIndex — "10" hoặc "10.5". */
+  get chapterLabel(): string {
+    const i = Number(this.form?.value?.index ?? 0);
+    const sub = Number(this.form?.value?.subIndex ?? 0);
+    return sub > 0 ? `${i}.${sub}` : `${i}`;
   }
 
   ngOnDestroy(): void {
@@ -278,6 +281,17 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
 
   // ── Upload workflow ────────────────────────────────────────────────────────
 
+  /**
+   * Chức năng: Lưu chương rồi upload ảnh, theo đúng 3 bước của backend:
+   *   1. `POST /chapter/create` (hoặc `PUT /chapter/update`) → lấy chapterId.
+   *   2. `POST /chapter-image/create` → gửi METADATA cả loạt ảnh, nhận về danh
+   *      sách `uploadUrl` pre-signed (server tự đánh index theo thứ tự gửi lên).
+   *   3. Client PUT thẳng từng file lên S3 bằng `uploadUrl` đó.
+   *   Không có bước "confirm" — server đã tạo bản ghi ảnh ngay ở bước 2.
+   * Yêu cầu: form hợp lệ, không có STT trùng, mọi file đã qua kiểm tra định dạng.
+   * Kết quả trả về: Promise<void>; đóng dialog với `true` khi lưu xong.
+   * Exception: không ném — mọi lỗi đều hiển thị bằng toast và đưa phase về idle.
+   */
   async save(): Promise<void> {
     if (this.form.invalid || this.isBusy) return;
 
@@ -292,78 +306,82 @@ export class ChapterFormDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // ── Bước 1: thông tin chương ─────────────────────────────────────────────
     this.phase = 'creating';
+    const payload = {
+      mangaId: this.data.mangaId,
+      index: Number(this.form.value.index) || 0,
+      subIndex: Number(this.form.value.subIndex) || 0,
+      title: this.form.value.title as string,
+      chapterId: this.data.chapter?.id,
+    };
+
     let chapterId: string;
     try {
-      const fd = new FormData();
-      fd.append('MangaId', this.data.mangaId);
-      fd.append('Title', this.form.value.title);
-      fd.append('Index', String(this.form.value.index));
-      if (this.data.chapter?.id) fd.append('ChapterId', this.data.chapter.id);
-
-      const req = this.data.chapter?.id
-        ? this.mangaService.updateChapter(fd)
-        : this.mangaService.createChapter(fd);
-
-      const res: any = await lastValueFrom(req);
-      chapterId = res?.value?.id ?? res?.id ?? this.data.chapter?.id;
+      if (payload.chapterId) {
+        await lastValueFrom(this.mangaService.updateChapter(payload));
+        chapterId = payload.chapterId;
+      } else {
+        chapterId = await lastValueFrom(this.mangaService.createChapter(payload));
+      }
     } catch {
       this.toastr.error('Không thể lưu thông tin chương');
       this.phase = 'idle';
       return;
     }
 
-    const toUpload = this.filledRows;
+    if (!chapterId) {
+      this.toastr.error('Server không trả về mã chương — không thể upload ảnh');
+      this.phase = 'idle';
+      return;
+    }
+
+    // Thứ tự trang do STT quyết định: server đánh index theo thứ tự phần tử
+    // trong danh sách, nên phải sắp trước khi gửi.
+    const toUpload = [...this.filledRows].sort((a, b) => a.pageIndex - b.pageIndex);
     if (toUpload.length === 0) {
       this.toastr.success(this.data.chapter ? 'Cập nhật thành công' : 'Tạo chương thành công');
       this.dialogRef.close(true);
       return;
     }
 
+    // ── Bước 2: đăng ký ảnh, xin uploadUrl ───────────────────────────────────
     this.phase = 'signing';
     toUpload.forEach(r => { r.status = 'signing'; r.uploadPercent = 0; });
 
-    const userId = this.auth.currentUser?.id ?? '';
-    const metas: ImageUploadMeta[] = toUpload.map(r => ({
-      userId,
-      fileName: r.file!.name,
-      contentType: r.file!.type,
-      fileSize: r.file!.size,
-      chapterId,
-      pageIndex: r.pageIndex,
-    }));
-
-    let signedItems;
+    let items: CreateChapterImageItem[];
     try {
-      signedItems = await lastValueFrom(this.imageUpload.getSignedUrls(metas));
+      items = await lastValueFrom(
+        this.chapterImages.createChapterImages(chapterId, toUpload.map(r => r.file!)),
+      );
     } catch {
-      this.toastr.error('Không lấy được Signed URL từ server');
-      toUpload.forEach(r => r.status = 'failed');
+      this.toastr.error('Không đăng ký được ảnh của chương (chapter-image/create)');
+      toUpload.forEach(r => { r.status = 'failed'; r.error = 'Không lấy được URL upload'; });
       this.phase = 'idle';
       return;
     }
 
-    signedItems.forEach((item, i) => {
-      if (toUpload[i]) {
-        toUpload[i].fileId = item.fileId;
-        toUpload[i].signedUrl = item.signedUrl;
-        toUpload[i].status = 'uploading';
+    if (items.length !== toUpload.length) {
+      this.toastr.warning(
+        `Server trả về ${items.length} URL cho ${toUpload.length} ảnh — chỉ upload phần khớp được`,
+      );
+    }
+
+    toUpload.forEach((r, i) => {
+      const item = items[i];
+      if (!item?.uploadUrl) {
+        r.status = 'failed';
+        r.error = 'Thiếu uploadUrl';
+        return;
       }
+      r.fileId = item.id;
+      r.signedUrl = item.uploadUrl;
+      r.status = 'uploading';
     });
 
+    // ── Bước 3: PUT thẳng lên S3 ─────────────────────────────────────────────
     this.phase = 'uploading';
-    await Promise.all(toUpload.map((r, i) => this.uploadOneRow(toUpload, i)));
-
-    this.phase = 'confirming';
-    const results: FileUploadResult[] = toUpload
-      .filter(r => r.fileId)
-      .map(r => ({ fileId: r.fileId!, etag: r.etag ?? null, status: r.status === 'done' ? 'uploaded' as const : 'failed' as const }));
-
-    try {
-      await lastValueFrom(this.imageUpload.confirmBatchUploads(results));
-    } catch {
-      this.toastr.warning('Chương đã lưu nhưng xác nhận trạng thái ảnh thất bại');
-    }
+    await Promise.all(toUpload.map((_, i) => this.uploadOneRow(toUpload, i)));
 
     this.phase = 'done';
     const failed = this.failedCount;

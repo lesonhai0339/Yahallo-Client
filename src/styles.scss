@@ -157,7 +157,17 @@ body.has-bg-image:not(.bg-cover-main) {
   // .search-page already paints var(--bg-card); leave it as the solid panel.
 }
 body.has-bg-image.bg-cover-main {
-  .search-page { background-color: transparent; }
+  // The search page is a single full-height PANEL: making it fully transparent
+  // let the image run edge-to-edge behind every filter and result row, which is
+  // both unreadable and unlike every other page (they only go transparent
+  // because their content sits in cards that keep their own background).
+  // Cover mode therefore only makes the panel TRANSLUCENT, never backgroundless.
+  .search-page {
+    background-color: var(--bg-card);                                // fallback
+    background-color: color-mix(in srgb, var(--bg-card) 62%, transparent);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
   // The others have no default background, so they're already transparent.
 }
 

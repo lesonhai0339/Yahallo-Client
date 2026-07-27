@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
@@ -17,7 +17,30 @@ export interface LocalProgress {
 
 export type SyncResult = 'pushed' | 'pulled' | 'in-sync' | 'skipped';
 
-const LOCAL_KEY = 'yhl_read_progress';
+/**
+ * Khoá của một entry tiến trình đọc: MỖI CHƯƠNG một vị trí riêng.
+ *
+ * Trước đây map chỉ khoá theo `mangaId` nên mỗi bộ truyện chỉ giữ được đúng một
+ * vị trí — đọc chương 114 xong quay lại chương 20 là mất vị trí của 114. Backend
+ * lưu theo chương (`GET /reading-progress/get` nhận `MangaId` và trả về một
+ * LIST), nên khoá phía client phải khớp: manga + chương.
+ */
+function entryKey(mangaId: string, chapterId: string): string {
+  return `${mangaId}|${chapterId}`;
+}
+
+/**
+ * Tiền tố key localStorage — key THẬT luôn kèm userId (`yhl_read_progress:<id>`).
+ *
+ * Trước đây chỉ có đúng một key global cho mọi tài khoản, dẫn tới: đăng xuất
+ * xong vị trí đọc vẫn còn, và tài khoản KHÁC đăng nhập trên cùng máy sẽ đọc
+ * được lịch sử của người trước — tệ hơn nữa là `sync()` sẽ đẩy tiến trình của
+ * người trước lên tài khoản người sau.
+ */
+const LOCAL_KEY_PREFIX = 'yhl_read_progress';
+
+/** Key global cũ — xoá khi gặp, KHÔNG gán cho ai (không thể biết của tài khoản nào). */
+const LEGACY_LOCAL_KEY = 'yhl_read_progress';
 
 @Injectable({ providedIn: 'root' })
 export class ReadingProgressService {
@@ -37,14 +60,26 @@ export class ReadingProgressService {
     return this.http.post(`${this.base}/save`, payload);
   }
 
-  get(mangaId?: string): Observable<ReadingProgress[]> {
-    const params: any = {};
-    if (mangaId) params['mangaId'] = mangaId;
-    return this.http.get<ReadingProgress[]>(`${this.base}/get`, { params });
-  }
-
-  getForManga(userId: string, mangaId: string): Observable<ReadingProgress | null> {
-    return this.http.get<ReadingProgress | null>(`${this.base}/get/${userId}/${mangaId}`);
+  /**
+   * Chức năng: Lấy tiến trình đọc của user cho MỘT bộ truyện — server trả về một
+   *   LIST, mỗi chương đã đọc một dòng.
+   * Yêu cầu: `mangaId` BẮT BUỘC (query `GetReadingProgressByUserQuery.MangaId`
+   *   không nhận null) — không có endpoint lấy toàn bộ progress của user ở đây,
+   *   muốn kéo tất cả thì dùng `getPaginated`.
+   * Kết quả trả về: Observable emit mảng ReadingProgress (rỗng nếu chưa đọc).
+   * Exception: không ném — lỗi mạng trả về mảng rỗng.
+   */
+  get(mangaId: string): Observable<ReadingProgress[]> {
+    const params = new HttpParams().set('MangaId', mangaId);
+    return this.http.get<any>(`${this.base}/get`, { params }).pipe(
+      // Server bọc trong JsonResponse → phải bóc `value`. Thiếu bước này thì
+      // chỗ gọi nhận về object thay vì mảng và `for...of` sẽ ném TypeError.
+      map(res => {
+        const v = res?.value ?? res;
+        return Array.isArray(v) ? v as ReadingProgress[] : [];
+      }),
+      catchError(() => of([] as ReadingProgress[])),
+    );
   }
 
   /**
@@ -78,19 +113,40 @@ export class ReadingProgressService {
     // ánh trạng thái từ /getme. Mode chỉ quyết định resume/jump, không chặn lưu.
     if (!this.auth.isLoggedIn) return;
     const map = this.readMap();
-    map[mangaId] = { mangaId, chapterId, imageIndex, updatedAt: Date.now() };
+    map[entryKey(mangaId, chapterId)] = { mangaId, chapterId, imageIndex, updatedAt: Date.now() };
     this.writeMap(this.prune(map));
   }
 
-  getLocal(mangaId: string): LocalProgress | null {
-    return this.readMap()[mangaId] ?? null;
+  /**
+   * Chức năng: Vị trí đã đọc của ĐÚNG một chương.
+   * Yêu cầu: mangaId + chapterId của chương đang mở.
+   * Kết quả trả về: LocalProgress của chương đó, hoặc null nếu chưa đọc.
+   * Exception: không ném.
+   */
+  getLocal(mangaId: string, chapterId: string): LocalProgress | null {
+    return this.readMap()[entryKey(mangaId, chapterId)] ?? null;
   }
 
-  /** Drop the saved position for one manga (e.g. finished = reached last image). */
-  removeLocal(mangaId: string): void {
+  /**
+   * Chức năng: Chương ĐỌC GẦN NHẤT của một manga — dùng cho nút "Đọc tiếp" ở
+   *   trang chi tiết. Reader KHÔNG dùng hàm này: vào chương nào thì đọc chương
+   *   đó, không được tự nhảy sang chương khác.
+   * Yêu cầu: mangaId của bộ truyện.
+   * Kết quả trả về: entry mới nhất theo updatedAt, hoặc null nếu chưa đọc bộ này.
+   * Exception: không ném.
+   */
+  getLatestLocal(mangaId: string): LocalProgress | null {
+    return Object.values(this.readMap())
+      .filter(p => p.mangaId === mangaId)
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null;
+  }
+
+  /** Drop the saved position for one chapter (e.g. finished = reached last image). */
+  removeLocal(mangaId: string, chapterId: string): void {
     const map = this.readMap();
-    if (map[mangaId]) {
-      delete map[mangaId];
+    const key = entryKey(mangaId, chapterId);
+    if (map[key]) {
+      delete map[key];
       this.writeMap(map);
     }
   }
@@ -99,14 +155,16 @@ export class ReadingProgressService {
     return Object.values(this.readMap()).sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
+  /** Xoá vị trí đọc local CỦA TÀI KHOẢN ĐANG ĐĂNG NHẬP (không đụng tài khoản khác). */
   clearLocal(): void {
-    localStorage.removeItem(LOCAL_KEY);
+    const key = this.storageKey();
+    if (key) localStorage.removeItem(key);
   }
 
   /** Stable checksum over the local snapshot, used to detect changes vs server. */
   checksum(map = this.readMap()): string {
     const snapshot = Object.values(map)
-      .sort((a, b) => a.mangaId.localeCompare(b.mangaId))
+      .sort((a, b) => entryKey(a.mangaId, a.chapterId).localeCompare(entryKey(b.mangaId, b.chapterId)))
       .map(p => `${p.mangaId}:${p.chapterId}:${p.imageIndex}:${p.updatedAt}`)
       .join('|');
     // djb2
@@ -125,16 +183,23 @@ export class ReadingProgressService {
    * of one API call per image:
    *   1. GET the server snapshot and map it into the local shape.
    *   2. Compare checksums — equal ⇒ nothing to do ('in-sync').
-   *   3. Otherwise merge per-manga, newest `lastActionDate` wins (two-way), and
+   *   3. Otherwise merge per-chapter, newest `lastReadAt` wins (two-way), and
    *      write the merged result back to localStorage.
    *   4. PUSH only the entries that are newer locally (or missing on the server).
+   *
+   * Nguồn kéo về là `get-pagination` chứ KHÔNG phải `get`: `get` bắt buộc có
+   * `MangaId` nên chỉ lấy được tiến trình của đúng một bộ, không dùng để đồng bộ
+   * toàn bộ tài khoản được.
    */
   sync(userId: string): Observable<SyncResult> {
     if (!userId || this.prefs.current.readProgressMode === 'off') return of('skipped');
 
-    return this.get().pipe(
-      switchMap(serverList => {
-        const serverMap = this.fromServer(serverList || []);
+    // Kéo tối đa bằng hạn mức lưu local — nhiều hơn cũng sẽ bị prune bỏ đi.
+    const pageSize = Math.max(50, this.prefs.current.maxEntries || 100);
+
+    return this.getPaginated(userId, 1, pageSize).pipe(
+      switchMap(page => {
+        const serverMap = this.fromHistory(page.data || []);
         const local = this.prune(this.readMap());
 
         if (this.checksum(local) === this.checksum(serverMap)) return of('in-sync' as SyncResult);
@@ -144,7 +209,7 @@ export class ReadingProgressService {
 
         // Entries the server doesn't have or that are stale there.
         const toPush = Object.values(merged).filter(m => {
-          const s = serverMap[m.mangaId];
+          const s = serverMap[entryKey(m.mangaId, m.chapterId)];
           return !s || m.updatedAt > s.updatedAt;
         });
         if (!toPush.length) return of('pulled' as SyncResult);
@@ -158,12 +223,34 @@ export class ReadingProgressService {
     );
   }
 
+  /**
+   * Chức năng: Đổi các dòng lịch sử đọc từ server (`get-pagination`) sang shape
+   *   local, khoá theo manga+chương.
+   * Yêu cầu: `list` là `data` của trang lịch sử; `lastPage` là 1-based.
+   * Kết quả trả về: map khoá `mangaId|chapterId`.
+   * Exception: không ném — dòng thiếu mangaId/chapterId bị bỏ qua.
+   */
+  private fromHistory(list: ReadingHistoryItem[]): Record<string, LocalProgress> {
+    const map: Record<string, LocalProgress> = {};
+    for (const r of list) {
+      if (!r?.mangaId || !r?.chapterId) continue;
+      map[entryKey(r.mangaId, r.chapterId)] = {
+        mangaId: r.mangaId,
+        chapterId: r.chapterId,
+        // Server 1-based → client 0-based.
+        imageIndex: Math.max(0, (r.lastPage ?? 1) - 1),
+        updatedAt: r.lastReadAt ? (Date.parse(r.lastReadAt) || 0) : 0,
+      };
+    }
+    return map;
+  }
+
   /** Map the server's ReadingProgress[] into the keyed/timestamped local shape. */
   private fromServer(list: ReadingProgress[]): Record<string, LocalProgress> {
     const map: Record<string, LocalProgress> = {};
     for (const r of list) {
       if (!r?.mangaId) continue;
-      map[r.mangaId] = {
+      map[entryKey(r.mangaId, r.chapterId)] = {
         mangaId: r.mangaId,
         chapterId: r.chapterId,
         // Server 1-based → client 0-based.
@@ -203,13 +290,35 @@ export class ReadingProgressService {
     }
 
     const result: Record<string, LocalProgress> = {};
-    for (const p of entries) result[p.mangaId] = p;
+    for (const p of entries) result[entryKey(p.mangaId, p.chapterId)] = p;
     return result;
   }
 
+  /**
+   * Chức năng: Key localStorage của tài khoản đang đăng nhập.
+   * Yêu cầu: không.
+   * Kết quả trả về: `yhl_read_progress:<userId>`, hoặc **null khi chưa đăng nhập**
+   *   — khách không có vị trí đọc, và cũng không được đọc của người khác.
+   * Exception: không ném.
+   */
+  private storageKey(): string | null {
+    const id = this.auth.currentUser?.id;
+    return id ? `${LOCAL_KEY_PREFIX}:${id}` : null;
+  }
+
   private readMap(): Record<string, LocalProgress> {
+    // Dọn dữ liệu của bản cũ (key global). Không migrate sang tài khoản hiện tại
+    // vì không có cách nào biết nó là của ai — người đăng nhập sau sẽ thừa hưởng
+    // nhầm lịch sử của người trước. Người dùng đã đăng nhập lấy lại được vị trí
+    // từ server qua sync().
+    if (localStorage.getItem(LEGACY_LOCAL_KEY) !== null) {
+      localStorage.removeItem(LEGACY_LOCAL_KEY);
+    }
+
+    const key = this.storageKey();
+    if (!key) return {};
     try {
-      const raw = localStorage.getItem(LOCAL_KEY);
+      const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -217,6 +326,8 @@ export class ReadingProgressService {
   }
 
   private writeMap(map: Record<string, LocalProgress>): void {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
+    const key = this.storageKey();
+    if (!key) return;   // chưa đăng nhập → không ghi gì
+    localStorage.setItem(key, JSON.stringify(map));
   }
 }

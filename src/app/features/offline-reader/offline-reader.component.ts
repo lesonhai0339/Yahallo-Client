@@ -6,6 +6,8 @@ import { TranslationService } from '../../core/services/translation.service';
 import {
   OFFLINE_APP, OFFLINE_MANIFEST, OfflineManifest,
 } from '../../core/services/download.service';
+import { AuthService } from '../../core/services/auth.service';
+import { dropLegacyKey, scopedKey } from '../../core/utils/user-storage';
 
 interface OfflineReaderSettings {
   direction: 'vertical' | 'horizontal';
@@ -26,7 +28,8 @@ interface OfflineChapter {
   images: ChapterImage[];
 }
 
-const SETTINGS_KEY = 'yhl_offline_reader';
+/** Tiền tố key — key thật kèm user-id (xem core/utils/user-storage.ts). */
+const SETTINGS_PREFIX = 'yhl_offline_reader';
 const DEFAULT_SETTINGS: OfflineReaderSettings = {
   direction: 'vertical', horizontalDir: 'rtl', mode: 'normal', imageSize: 100, preloadCount: 3,
 };
@@ -49,8 +52,10 @@ export class OfflineReaderComponent implements OnDestroy {
   listOpen = true;
   importing = false;
 
-  settings: OfflineReaderSettings = this.loadSettings();
-  pendingSettings: OfflineReaderSettings = { ...this.settings };
+  // Không gọi loadSettings() ngay ở field initializer: nó cần `this.auth` để
+  // biết key của tài khoản nào, mà lúc đó tham số constructor chưa chắc đã gán.
+  settings: OfflineReaderSettings = { ...DEFAULT_SETTINGS };
+  pendingSettings: OfflineReaderSettings = { ...DEFAULT_SETTINGS };
   isSidebarOpen = false;
 
   /** Floating controls hide while scrolling down, reappear on scroll up. */
@@ -60,7 +65,20 @@ export class OfflineReaderComponent implements OnDestroy {
   /** All object URLs created from imported files — revoked on destroy. */
   private urls: string[] = [];
 
-  constructor(private toastr: ToastrService, private i18n: TranslationService, private router: Router) {}
+  constructor(
+    private toastr: ToastrService,
+    private i18n: TranslationService,
+    private router: Router,
+    private auth: AuthService,
+  ) {
+    this.settings = this.loadSettings();
+    this.pendingSettings = { ...this.settings };
+  }
+
+  /** Key cài đặt đọc offline — theo tài khoản, không dùng chung cả máy. */
+  private settingsKey(): string {
+    return scopedKey(SETTINGS_PREFIX, this.auth.currentUser?.id);
+  }
 
   private t(key: string, p?: Record<string, string>): string { return this.i18n.get(key, p); }
 
@@ -169,13 +187,14 @@ export class OfflineReaderComponent implements OnDestroy {
   closeSidebar(): void { this.isSidebarOpen = false; }
   applySettings(): void {
     this.settings = { ...this.pendingSettings };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+    localStorage.setItem(this.settingsKey(), JSON.stringify(this.settings));
     this.closeSidebar();
   }
 
   private loadSettings(): OfflineReaderSettings {
     try {
-      const raw = localStorage.getItem(SETTINGS_KEY);
+      dropLegacyKey(SETTINGS_PREFIX);   // key global cua ban cu
+      const raw = localStorage.getItem(this.settingsKey());
       return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : { ...DEFAULT_SETTINGS };
     } catch { return { ...DEFAULT_SETTINGS }; }
   }

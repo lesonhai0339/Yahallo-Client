@@ -136,7 +136,7 @@
           class="chapter-list-item"
           [class.active]="ch.id === chapterId"
           (mousedown)="selectChapter(ch)">
-          <span class="chapter-list-item__title">{{ ch.title }}</span>
+          <span class="chapter-list-item__title">{{ chapterName(ch) }}</span>
           <i class="fa-solid fa-check" *ngIf="ch.id === chapterId"></i>
         </button>
       </div>
@@ -153,9 +153,9 @@
         <i class="fa-solid fa-house"></i>
       </a>
       <button class="bb-btn bb-btn--chapter" (click)="toggleChapterList()"
-        [title]="currentChapter?.title">
+        [title]="chapterFullName(currentChapter)">
         <i class="fa-solid fa-list me-1"></i>
-        <span class="bb-chapter-label">{{ currentChapter?.title }}</span>
+        <span class="bb-chapter-label">{{ chapterName(currentChapter) }}</span>
       </button>
       <button class="bb-btn" (click)="toggleSidebar()"
         [title]="'READER.SETTINGS' | translate">

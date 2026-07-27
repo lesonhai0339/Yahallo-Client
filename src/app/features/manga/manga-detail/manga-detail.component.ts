@@ -9,6 +9,8 @@ import { SeoService } from '../../../core/services/seo.service';
 import { Chapter, Manga, MangaDetailDto, MangaStatsDto, UserRating } from '../../../core/models/interfaces';
 import { ChapterSortBy } from '../../../core/models/chapter.interface';
 import { DownloadService } from '../../../core/services/download.service';
+import { chapterName, chapterNumber } from '../../../core/utils/chapter-label';
+import { ReadingProgressService } from '../../../core/services/reading-progress.service';
 
 @Component({
   selector: 'app-manga-detail',
@@ -37,6 +39,23 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   rangeStart = 1;
   rangeEnd = 1;
 
+  /** Tên chương dựng từ index/subIndex — `title` là mô tả nên không dùng làm tên. */
+  readonly chapterName = chapterName;
+
+  /**
+   * Chương đang đọc dở gần nhất của bộ này (nút "Đọc tiếp"). Null khi chưa đọc,
+   * hoặc khi chương đã lưu không còn trong danh sách (bị xoá ở admin).
+   * Đây là chỗ DUY NHẤT được phép "nhảy" sang chương khác dựa trên tiến trình —
+   * reader thì tuyệt đối không, vào chương nào đọc chương đó.
+   */
+  resume: { chapter: Chapter; page: number; at: number } | null = null;
+
+  /** Số chương của nút "Đọc tiếp" (vd "114", "10.5") — đổ vào tham số {{n}} của i18n. */
+  get resumeNumber(): string {
+    const c = this.resume?.chapter;
+    return c ? chapterNumber(c.index, c.subIndex) : '';
+  }
+
   get visibleChapters(): Chapter[] {
     return this.showAllChapters ? this.chapters : this.chapters.slice(0, 5);
   }
@@ -49,11 +68,53 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     return this.manga?.artists?.map(a => a.name).join(', ') || '';
   }
 
+  /**
+   * Chức năng: So sánh 2 chương theo SỐ chương (index, rồi tới subIndex) — chương
+   *   10.5 xếp trên chương 10.
+   * Yêu cầu: `a`, `b` là chương có `index`.
+   * Kết quả trả về: > 0 nếu `a` mới hơn `b`, < 0 nếu cũ hơn, 0 nếu trùng số.
+   * Exception: không ném.
+   */
+  private compareByNumber(a: Chapter, b: Chapter): number {
+    return (a.index - b.index) || ((a.subIndex ?? 0) - (b.subIndex ?? 0));
+  }
+
+  /**
+   * Chức năng: Chương MỚI NHẤT = chương có số lớn nhất.
+   *   Không dùng `chapters[0]` như trước: thứ tự mảng phụ thuộc hoàn toàn vào
+   *   tham số `ReverseSort` lúc gọi API, ai đổi cờ đó là 2 nút "đọc từ đầu" /
+   *   "đọc mới nhất" lặng lẽ hoán đổi mà không có lỗi nào báo ra.
+   * Yêu cầu: `chapters` đã nạp.
+   * Kết quả trả về: chương có số lớn nhất, hoặc null khi chưa có chương nào.
+   * Exception: không ném.
+   */
+  get latestChapter(): Chapter | null {
+    if (!this.chapters.length) return null;
+    return this.chapters.reduce((max, c) => this.compareByNumber(c, max) > 0 ? c : max);
+  }
+
+  /** Chương ĐẦU TIÊN = chương có số nhỏ nhất (nút "đọc từ đầu"). */
+  get firstChapter(): Chapter | null {
+    if (!this.chapters.length) return null;
+    return this.chapters.reduce((min, c) => this.compareByNumber(c, min) < 0 ? c : min);
+  }
+
+  /**
+   * Chức năng: Ngày "Cập nhật" của bộ truyện = ngày ĐĂNG gần nhất, không phải
+   *   ngày của chương có số lớn nhất. Chương chèn giữa (vd 10.5) có số nhỏ nhưng
+   *   mới đăng — nó vẫn phải làm bộ truyện "vừa cập nhật".
+   *   Cố ý KHÁC với `latestChapter` (nút "đọc mới nhất" đi theo SỐ chương).
+   * Yêu cầu: `chapters` đã nạp.
+   * Kết quả trả về: chuỗi ngày ISO của chương đăng gần nhất; '' nếu chưa có chương.
+   * Exception: không ném.
+   */
   get latestChapterDate(): string {
     if (!this.chapters.length) return '';
-    return [...this.chapters].sort((a, b) =>
-      new Date(b.chapterDate).getTime() - new Date(a.chapterDate).getTime()
-    )[0].chapterDate;
+    // reduce thay cho [...].sort(): không copy mảng, và getter này chạy mỗi chu
+    // kỳ change detection.
+    return this.chapters.reduce((newest, c) =>
+      Date.parse(c.chapterDate) > Date.parse(newest.chapterDate) ? c : newest,
+    ).chapterDate;
   }
 
   mangaId!: string;
@@ -72,6 +133,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     private toastr: ToastrService,
     private seo: SeoService,
     private download: DownloadService,
+    private readingProgress: ReadingProgressService,
   ) {}
 
   // ── Download ─────────────────────────────────────────────────────────────────
@@ -102,7 +164,12 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
       this.toastr.warning(`Chọn tối đa ${this.MAX_RANGE} chương`);
       return;
     }
-    const refs = this.selectedRangeChapters.map(c => ({ id: c.id, index: c.index, title: c.title }));
+    // title dùng để đặt tên thư mục + hash id gói offline → phải là TÊN chương
+    // (dựng từ index/subIndex). Lấy `c.title` (mô tả, có thể rỗng) sẽ khiến mọi
+    // chương không mô tả băm ra cùng một id.
+    const refs = this.selectedRangeChapters.map(c => ({
+      id: c.id, index: c.index, title: this.chapterName(c),
+    }));
     this.download.downloadRange(this.manga?.name || 'manga', refs, this.manga?.mangaThumbnail, this.manga?.id);
     this.showDownloadPanel = false;
     // Tiến trình hiển thị ở download-tray (góc dưới-phải) thay cho toast.
@@ -111,7 +178,11 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   downloadChapter(ch: Chapter, ev: Event): void {
     ev.preventDefault();
     ev.stopPropagation();
-    this.download.downloadChapter(this.manga?.name || 'manga', { id: ch.id, index: ch.index, title: ch.title }, this.manga?.mangaThumbnail, this.manga?.id);
+    this.download.downloadChapter(
+      this.manga?.name || 'manga',
+      { id: ch.id, index: ch.index, title: this.chapterName(ch) },
+      this.manga?.mangaThumbnail, this.manga?.id,
+    );
     // Tiến trình hiển thị ở download-tray (góc dưới-phải) thay cho toast.
   }
 
@@ -167,7 +238,23 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$)).subscribe(c => {
         this.chapters = c || [];
         this.stats.totalChapters = this.chapters.length;
+        this.refreshResume();
       });
+  }
+
+  /**
+   * Chức năng: Dựng dữ liệu cho nút "Đọc tiếp" từ tiến trình đọc đã lưu.
+   * Yêu cầu: gọi SAU khi `chapters` đã nạp — cần đối chiếu chương đã lưu có còn
+   *   tồn tại không (chương bị xoá ở admin thì không được hiện nút dẫn tới 404).
+   * Kết quả trả về: không (gán `this.resume`).
+   * Exception: không ném — chưa đăng nhập/chưa đọc thì `resume = null`.
+   */
+  private refreshResume(): void {
+    const saved = this.readingProgress.getLatestLocal(this.mangaId);
+    const chapter = saved ? this.chapters.find(c => c.id === saved.chapterId) : undefined;
+    this.resume = chapter && saved
+      ? { chapter, page: saved.imageIndex, at: saved.updatedAt }
+      : null;
   }
 
   toggleFollow(): void {
@@ -266,8 +353,15 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  readChapterLink(chapter: Chapter): string[] {
-    return ['/manga', this.mangaId, 'chapter', chapter.id, '0'];
+  /**
+   * Chức năng: Router link tới trang đọc của một chương.
+   * Yêu cầu: `chapter` thuộc bộ đang xem; `page` là số trang 0-based (mặc định 0
+   *   = đọc từ đầu chương; nút "Đọc tiếp" truyền trang đã lưu).
+   * Kết quả trả về: mảng segment cho `routerLink`.
+   * Exception: không ném.
+   */
+  readChapterLink(chapter: Chapter, page: number = 0): (string | number)[] {
+    return ['/manga', this.mangaId, 'chapter', chapter.id, page];
   }
 
 toUtcIso(date: string): string {

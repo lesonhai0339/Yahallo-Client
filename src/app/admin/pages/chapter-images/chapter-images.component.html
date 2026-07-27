@@ -18,12 +18,16 @@
     <!-- Thông tin chương: gộp phần "sửa chương" vào đây thay vì dialog riêng -->
     <div class="ci-infobar">
       <div class="ci-infobar__field ci-infobar__field--grow">
-        <label>Tiêu đề chương</label>
-        <input type="text" [(ngModel)]="chapterTitle" placeholder="Tiêu đề...">
+        <label>Mô tả chương</label>
+        <input type="text" [(ngModel)]="chapterTitle" placeholder="Để trống nếu chương không có mô tả">
       </div>
       <div class="ci-infobar__field">
         <label>Số chương</label>
-        <input type="number" step="0.01" [(ngModel)]="chapterIndex" placeholder="1">
+        <input type="number" step="1" min="0" [(ngModel)]="chapterIndex" placeholder="1">
+      </div>
+      <div class="ci-infobar__field">
+        <label title="Chương chen giữa: 10 + 5 → chương 10.5">Chương phụ</label>
+        <input type="number" step="1" min="0" [(ngModel)]="chapterSubIndex" placeholder="0">
       </div>
       <button class="ci-btn ci-btn--primary" [disabled]="!infoDirty || savingInfo"
               (click)="saveChapterInfo()">

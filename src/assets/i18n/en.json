@@ -42,6 +42,8 @@
     "STATUS_COMPLETED": "Completed",
     "READ_FROM_START": "Read from start",
     "READ_LATEST": "Read latest",
+    "CONTINUE_READING": "Continue chapter {{n}}",
+    "LAST_READ": "Last read",
     "FOLLOW": "Follow",
     "UNFOLLOW": "Unfollow",
     "AUTHOR": "Author",

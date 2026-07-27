@@ -9,6 +9,11 @@ import { UserPreferencesService } from '../../../core/services/user-preferences.
 import { SeoService } from '../../../core/services/seo.service';
 import { ChapterImage } from '../../../core/models/chapter.interface';
 import { ReaderViewerComponent } from '../../../shared/components/reader-viewer/reader-viewer.component';
+import { chapterFullName, chapterName } from '../../../core/utils/chapter-label';
+import { dropLegacyKey, scopedKey } from '../../../core/utils/user-storage';
+
+/** Tiền tố key cài đặt đọc — key thật kèm user-id. */
+const READER_SETTINGS_PREFIX = 'reader-settings';
 
 export interface ReaderSettings {
   direction: 'vertical' | 'horizontal';
@@ -24,6 +29,10 @@ export interface ReaderSettings {
   styleUrls: ['./manga-reader.component.scss']
 })
 export class MangaReaderComponent implements OnInit, OnDestroy {
+  /** Nhãn chương dựng từ index/subIndex — `title` chỉ là mô tả, có thể rỗng. */
+  readonly chapterName = chapterName;
+  readonly chapterFullName = chapterFullName;
+
   images: ChapterImage[] = [];
   chapters: any[] = [];
   mangaId!: string;
@@ -100,7 +109,14 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     if (uid) this.readingProgress.sync(uid).subscribe();
   }
 
-  /** Decide whether to resume to a saved position based on the user's setting. */
+  /**
+   * Chức năng: Quyết định có khôi phục vị trí đã đọc hay không, theo tuỳ chọn của
+   *   người dùng. Tiến trình lưu THEO TỪNG CHƯƠNG, nên chỉ tra vị trí của đúng
+   *   chương đang mở — không bao giờ nhảy sang chương khác.
+   * Yêu cầu: `mangaId`/`chapterId` đã lấy từ route; chỉ chạy ở lần vào đầu tiên.
+   * Kết quả trả về: không (đặt `initialPage` hoặc bật hộp hỏi).
+   * Exception: không ném.
+   */
   private resolveResume(): void {
     this.showResumePrompt = false;
     this.resumeTarget = null;
@@ -114,8 +130,10 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     const mode = this.prefs.current.readProgressMode;
     if (mode === 'off') return;
 
-    const saved = this.readingProgress.getLocal(this.mangaId);
+    const saved = this.readingProgress.getLocal(this.mangaId, this.chapterId);
     if (!saved || saved.imageIndex <= 0) return;
+    // Vào đúng trang đã lưu rồi (vd F5 tại chỗ) → không cần hỏi lại.
+    if (saved.imageIndex === this.initialPage) return;
 
     if (mode === 'always') {
       this.applyResume(saved, false);
@@ -127,18 +145,20 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Jump to a saved position. `reload` = the chapter images are already loaded. */
+  /**
+   * Chức năng: Nhảy tới TRANG đã lưu, trong CHÍNH chương đang mở.
+   *   Bản cũ còn đổi luôn `chapterId` sang chương đã lưu — nghĩa là bấm chương
+   *   nào cũng bị kéo về chương đọc dở, từ trang chi tiết không tài nào mở được
+   *   chương khác. Cú click của người dùng là ý định rõ ràng nhất, nó phải thắng.
+   * Yêu cầu: `saved` là tiến trình của đúng chương này.
+   * Kết quả trả về: không (đặt `initialPage`, cuộn tới trang nếu ảnh đã tải).
+   * Exception: không ném.
+   */
   private applyResume(saved: LocalProgress, reload: boolean): void {
     this.showResumePrompt = false;
-    if (saved.chapterId && saved.chapterId !== this.chapterId) {
-      this.chapterId = saved.chapterId;
-      this.initialPage = saved.imageIndex;
-      this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${this.initialPage}`);
-      if (reload) { this.loadImages(); this.loadChapters(); }
-    } else {
-      this.initialPage = saved.imageIndex;
-      if (reload) this.readerViewer?.scrollToPage(this.initialPage);
-    }
+    this.initialPage = saved.imageIndex;
+    this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${this.initialPage}`);
+    if (reload) this.readerViewer?.scrollToPage(this.initialPage);
   }
 
   resumeReading(): void {
@@ -207,7 +227,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     // Process 1: local progress, updated on every new image. Reaching the last
     // image counts as finished — drop the saved position instead.
     if (this.images.length > 0 && page >= this.images.length - 1) {
-      this.readingProgress.removeLocal(this.mangaId);
+      this.readingProgress.removeLocal(this.mangaId, this.chapterId);
     } else {
       this.readingProgress.saveLocal(this.mangaId, this.chapterId, page);
     }
@@ -343,9 +363,15 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   onSettingChange(): void {
   }
 
+  /** Key cài đặt đọc — theo tài khoản, không dùng chung cả máy. */
+  private settingsKey(): string {
+    return scopedKey(READER_SETTINGS_PREFIX, this.authService.currentUser?.id);
+  }
+
   private loadSettings(): void {
     try {
-      const saved = localStorage.getItem('reader-settings');
+      dropLegacyKey(READER_SETTINGS_PREFIX);   // key global của bản cũ
+      const saved = localStorage.getItem(this.settingsKey());
       if (saved) {
         this.settings = { ...this.settings, ...JSON.parse(saved) };
       }
@@ -354,6 +380,6 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   private saveSettings(): void {
-    localStorage.setItem('reader-settings', JSON.stringify(this.settings));
+    localStorage.setItem(this.settingsKey(), JSON.stringify(this.settings));
   }
 }

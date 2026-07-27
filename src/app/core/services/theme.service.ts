@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { AuthService } from './auth.service';
+import { dropLegacyKey, scopedKey } from '../utils/user-storage';
 
 export type Theme = 'dark' | 'light' | 'midnight' | 'sepia' | 'ocean';
 
@@ -53,31 +54,35 @@ export const THEMES: ThemeMeta[] = [
 export class ThemeService {
   readonly themes = THEMES;
 
-  private themeSubject = new BehaviorSubject<Theme>(this.getSavedTheme());
+  // Các subject khởi tạo bằng GIÁ TRỊ MẶC ĐỊNH, không đọc localStorage ngay tại
+  // field initializer: lúc đó chưa chắc `this.auth` đã được gán nên chưa biết
+  // scope của tài khoản nào. Đọc thật ở constructor (`hydrate`) và đọc lại mỗi
+  // khi đổi tài khoản.
+  private themeSubject = new BehaviorSubject<Theme>('dark');
   theme$ = this.themeSubject.asObservable();
 
-  private bgSubject = new BehaviorSubject<string | null>(localStorage.getItem(BG_KEY) || null);
+  private bgSubject = new BehaviorSubject<string | null>(null);
   backgroundImage$ = this.bgSubject.asObservable();
 
-  private opacitySubject = new BehaviorSubject<number>(this.loadNum(BG_OPACITY_KEY, DEFAULT_OPACITY));
+  private opacitySubject = new BehaviorSubject<number>(DEFAULT_OPACITY);
   backgroundOpacity$ = this.opacitySubject.asObservable();
 
-  private blurSubject = new BehaviorSubject<number>(this.loadNum(BG_BLUR_KEY, DEFAULT_BLUR));
+  private blurSubject = new BehaviorSubject<number>(DEFAULT_BLUR);
   backgroundBlur$ = this.blurSubject.asObservable();
 
-  private coverMainSubject = new BehaviorSubject<boolean>(localStorage.getItem(BG_COVER_KEY) === '1');
+  private coverMainSubject = new BehaviorSubject<boolean>(false);
   backgroundCoverMain$ = this.coverMainSubject.asObservable();
 
-  private fontFamilySubject = new BehaviorSubject<string>(localStorage.getItem(FONT_FAMILY_KEY) || '');
+  private fontFamilySubject = new BehaviorSubject<string>('');
   fontFamily$ = this.fontFamilySubject.asObservable();
 
-  private fontSizeSubject = new BehaviorSubject<number>(this.loadNum(FONT_SIZE_KEY, DEFAULT_FONT_SIZE));
+  private fontSizeSubject = new BehaviorSubject<number>(DEFAULT_FONT_SIZE);
   fontSize$ = this.fontSizeSubject.asObservable();
 
-  private fontWeightSubject = new BehaviorSubject<string>(localStorage.getItem(FONT_WEIGHT_KEY) || DEFAULT_FONT_WEIGHT);
+  private fontWeightSubject = new BehaviorSubject<string>(DEFAULT_FONT_WEIGHT);
   fontWeight$ = this.fontWeightSubject.asObservable();
 
-  private fontColorSubject = new BehaviorSubject<string>(localStorage.getItem(FONT_COLOR_KEY) || '');
+  private fontColorSubject = new BehaviorSubject<string>('');
   fontColor$ = this.fontColorSubject.asObservable();
 
   get currentTheme(): Theme { return this.themeSubject.value; }
@@ -91,9 +96,55 @@ export class ThemeService {
   get fontWeight(): string { return this.fontWeightSubject.value; }
   get fontColor(): string { return this.fontColorSubject.value; }
 
-  private loadNum(key: string, fallback: number): number {
-    const v = parseFloat(localStorage.getItem(key) ?? '');
+  // ── localStorage theo TÀI KHOẢN ────────────────────────────────────────────
+  // Theme/nền/font là thiết lập của từng tài khoản (server cũng lưu theo user),
+  // nên key phải kèm user-id. Lưu global thì đăng xuất vẫn còn, và người khác
+  // đăng nhập trên cùng máy sẽ thấy ảnh nền cá nhân của người trước.
+
+  /** User-id của lần hydrate gần nhất — để phát hiện đổi tài khoản. */
+  private scope = '';
+
+  private k(prefix: string): string {
+    return scopedKey(prefix, this.auth.currentUser?.id);
+  }
+
+  private read(prefix: string): string | null {
+    return localStorage.getItem(this.k(prefix));
+  }
+
+  private write(prefix: string, value: string): void {
+    localStorage.setItem(this.k(prefix), value);
+  }
+
+  private remove(prefix: string): void {
+    localStorage.removeItem(this.k(prefix));
+  }
+
+  private loadNum(prefix: string, fallback: number): number {
+    const v = parseFloat(this.read(prefix) ?? '');
     return isNaN(v) ? fallback : v;
+  }
+
+  /**
+   * Chức năng: Nạp lại toàn bộ thiết lập hiển thị theo tài khoản đang đăng nhập.
+   *   Gọi lúc khởi tạo và mỗi khi đổi tài khoản (đăng nhập / đăng xuất).
+   * Yêu cầu: `this.auth` đã sẵn sàng.
+   * Kết quả trả về: không (phát giá trị mới cho mọi subject).
+   * Exception: không ném.
+   */
+  private hydrate(): void {
+    this.scope = this.auth.currentUser?.id ?? '';
+    this.themeSubject.next(this.getSavedTheme());
+    this.bgSubject.next(this.read(BG_KEY) || null);
+    this.opacitySubject.next(this.loadNum(BG_OPACITY_KEY, DEFAULT_OPACITY));
+    this.blurSubject.next(this.loadNum(BG_BLUR_KEY, DEFAULT_BLUR));
+    this.coverMainSubject.next(this.read(BG_COVER_KEY) === '1');
+    this.fontFamilySubject.next(this.read(FONT_FAMILY_KEY) || '');
+    this.fontSizeSubject.next(this.loadNum(FONT_SIZE_KEY, DEFAULT_FONT_SIZE));
+    this.fontWeightSubject.next(this.read(FONT_WEIGHT_KEY) || DEFAULT_FONT_WEIGHT);
+    this.fontColorSubject.next(this.read(FONT_COLOR_KEY) || '');
+    // Scope mới = chưa ai đụng vào nền trong phiên này.
+    this.bgTouchedByUser = false;
   }
 
   /** The custom background is a logged-in personalization — hidden when out. */
@@ -107,14 +158,26 @@ export class ThemeService {
   private bgTouchedByUser = false;
 
   constructor(private auth: AuthService) {
+    // Dọn key global của bản cũ (dùng chung cho mọi tài khoản).
+    [STORAGE_KEY, BG_KEY, BG_OPACITY_KEY, BG_BLUR_KEY, BG_COVER_KEY,
+      FONT_FAMILY_KEY, FONT_SIZE_KEY, FONT_WEIGHT_KEY, FONT_COLOR_KEY]
+      .forEach(dropLegacyKey);
+
+    this.hydrate();
     this.auth.auth$.subscribe(state => {
       this.loggedIn = !!state?.status;
+      // Đổi tài khoản → nạp lại thiết lập của tài khoản mới rồi vẽ lại toàn bộ.
+      if ((this.auth.currentUser?.id ?? '') !== this.scope) {
+        this.hydrate();
+        this.apply();
+        return;
+      }
       this.applyBackground();
     });
   }
 
   private getSavedTheme(): Theme {
-    const saved = localStorage.getItem(STORAGE_KEY) as Theme;
+    const saved = this.read(STORAGE_KEY) as Theme;
     return THEMES.some(t => t.id === saved) ? saved : 'dark';
   }
 
@@ -179,7 +242,7 @@ export class ThemeService {
   }
 
   setTheme(theme: Theme): void {
-    localStorage.setItem(STORAGE_KEY, theme);
+    this.write(STORAGE_KEY, theme);
     document.documentElement.setAttribute('data-theme', theme);
     this.themeSubject.next(theme);
   }
@@ -199,8 +262,8 @@ export class ThemeService {
     const clean = url?.trim() || null;
     let persisted = true;
     try {
-      if (clean) localStorage.setItem(BG_KEY, clean);
-      else localStorage.removeItem(BG_KEY);
+      if (clean) this.write(BG_KEY, clean);
+      else this.remove(BG_KEY);
     } catch {
       persisted = false; // quota exceeded — apply anyway, just won't survive reload
     }
@@ -213,7 +276,7 @@ export class ThemeService {
   /** Tint overlay strength: 0 = image fully visible, 1 = image fully hidden. */
   setBackgroundOpacity(value: number): void {
     const v = Math.min(1, Math.max(0, value));
-    localStorage.setItem(BG_OPACITY_KEY, String(v));
+    this.write(BG_OPACITY_KEY, String(v));
     this.opacitySubject.next(v);
     this.applyBackground();
   }
@@ -221,14 +284,14 @@ export class ThemeService {
   /** Background blur in pixels (0 = sharp). */
   setBackgroundBlur(px: number): void {
     const v = Math.min(40, Math.max(0, px));
-    localStorage.setItem(BG_BLUR_KEY, String(v));
+    this.write(BG_BLUR_KEY, String(v));
     this.blurSubject.next(v);
     this.applyBackground();
   }
 
   /** true = image shows through the main content; false = main content keeps the theme bg. */
   setBackgroundCoverMain(cover: boolean): void {
-    localStorage.setItem(BG_COVER_KEY, cover ? '1' : '0');
+    this.write(BG_COVER_KEY, cover ? '1' : '0');
     this.coverMainSubject.next(cover);
     this.applyBackground();
   }
@@ -249,28 +312,28 @@ export class ThemeService {
   // ── Fonts ────────────────────────────────────────────────────────────────────
   setFontFamily(value: string): void {
     const v = (value || '').trim();
-    if (v) localStorage.setItem(FONT_FAMILY_KEY, v); else localStorage.removeItem(FONT_FAMILY_KEY);
+    if (v) this.write(FONT_FAMILY_KEY, v); else this.remove(FONT_FAMILY_KEY);
     this.fontFamilySubject.next(v);
     this.applyFont();
   }
 
   setFontSize(px: number): void {
     const v = Math.min(28, Math.max(11, Math.round(px || DEFAULT_FONT_SIZE)));
-    localStorage.setItem(FONT_SIZE_KEY, String(v));
+    this.write(FONT_SIZE_KEY, String(v));
     this.fontSizeSubject.next(v);
     this.applyFont();
   }
 
   setFontWeight(weight: string): void {
     const v = (weight || '').trim() || DEFAULT_FONT_WEIGHT;
-    localStorage.setItem(FONT_WEIGHT_KEY, v);
+    this.write(FONT_WEIGHT_KEY, v);
     this.fontWeightSubject.next(v);
     this.applyFont();
   }
 
   setFontColor(color: string): void {
     const v = (color || '').trim();
-    if (v) localStorage.setItem(FONT_COLOR_KEY, v); else localStorage.removeItem(FONT_COLOR_KEY);
+    if (v) this.write(FONT_COLOR_KEY, v); else this.remove(FONT_COLOR_KEY);
     this.fontColorSubject.next(v);
     this.applyFont();
   }

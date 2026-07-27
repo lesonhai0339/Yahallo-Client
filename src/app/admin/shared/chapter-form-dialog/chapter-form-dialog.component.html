@@ -11,14 +11,23 @@
     <form [formGroup]="form" class="chapter-form">
       <div class="field-row">
         <div class="field-group">
-          <label>Tiêu đề *</label>
-          <input class="form-control" formControlName="title" placeholder="Chapter 1: Khởi đầu" [class.disabled]="isBusy" />
+          <label>Mô tả</label>
+          <input class="form-control" formControlName="title" placeholder="Khởi đầu (để trống nếu chương không có mô tả)"
+                 [class.disabled]="isBusy" />
         </div>
         <div class="field-group field-group--sm">
-          <label>STT *</label>
-          <input class="form-control" type="number" formControlName="index" min="0" step="0.1" [class.disabled]="isBusy" />
+          <label>Chương *</label>
+          <input class="form-control" type="number" formControlName="index" min="0" step="1" [class.disabled]="isBusy" />
+        </div>
+        <div class="field-group field-group--sm">
+          <label>Chương phụ</label>
+          <input class="form-control" type="number" formControlName="subIndex" min="0" step="1" [class.disabled]="isBusy" />
         </div>
       </div>
+      <p class="field-hint">
+        Chương phụ dùng cho chương chen giữa: <strong>10</strong> + <strong>5</strong> → chương 10.5.
+        Để <strong>0</strong> nếu là chương thường. Đang tạo: <strong>Chương {{ chapterLabel }}</strong>
+      </p>
     </form>
   </div>
 

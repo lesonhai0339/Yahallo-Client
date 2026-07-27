@@ -42,6 +42,8 @@
     "STATUS_COMPLETED": "Hoàn thành",
     "READ_FROM_START": "Đọc từ đầu",
     "READ_LATEST": "Đọc mới nhất",
+    "CONTINUE_READING": "Đọc tiếp chương {{n}}",
+    "LAST_READ": "Lần cuối đọc",
     "FOLLOW": "Theo dõi",
     "UNFOLLOW": "Hủy theo dõi",
     "AUTHOR": "Tác giả",

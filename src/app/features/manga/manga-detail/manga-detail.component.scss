@@ -111,8 +111,43 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  // Mac dinh flex la `stretch`: nut 2 dong se keo cao TAT CA cac nut con lai.
+  // `center` giu moi nut o dung chieu cao noi dung cua no.
+  align-items: center;
 
   .btn-lg { font-size: 0.9rem; padding: 10px 20px; }
+
+  // Nut "Doc tiep": dong 1 nho/nghieng (lan cuoi doc luc nao), dong 2 la hanh
+  // dong chinh. Padding doc thu gon de TONG chieu cao bang cac nut 1 dong khac:
+  // 2 dong (11.4 + 17.3) + 6*2 ~= 21.6 + 10*2 cua .btn-lg.
+  .resume-btn {
+    display: inline-flex;
+    align-items: center;
+    text-align: left;
+    padding: 6px 16px;
+    line-height: 1;
+  }
+}
+
+.resume-btn {
+  &__stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+  }
+
+  &__last {
+    font-size: 0.62rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.15;
+    // Chu nhat tren nen nut dac -> giam do dam thay vi doi mau, de con doc duoc
+    // o moi theme.
+    opacity: 0.85;
+  }
+
+  &__main { font-size: 0.9rem; line-height: 1.2; }
 }
 
 // Detail Body

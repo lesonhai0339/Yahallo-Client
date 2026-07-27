@@ -4,7 +4,7 @@
     <div>
       <h1 class="ie-head__title">Sửa ảnh nhanh</h1>
       <p class="ie-head__sub">
-        Xoá SFX · ghi đè chữ · đổi màu vùng · cắt ảnh dài.
+        Xoá SFX · bong bóng thoại · đổi/xoá màu vùng · cắt ảnh.
         Mọi xử lý chạy trên máy bạn, không upload lên server.
       </p>
     </div>
@@ -34,7 +34,7 @@
         <div class="ie-tools">
           <button class="ie-tool" [class.active]="tool === 'select'" (click)="tool = 'select'"
                   title="Chọn vùng (kéo chuột)">
-            <span class="material-icons">crop_free</span><span>Chọn vùng</span>
+            <span class="material-icons">crop_free</span><span>Tạo vùng</span>
           </button>
           <button class="ie-tool" [class.active]="tool === 'pick'" (click)="tool = 'pick'"
                   title="Hút màu: click lên ảnh">
@@ -43,9 +43,181 @@
         </div>
         <p class="ie-hint">
           <span class="material-icons">info</span>
-          Kéo chuột <em>hoặc miết ngón tay</em> trên ảnh để chọn vùng.
-          <kbd>Esc</kbd> bỏ chọn · <kbd>Ctrl</kbd>+<kbd>Z</kbd> hoàn tác.
+          <span>
+            Kéo chuột <em>hoặc miết ngón tay</em> trên ảnh để tạo vùng mới; kéo giữa
+            khung để di chuyển, kéo các nút góc để co giãn.
+            <kbd>Ctrl</kbd>+lăn chuột phóng to · <kbd>Esc</kbd> bỏ chọn ·
+            <kbd>Del</kbd> xoá vùng · <kbd>Ctrl</kbd>+<kbd>Z</kbd> hoàn tác.
+          </span>
         </p>
+      </div>
+
+      <!-- Mẫu bong bóng -->
+      <div class="ie-card">
+        <h3 class="ie-card__title">Mẫu bong bóng</h3>
+        <div class="ie-tpls">
+          <button class="ie-tpl" *ngFor="let t of templates"
+                  [class.active]="templateKey === t.key"
+                  (click)="applyTemplate(t.key)" [title]="t.label">
+            <canvas #tplCv class="ie-tpl__cv"></canvas>
+            <span>{{ t.label }}</span>
+          </button>
+        </div>
+        <p class="ie-hint">
+          <span class="material-icons">info</span>
+          <span>Mẫu được dùng cho vùng tạo sau đó; đang chọn vùng nào thì áp luôn cho vùng đó.</span>
+        </p>
+      </div>
+
+      <!-- Danh sách vùng -->
+      <div class="ie-card">
+        <h3 class="ie-card__title">
+          Vùng trên ảnh ({{ regions.length }})
+          <button class="ie-mini" *ngIf="regions.length" (click)="clearRegions()" title="Xoá hết vùng">
+            <span class="material-icons">delete_sweep</span>
+          </button>
+        </h3>
+        <p class="ie-muted" *ngIf="regions.length === 0">
+          Chưa có vùng nào — kéo chuột trên ảnh để tạo vùng đầu tiên.
+        </p>
+        <ul class="ie-rlist" *ngIf="regions.length">
+          <li class="ie-ritem" *ngFor="let r of regions; let i = index; trackBy: trackRegion"
+              [class.active]="r.id === activeId" (click)="selectRegion(r)">
+            <span class="ie-ritem__no">{{ i + 1 }}</span>
+            <span class="ie-ritem__body">
+              <span class="ie-ritem__name">{{ r.text.content.trim() || r.name }}</span>
+              <span class="ie-ritem__meta">{{ r.rect.w }}×{{ r.rect.h }} · ({{ r.rect.x }}, {{ r.rect.y }})</span>
+            </span>
+            <button class="ie-mini ie-mini--ghost" (click)="toggleRegionVisible(r, $event)"
+                    [title]="r.visible ? 'Ẩn vùng' : 'Hiện vùng'">
+              <span class="material-icons">{{ r.visible ? 'visibility' : 'visibility_off' }}</span>
+            </button>
+            <button class="ie-mini ie-mini--ghost" (click)="duplicateRegion(r, $event)" title="Nhân bản">
+              <span class="material-icons">content_copy</span>
+            </button>
+            <button class="ie-mini ie-mini--ghost" (click)="bakeRegion(r, $event)"
+                    title="Ghi vùng này vào ảnh">
+              <span class="material-icons">layers</span>
+            </button>
+            <button class="ie-mini ie-mini--danger" (click)="removeRegion(r, $event)" title="Bỏ vùng">
+              <span class="material-icons">close</span>
+            </button>
+          </li>
+        </ul>
+        <button class="ie-btn ie-btn--block" *ngIf="regions.length" (click)="bakeAll()">
+          <span class="material-icons">layers</span> Ghi tất cả vùng vào ảnh
+        </button>
+      </div>
+
+      <!-- Bong bóng của vùng đang chọn -->
+      <div class="ie-card" *ngIf="active as r">
+        <h3 class="ie-card__title">Bong bóng — {{ r.name }}</h3>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Hướng đuôi</label>
+            <select [(ngModel)]="r.bubble.tail">
+              <option *ngFor="let d of tailDirs" [value]="d.value">{{ d.label }}</option>
+            </select>
+          </div>
+          <div class="ie-field">
+            <label>Dài đuôi: {{ r.bubble.tailSize | number:'1.2-2' }}</label>
+            <input type="range" min="0.1" max="1.2" step="0.05" [(ngModel)]="r.bubble.tailSize">
+          </div>
+        </div>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Màu nền</label>
+            <input type="color" [(ngModel)]="r.bubble.fill">
+          </div>
+          <div class="ie-field">
+            <label>Màu viền</label>
+            <input type="color" [(ngModel)]="r.bubble.stroke">
+          </div>
+        </div>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Độ dày viền: {{ r.bubble.strokeWidth }}px</label>
+            <input type="range" min="0" max="14" step="1" [(ngModel)]="r.bubble.strokeWidth">
+          </div>
+          <div class="ie-field">
+            <label>Lề chữ: {{ r.bubble.padding | number:'1.2-2' }}</label>
+            <input type="range" min="0" max="0.3" step="0.01" [(ngModel)]="r.bubble.padding">
+          </div>
+        </div>
+      </div>
+
+      <!-- Chữ trong vùng đang chọn -->
+      <div class="ie-card" *ngIf="active as r">
+        <h3 class="ie-card__title">Chữ trong vùng</h3>
+        <textarea class="ie-textarea" rows="3" [(ngModel)]="r.text.content"
+                  placeholder="Nội dung dịch... (Enter để xuống dòng)"></textarea>
+
+        <div class="ie-field">
+          <label>Font</label>
+          <select [(ngModel)]="r.text.fontFamily" (ngModelChange)="onFontChanged()"
+                  [style.fontFamily]="r.text.fontFamily">
+            <optgroup *ngFor="let g of fontGroups" [label]="g.label">
+              <option *ngFor="let f of g.fonts" [value]="f.css" [style.fontFamily]="f.css">
+                {{ f.label }}
+              </option>
+            </optgroup>
+          </select>
+        </div>
+
+        <label class="ie-check">
+          <input type="checkbox" [(ngModel)]="r.text.autoFit">
+          Tự co chữ cho vừa bong bóng
+        </label>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Cỡ chữ</label>
+            <input type="number" min="6" max="260" [(ngModel)]="r.text.fontSize" [disabled]="r.text.autoFit">
+          </div>
+          <div class="ie-field">
+            <label>Giãn dòng: {{ r.text.lineHeight | number:'1.2-2' }}</label>
+            <input type="range" min="0.9" max="2" step="0.05" [(ngModel)]="r.text.lineHeight">
+          </div>
+        </div>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Màu chữ</label>
+            <input type="color" [(ngModel)]="r.text.color">
+          </div>
+          <div class="ie-field">
+            <label>Canh lề</label>
+            <select [(ngModel)]="r.text.align">
+              <option value="left">Trái</option>
+              <option value="center">Giữa</option>
+              <option value="right">Phải</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ie-inline">
+          <label class="ie-check"><input type="checkbox" [(ngModel)]="r.text.bold"> Đậm</label>
+          <label class="ie-check"><input type="checkbox" [(ngModel)]="r.text.italic"> Nghiêng</label>
+          <label class="ie-check"><input type="checkbox" [(ngModel)]="r.text.uppercase"> IN HOA</label>
+        </div>
+
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Viền chữ: {{ r.text.strokeWidth }}px</label>
+            <input type="range" min="0" max="12" step="1" [(ngModel)]="r.text.strokeWidth">
+          </div>
+          <div class="ie-field">
+            <label>Màu viền chữ</label>
+            <input type="color" [(ngModel)]="r.text.strokeColor">
+          </div>
+        </div>
+
+        <button class="ie-btn ie-btn--primary ie-btn--block" (click)="bakeRegion(r)">
+          <span class="material-icons">check</span> Ghi vùng này vào ảnh
+        </button>
       </div>
 
       <!-- Bảng màu lân cận -->
@@ -61,7 +233,8 @@
         </p>
         <div class="ie-swatches" *ngIf="palette.length > 0">
           <button class="ie-swatch" *ngFor="let s of palette" (click)="useSwatch(s)"
-                  [style.background]="s.hex" [title]="s.hex + ' (' + s.count + 'px)'">
+                  [style.background]="s.hex" [title]="s.hex + ' (' + s.count + 'px) — bấm để dùng, chuột phải để đặt làm màu cần xoá'"
+                  (contextmenu)="useSwatchAsTarget(s, $event); $event.preventDefault()">
             <span class="ie-swatch__hex">{{ s.hex }}</span>
           </button>
         </div>
@@ -85,95 +258,67 @@
         </button>
       </div>
 
-      <!-- Đổi màu vùng -->
+      <!-- Đổi / xoá màu vùng -->
       <div class="ie-card">
-        <h3 class="ie-card__title">Đổi màu trong vùng</h3>
+        <h3 class="ie-card__title">Đổi / xoá màu trong vùng</h3>
+
         <div class="ie-field">
-          <label>Màu cần thay</label>
+          <label>Chế độ</label>
+          <select [(ngModel)]="recolorMode">
+            <option value="threshold">Đổi màu gần giống → màu đang dùng</option>
+            <option value="all">Tô đè TOÀN BỘ vùng bằng màu đang dùng</option>
+            <option value="keepShade">Đổi sang màu đang dùng, giữ đậm nhạt</option>
+            <option value="inpaint">Xoá màu → lấp bằng pixel lân cận</option>
+          </select>
+        </div>
+
+        <div class="ie-field" *ngIf="recolorMode !== 'all' && recolorMode !== 'keepShade'">
+          <label>{{ recolorMode === 'inpaint' ? 'Màu cần xoá' : 'Màu cần thay' }}</label>
           <div class="ie-color-row">
             <input type="color" [(ngModel)]="targetColor">
             <input type="text" class="ie-hex" [(ngModel)]="targetColor">
           </div>
         </div>
-        <div class="ie-field">
+
+        <div class="ie-field" *ngIf="recolorMode !== 'all' && recolorMode !== 'keepShade'">
           <label>Ngưỡng sai khác: {{ tolerance }}</label>
           <input type="range" min="0" max="255" step="1" [(ngModel)]="tolerance">
         </div>
+
+        <div class="ie-field" *ngIf="recolorMode === 'inpaint'">
+          <label>Nới biên xoá: {{ inpaintExpand }}px</label>
+          <input type="range" min="0" max="6" step="1" [(ngModel)]="inpaintExpand">
+        </div>
+
+        <p class="ie-muted" *ngIf="recolorMode === 'inpaint'">
+          Lấy màu từ các pixel xung quanh lan dần vào chỗ vừa xoá — hợp với nền có hoạ tiết,
+          không để lại mảng màu phẳng như khi tô đè.
+        </p>
+
         <button class="ie-btn ie-btn--block" (click)="applyRecolor()">
-          <span class="material-icons">palette</span> Đổi sang màu đang dùng
-        </button>
-      </div>
-
-      <!-- Ghi chữ -->
-      <div class="ie-card">
-        <h3 class="ie-card__title">Ghi chữ lên vùng</h3>
-        <textarea class="ie-textarea" rows="3" [(ngModel)]="text"
-                  placeholder="Nội dung dịch... (Enter để xuống dòng)"></textarea>
-
-        <label class="ie-check">
-          <input type="checkbox" [(ngModel)]="clearBeforeText">
-          Tô nền trước khi viết (xoá chữ gốc)
-        </label>
-
-        <div class="ie-grid2">
-          <div class="ie-field">
-            <label>Cỡ chữ</label>
-            <input type="number" min="6" max="200" [(ngModel)]="fontSize">
-          </div>
-          <div class="ie-field">
-            <label>Font</label>
-            <select [(ngModel)]="fontFamily">
-              <option *ngFor="let f of fontOptions" [value]="f">{{ f }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="ie-grid2">
-          <div class="ie-field">
-            <label>Màu chữ</label>
-            <input type="color" [(ngModel)]="textColor">
-          </div>
-          <div class="ie-field">
-            <label>Canh lề</label>
-            <select [(ngModel)]="align">
-              <option value="left">Trái</option>
-              <option value="center">Giữa</option>
-              <option value="right">Phải</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="ie-inline">
-          <label class="ie-check"><input type="checkbox" [(ngModel)]="bold"> In đậm</label>
-          <label class="ie-check"><input type="checkbox" [(ngModel)]="italic"> In nghiêng</label>
-        </div>
-
-        <div class="ie-grid2">
-          <div class="ie-field">
-            <label>Viền chữ: {{ strokeWidth }}px</label>
-            <input type="range" min="0" max="8" step="1" [(ngModel)]="strokeWidth">
-          </div>
-          <div class="ie-field">
-            <label>Màu viền</label>
-            <input type="color" [(ngModel)]="strokeColor">
-          </div>
-        </div>
-
-        <button class="ie-btn ie-btn--primary ie-btn--block" (click)="applyText()">
-          <span class="material-icons">title</span> Ghi chữ vào vùng chọn
+          <span class="material-icons">{{ recolorMode === 'inpaint' ? 'healing' : 'palette' }}</span>
+          {{ recolorMode === 'inpaint' ? 'Xoá màu & lấp lân cận' : 'Áp dụng lên vùng' }}
         </button>
       </div>
 
       <!-- Cắt & xuất -->
       <div class="ie-card">
         <h3 class="ie-card__title">Cắt ảnh & xuất</h3>
-        <div class="ie-field">
-          <label>Chiều cao mỗi phần (px)</label>
-          <input type="number" min="100" step="50" [(ngModel)]="partHeight">
+        <div class="ie-grid2">
+          <div class="ie-field">
+            <label>Rộng mỗi phần (px)</label>
+            <input type="number" min="0" step="50" [(ngModel)]="partWidth" placeholder="0 = không cắt">
+          </div>
+          <div class="ie-field">
+            <label>Cao mỗi phần (px)</label>
+            <input type="number" min="0" step="50" [(ngModel)]="partHeight" placeholder="0 = không cắt">
+          </div>
         </div>
         <p class="ie-muted">
-          Sẽ cắt thành <strong>{{ splitPreview.length }}</strong> phần
-          <ng-container *ngIf="splitPreview.length > 1">(xem vạch cắt trên ảnh)</ng-container>
+          Để <strong>0</strong> ở trục nào là giữ nguyên trục đó. Sẽ cắt thành
+          <strong>{{ splitPreview.length }}</strong> phần
+          <ng-container *ngIf="splitCols > 1">({{ splitCols }} cột)</ng-container>
+          <ng-container *ngIf="splitPreview.length > 1"> — xem vạch cắt trên ảnh</ng-container>
         </p>
 
         <div class="ie-grid2">
@@ -223,16 +368,16 @@
           <span class="material-icons">fit_screen</span>
         </button>
         <span class="ie-sep"></span>
-        <span class="ie-selinfo" *ngIf="sel">
-          Vùng chọn: {{ sel.w }}×{{ sel.h }} tại ({{ sel.x }}, {{ sel.y }})
+        <span class="ie-selinfo" *ngIf="active as r">
+          {{ r.name }}: {{ r.rect.w }}×{{ r.rect.h }} tại ({{ r.rect.x }}, {{ r.rect.y }})
           <button class="ie-mini" (click)="clearSelection()" title="Bỏ chọn">
             <span class="material-icons">close</span>
           </button>
         </span>
-        <span class="ie-selinfo ie-muted" *ngIf="!sel">Chưa chọn vùng</span>
+        <span class="ie-selinfo ie-muted" *ngIf="!active">Chưa chọn vùng</span>
       </div>
 
-      <div class="ie-canvas-wrap">
+      <div #wrap class="ie-canvas-wrap" (wheel)="onCanvasWheel($event)">
         <div class="ie-canvas-inner"
              [style.width.px]="imgW * zoom"
              [style.height.px]="imgH * zoom">
@@ -245,11 +390,42 @@
                   (touchstart)="onCanvasTouchStart($event)"
                   (touchmove)="onCanvasTouchMove($event)"></canvas>
 
-          <!-- Vạch chỉ đường cắt -->
-          <div class="ie-guide" *ngFor="let y of splitGuides" [style.top.px]="y"></div>
+          <!-- Lớp phủ: bong bóng + chữ của các vùng chưa nung vào ảnh -->
+          <canvas #ov class="ie-overlay"
+                  [style.width.px]="imgW * zoom"
+                  [style.height.px]="imgH * zoom"></canvas>
 
-          <!-- Khung vùng chọn -->
-          <div class="ie-sel" [ngStyle]="selStyle"></div>
+          <!-- Vạch chỉ đường cắt -->
+          <div class="ie-guide ie-guide--h" *ngFor="let y of splitGuidesY" [style.top.px]="y"></div>
+          <div class="ie-guide ie-guide--v" *ngFor="let x of splitGuidesX" [style.left.px]="x"></div>
+
+          <!-- Khung từng vùng: kéo giữa để di chuyển, kéo góc/cạnh để co giãn -->
+          <div class="ie-sel" *ngFor="let r of regions; let i = index; trackBy: trackRegion"
+               [class.active]="r.id === activeId"
+               [class.hidden]="!r.visible"
+               [ngStyle]="regionStyle(r)"
+               (mousedown)="onRegionPointerDown($event, r, 'move')"
+               (touchstart)="onRegionPointerDown($event, r, 'move')">
+            <span class="ie-sel__no">{{ i + 1 }}</span>
+            <ng-container *ngIf="r.id === activeId">
+              <i class="ie-h ie-h--nw" (mousedown)="onRegionPointerDown($event, r, 'nw')"
+                 (touchstart)="onRegionPointerDown($event, r, 'nw')"></i>
+              <i class="ie-h ie-h--n" (mousedown)="onRegionPointerDown($event, r, 'n')"
+                 (touchstart)="onRegionPointerDown($event, r, 'n')"></i>
+              <i class="ie-h ie-h--ne" (mousedown)="onRegionPointerDown($event, r, 'ne')"
+                 (touchstart)="onRegionPointerDown($event, r, 'ne')"></i>
+              <i class="ie-h ie-h--w" (mousedown)="onRegionPointerDown($event, r, 'w')"
+                 (touchstart)="onRegionPointerDown($event, r, 'w')"></i>
+              <i class="ie-h ie-h--e" (mousedown)="onRegionPointerDown($event, r, 'e')"
+                 (touchstart)="onRegionPointerDown($event, r, 'e')"></i>
+              <i class="ie-h ie-h--sw" (mousedown)="onRegionPointerDown($event, r, 'sw')"
+                 (touchstart)="onRegionPointerDown($event, r, 'sw')"></i>
+              <i class="ie-h ie-h--s" (mousedown)="onRegionPointerDown($event, r, 's')"
+                 (touchstart)="onRegionPointerDown($event, r, 's')"></i>
+              <i class="ie-h ie-h--se" (mousedown)="onRegionPointerDown($event, r, 'se')"
+                 (touchstart)="onRegionPointerDown($event, r, 'se')"></i>
+            </ng-container>
+          </div>
         </div>
       </div>
     </section>

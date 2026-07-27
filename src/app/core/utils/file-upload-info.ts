@@ -19,6 +19,13 @@ export interface FileUploadInfo {
 export const AVATAR_RESIZE = { width: 256, height: 256 };
 export const BACKGROUND_RESIZE = { width: 1280, height: 427 };
 
+/**
+ * Bề ngang bản resize của ảnh TRANG TRUYỆN. Trang truyện không có tỉ lệ cố định
+ * (manhwa cao gấp chục lần chiều ngang) nên không thể dùng cặp W×H cứng như
+ * avatar — chỉ chốt bề ngang rồi suy chiều cao theo đúng tỉ lệ gốc.
+ */
+export const CHAPTER_PAGE_MAX_WIDTH = 800;
+
 /** Đọc kích thước tự nhiên + dung lượng của ảnh thành FileUploadInfo. */
 export function buildFileUploadInfo(
   file: File,
@@ -46,8 +53,32 @@ export function buildFileUploadInfo(
 }
 
 /**
+ * Chức năng: Dựng FileUploadInfo cho một ảnh trang truyện — giữ nguyên ảnh gốc,
+ *   chỉ khai báo bản resize theo bề ngang tối đa và ĐÚNG tỉ lệ ảnh gốc.
+ * Yêu cầu: `file` là ảnh; `maxWidth` > 0 (mặc định CHAPTER_PAGE_MAX_WIDTH).
+ * Kết quả trả về: Promise<FileUploadInfo>; ảnh đã hẹp hơn `maxWidth` (hoặc không
+ *   đọc được kích thước) trả resize = 0 nghĩa là KHÔNG cần server resize.
+ * Exception: không ném — ảnh lỗi trả về kích thước 0.
+ */
+export async function buildChapterPageUploadInfo(
+  file: File,
+  maxWidth = CHAPTER_PAGE_MAX_WIDTH,
+): Promise<FileUploadInfo> {
+  const info = await buildFileUploadInfo(file);
+  if (!info.width || !info.height || info.width <= maxWidth) return info;
+  return {
+    ...info,
+    resizeWidth: maxWidth,
+    resizeHeight: Math.round(info.height * (maxWidth / info.width)),
+  };
+}
+
+/**
  * Append FileUploadInfo vào FormData dạng field lồng cho ASP.NET [FromForm]
  * (vd prefix "Avatar" → "Avatar.FileName", "Avatar.Width", ...).
+ *
+ * Với LIST thì prefix mang chỉ số: `FileUploadInfo[0]` → "FileUploadInfo[0].FileName".
+ * Chỉ số phải liên tục từ 0 thì model binder mới gom đủ phần tử.
  */
 export function appendFileUploadInfo(form: FormData, prefix: string, info: FileUploadInfo): void {
   form.append(`${prefix}.FileName`, info.fileName);

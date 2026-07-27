@@ -4,6 +4,7 @@ export const environment = {
   ratingApi: 'https://api.yahallo.online/rating',
   mangaApi: 'https://api.yahallo.online/manga',
   chapterApi: 'https://api.yahallo.online/chapter',
+  chapterImageApi: 'https://api.yahallo.online/chapter-image',
   commentApi: 'https://api.yahallo.online/comment',
   userApi: 'https://api.yahallo.online/user',
   tagApi: 'https://api.yahallo.online/tag',

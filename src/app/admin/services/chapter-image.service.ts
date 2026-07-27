@@ -1,8 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { from, Observable, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { appendFileUploadInfo, buildChapterPageUploadInfo } from '../../core/utils/file-upload-info';
 
 /**
  * ⚠️ MODULE MỚI THÊM — xem `docs/ADMIN_MODULES_ADDED.md`.
@@ -16,6 +17,15 @@ import { environment } from '../../../environments/environment';
  * Ba thao tác ghi (xoá / đổi thứ tự / thay ảnh) hiện CHƯA CÓ ENDPOINT — xem chú
  * thích ở từng hàm.
  */
+
+/** Một ảnh vừa được ĐĂNG KÝ ở server, kèm URL để client tự PUT file lên S3. */
+export interface CreateChapterImageItem {
+  id: string;
+  /** Vị trí trang (decimal — server đánh theo thứ tự danh sách gửi lên). */
+  index: number;
+  uploadUrl: string;
+  chapterId: string;
+}
 
 export interface ChapterImageMeta {
   id: string;
@@ -33,9 +43,48 @@ export interface ChapterImageMeta {
 @Injectable({ providedIn: 'root' })
 export class ChapterImageService {
   private readonly chapterBase = environment.chapterApi;
+  private readonly chapterImageBase = environment.chapterImageApi;
   private readonly serviceBase = environment.serviceApi;
 
   constructor(private http: HttpClient) {}
+
+  /**
+   * Chức năng: API THẬT `POST /chapter-image/create` — đăng ký MỘT LOẠT ảnh cho
+   *   chương và nhận lại pre-signed URL để client tự PUT file lên S3. Client chỉ
+   *   gửi METADATA (FileUploadInfo), không gửi bytes ảnh — giống luồng avatar.
+   *   Server đánh `index` theo ĐÚNG THỨ TỰ phần tử trong danh sách gửi lên, nên
+   *   `files` phải được sắp theo thứ tự trang trước khi gọi.
+   * Yêu cầu: `chapterId` của chương đã tạo; `files` không rỗng, đã lọc hợp lệ.
+   * Kết quả trả về: Observable emit mảng `CreateChapterImageItem` đã sắp theo
+   *   `index` tăng dần, cùng số lượng và cùng thứ tự với `files`.
+   * Exception: emit lỗi HTTP của server (không nuốt) — người gọi phải bắt để báo
+   *   cho người dùng biết ảnh chưa được đăng ký.
+   */
+  createChapterImages(chapterId: string, files: File[]): Observable<CreateChapterImageItem[]> {
+    // Đọc kích thước từng ảnh trước (async) rồi mới dựng form một lần.
+    const infos$ = from(Promise.all(files.map(f => buildChapterPageUploadInfo(f))));
+
+    return infos$.pipe(
+      switchMap(infos => {
+        const form = new FormData();
+        form.append('ChapterId', chapterId);
+        infos.forEach((info, i) => appendFileUploadInfo(form, `FileUploadInfo[${i}]`, info));
+        return this.http.post<any>(`${this.chapterImageBase}/create`, form);
+      }),
+      map(res => {
+        const v = res?.value ?? res;
+        const raw: any[] = v?.data ?? (Array.isArray(v) ? v : []);
+        return raw
+          .map((it, i) => ({
+            id: it.id,
+            index: Number(it.index ?? i + 1),
+            uploadUrl: it.uploadUrl ?? it.signedUrl ?? '',
+            chapterId: it.chapterId ?? chapterId,
+          } as CreateChapterImageItem))
+          .sort((a, b) => a.index - b.index);
+      }),
+    );
+  }
 
   /** API THẬT: `GET /chapter/get-image?ChapterId=` → chỉ URL + metadata. */
   getImages(chapterId: string): Observable<ChapterImageMeta[]> {

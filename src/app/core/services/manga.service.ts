@@ -398,13 +398,26 @@ export class MangaService {
               {
                  id: chapter.id,
                  index : chapter.index,
+                 // Chương phụ (chương 10.5 → index 10, subIndex 5). Server có thể
+                 // trả null cho chương thường.
+                 subIndex: chapter.subIndex ?? 0,
                  title: chapter.title,
                  mangaId: chapter.mangaId,
                  chapterDate: chapter.createDate
               }
             )
           ) ?? []
-        })
+        }),
+        // Sắp xếp lại ở CLIENT khi lấy theo số chương. Trước đây hoàn toàn tin
+        // vào thứ tự server trả, nên chỉ cần đổi `ReverseSort` (hoặc server đổi
+        // mặc định) là danh sách chương và các nút "đọc từ đầu/mới nhất" lặng lẽ
+        // đảo chiều mà không có lỗi nào báo ra. Chương 10.5 xếp ngay sau 10.
+        map((list: Chapter[]) => {
+          if (sortBy !== ChapterSortBy.Index) return list;
+          const dir = reverseSort ? -1 : 1;
+          return [...list].sort((a, b) =>
+            dir * ((a.index - b.index) || ((a.subIndex ?? 0) - (b.subIndex ?? 0))));
+        }),
       );
     });
   }

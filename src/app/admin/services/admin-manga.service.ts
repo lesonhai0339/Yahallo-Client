@@ -4,6 +4,19 @@ import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
+/**
+ * Dữ liệu tạo/sửa một chương — mirror `CreateChapterCommand` của backend.
+ * Chương 10.5 = `index: 10`, `subIndex: 5`. `title` là MÔ TẢ, không bắt buộc.
+ */
+export interface ChapterPayload {
+  mangaId: string;
+  index: number;
+  subIndex: number;
+  title?: string | null;
+  /** Chỉ có khi cập nhật. */
+  chapterId?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminMangaService {
   private readonly base = environment.mangaApi;
@@ -98,12 +111,44 @@ export class AdminMangaService {
     return this.http.get(`${this.chapterBase}/filter-chapter`, { params });
   }
 
-  createChapter(formData: FormData): Observable<any> {
-    return this.http.post(`${this.chapterBase}/create`, formData);
+  /**
+   * Chức năng: Dựng FormData cho `CreateChapterCommand` / update. Backend nhận
+   *   `[FromForm]` nên phải là multipart, không phải JSON.
+   * Yêu cầu: `p.index` là số chương (nguyên); `p.subIndex` là chương phụ — chương
+   *   10.5 gửi `Index = 10`, `SubIndex = 5`; `title` là MÔ TẢ, được phép rỗng.
+   * Kết quả trả về: FormData đã đủ field.
+   * Exception: không ném.
+   */
+  private chapterForm(p: ChapterPayload): FormData {
+    const fd = new FormData();
+    fd.append('MangaId', p.mangaId);
+    fd.append('Index', String(p.index));
+    fd.append('SubIndex', String(p.subIndex ?? 0));
+    // Chương không có mô tả thì bỏ hẳn field, đừng gửi chuỗi rỗng.
+    if (p.title?.trim()) fd.append('Title', p.title.trim());
+    if (p.chapterId) fd.append('ChapterId', p.chapterId);
+    return fd;
   }
 
-  updateChapter(formData: FormData): Observable<any> {
-    return this.http.put(`${this.chapterBase}/update`, formData);
+  /**
+   * Chức năng: Tạo chương mới (`POST /chapter/create`).
+   * Yêu cầu: `p.mangaId` hợp lệ; `p.index` ≥ 0.
+   * Kết quả trả về: Observable emit **chapterId** — server trả `JsonResponse<string>`
+   *   nên `value` là chuỗi id; vẫn đỡ trường hợp trả object có `id`.
+   * Exception: emit lỗi HTTP để người gọi báo người dùng.
+   */
+  createChapter(p: ChapterPayload): Observable<string> {
+    return this.http.post<any>(`${this.chapterBase}/create`, this.chapterForm(p)).pipe(
+      map(res => {
+        const v = res?.value ?? res;
+        return (typeof v === 'string' ? v : v?.id ?? v?.chapterId ?? '') as string;
+      }),
+    );
+  }
+
+  /** Cập nhật thông tin chương (`PUT /chapter/update`). */
+  updateChapter(p: ChapterPayload): Observable<any> {
+    return this.http.put(`${this.chapterBase}/update`, this.chapterForm(p));
   }
 
   deleteChapter(chapterId: string): Observable<any> {

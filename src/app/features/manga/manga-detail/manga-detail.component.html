@@ -43,12 +43,24 @@
               </div>
             </div>
             <div class="manga-actions">
-              <a class="btn btn-primary btn-lg" *ngIf="chapters.length > 0"
-                 [routerLink]="readChapterLink(chapters[chapters.length - 1])">
+              <a class="btn btn-success btn-lg resume-btn" *ngIf="resume as r"
+                 [routerLink]="readChapterLink(r.chapter, r.page)">
+                <i class="fa-solid fa-play me-2"></i>
+                <span class="resume-btn__stack">
+                  <small class="resume-btn__last">
+                    {{ 'MANGA.LAST_READ' | translate }} {{ r.at | date:'dd/MM/yyyy' }}
+                  </small>
+                  <span class="resume-btn__main">
+                    {{ 'MANGA.CONTINUE_READING' | translate: { n: resumeNumber } }}
+                  </span>
+                </span>
+              </a>
+              <a class="btn btn-primary btn-lg" *ngIf="firstChapter as first"
+                 [routerLink]="readChapterLink(first)" [title]="chapterName(first)">
                 <i class="fa-solid fa-book-open me-2"></i>{{ 'MANGA.READ_FROM_START' | translate }}
               </a>
-              <a class="btn btn-secondary btn-lg" *ngIf="chapters.length > 0"
-                 [routerLink]="readChapterLink(chapters[0])">
+              <a class="btn btn-secondary btn-lg" *ngIf="latestChapter as latest"
+                 [routerLink]="readChapterLink(latest)" [title]="chapterName(latest)">
                 <i class="fa-solid fa-forward me-2"></i>{{ 'MANGA.READ_LATEST' | translate }}
               </a>
               <button class="btn btn-lg"
@@ -208,8 +220,8 @@
             </div>
             <div class="chapter-list">
               <a class="chapter-item" *ngFor="let ch of visibleChapters" [routerLink]="readChapterLink(ch)">
-                <span class="chapter-name">{{ ch.title }}</span>
-                <span class="chapter-title">Không</span>
+                <span class="chapter-name">{{ chapterName(ch) }}</span>
+                <span class="chapter-title">{{ ch.title?.trim() || '—' }}</span>
                 <span class="chapter-date">{{ toUtcIso(ch.chapterDate) | date:'HH:mm - dd/MM/yyyy' }}</span>
                 <button class="row-dl-btn" (click)="downloadChapter(ch, $event)"
                         [title]="'MANGA.DOWNLOAD_CHAPTER' | translate">

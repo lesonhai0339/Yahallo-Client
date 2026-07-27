@@ -8,6 +8,7 @@ import { ToastrService } from 'ngx-toastr';
 import { AdminMangaService } from '../../services/admin-manga.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { ChapterFormDialogComponent } from '../../shared/chapter-form-dialog/chapter-form-dialog.component';
+import { chapterName, chapterNumber } from '../../../core/utils/chapter-label';
 
 @Component({
   selector: 'app-chapter-list',
@@ -15,6 +16,10 @@ import { ChapterFormDialogComponent } from '../../shared/chapter-form-dialog/cha
   styleUrls: ['./chapter-list.component.scss']
 })
 export class ChapterListComponent implements OnInit, AfterViewInit {
+  /** Nhãn chương dựng từ index/subIndex (title là mô tả, có thể rỗng). */
+  readonly chapterNumber = chapterNumber;
+  readonly chapterName = chapterName;
+
   displayedColumns = ['index', 'title', 'createDate', 'actions'];
   dataSource = new MatTableDataSource<any>([]);
   mangaId = '';
@@ -41,7 +46,12 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
    */
   manageImages(chapter: any): void {
     this.router.navigate(['/admin/chapter', chapter.id, 'images'], {
-      queryParams: { mangaId: this.mangaId, index: chapter.index, title: chapter.title ?? '' },
+      queryParams: {
+        mangaId: this.mangaId,
+        index: chapter.index,
+        subIndex: chapter.subIndex ?? 0,
+        title: chapter.title ?? '',
+      },
     });
   }
 
@@ -116,7 +126,7 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
       width: '360px',
       data: {
         title: 'Xóa chương',
-        message: `Xóa "${chapter.title || 'Chapter ' + chapter.index}"?`,
+        message: `Xóa "${this.chapterName(chapter)}"?`,
         confirmText: 'Xóa',
         danger: true
       }

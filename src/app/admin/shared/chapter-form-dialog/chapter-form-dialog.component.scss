@@ -59,6 +59,18 @@ $radius-sm: 6px;
 .field-row {
   display: flex;
   gap: 12px;
+  // 3 o (mo ta + chuong + chuong phu) chat cho tren dialog hep -> cho xuong dong.
+  flex-wrap: wrap;
+}
+
+// Giai thich cach danh so chuong phu (10 + 5 = chuong 10.5).
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: $text-3;
+
+  strong { color: $text-2; font-weight: 600; }
 }
 
 .field-group {

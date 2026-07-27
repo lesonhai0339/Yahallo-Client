@@ -3,7 +3,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, firstValueFrom, takeUntil } from 'rxjs';
-import { ChapterImageService, ChapterImageMeta } from '../../services/chapter-image.service';
+import {
+  ChapterImageService, ChapterImageMeta, CreateChapterImageItem,
+} from '../../services/chapter-image.service';
 import { ImageUploadService } from '../../services/image-upload.service';
 import { AdminMangaService } from '../../services/admin-manga.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
@@ -65,8 +67,11 @@ export class ChapterImagesComponent implements OnInit, OnDestroy {
   // ── Thông tin chương (gộp phần "sửa chương" vào đây, khỏi phải mở dialog riêng)
   chapterTitle = '';
   chapterIndex: number | null = null;
+  /** Chương phụ — chương 10.5 là `chapterIndex = 10`, `chapterSubIndex = 5`. */
+  chapterSubIndex = 0;
   private originalTitle = '';
   private originalIndex: number | null = null;
+  private originalSubIndex = 0;
   savingInfo = false;
 
   isLoading = false;
@@ -88,7 +93,14 @@ export class ChapterImagesComponent implements OnInit, OnDestroy {
    * Exception: không ném.
    */
   get infoDirty(): boolean {
-    return this.chapterTitle !== this.originalTitle || this.chapterIndex !== this.originalIndex;
+    return this.chapterTitle !== this.originalTitle
+      || this.chapterIndex !== this.originalIndex
+      || this.chapterSubIndex !== this.originalSubIndex;
+  }
+
+  /** Nhãn chương ghép index + subIndex — "10" hoặc "10.5". */
+  get chapterNumberLabel(): string {
+    return this.chapterSubIndex > 0 ? `${this.chapterIndex}.${this.chapterSubIndex}` : `${this.chapterIndex}`;
   }
 
   /**
@@ -100,25 +112,25 @@ export class ChapterImagesComponent implements OnInit, OnDestroy {
    */
   saveChapterInfo(): void {
     const title = this.chapterTitle.trim();
-    if (!title) { this.toastr.warning('Nhập tiêu đề chương'); return; }
     if (this.chapterIndex == null || Number.isNaN(this.chapterIndex)) {
       this.toastr.warning('Nhập số chương'); return;
     }
 
-    const fd = new FormData();
-    fd.append('ChapterId', this.chapterId);
-    fd.append('Title', title);
-    fd.append('Index', String(this.chapterIndex));
-    if (this.mangaId) fd.append('MangaId', this.mangaId);
-
     this.savingInfo = true;
-    this.adminManga.updateChapter(fd).pipe(takeUntil(this.destroy$)).subscribe({
+    this.adminManga.updateChapter({
+      chapterId: this.chapterId,
+      mangaId: this.mangaId,
+      index: this.chapterIndex,
+      subIndex: this.chapterSubIndex ?? 0,
+      title,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.savingInfo = false;
         this.originalTitle = title;
         this.originalIndex = this.chapterIndex;
+        this.originalSubIndex = this.chapterSubIndex;
         this.chapterTitle = title;
-        this.chapterLabel = `Chương ${this.chapterIndex}`;
+        this.chapterLabel = `Chương ${this.chapterNumberLabel}`;
         this.toastr.success('Đã lưu thông tin chương');
       },
       error: () => {
@@ -251,8 +263,14 @@ export class ChapterImagesComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Chức năng: Upload một ảnh MỚI — xin signed URL qua `requestAddUrl` (khác thay
-   *   ảnh: không xoá gì cả), PUT lên S3, rồi confirm.
+   * Chức năng: Upload một ảnh MỚI bằng API THẬT `POST /chapter-image/create` —
+   *   gửi metadata (1 phần tử) để lấy `uploadUrl`, rồi PUT thẳng file lên S3.
+   *   Không có bước confirm: bản ghi ảnh đã được server tạo ngay ở bước đăng ký.
+   *
+   *   ⚠️ Endpoint này KHÔNG nhận index mong muốn — server tự đánh số (nối vào
+   *   cuối chương). Vì vậy ảnh chèn giữa sẽ nhận số khác với vị trí đang thấy;
+   *   hàm lấy `index` server trả về làm số THẬT và cảnh báo nếu lệch, thay vì
+   *   giả vờ là đã chèn được vào giữa.
    * Yêu cầu: `item.isNew` và `item.pendingBlob` khác null.
    * Kết quả trả về: `Promise<boolean>` — true nếu thành công.
    * Exception: không ném — lỗi set `uploadStatus='failed'`, giữ blob để retry.
@@ -264,6 +282,7 @@ export class ChapterImagesComponent implements OnInit, OnDestroy {
     const contentType = blob.type || 'image/png';
     const ext = contentType === 'image/jpeg' ? 'jpg' : contentType === 'image/webp' ? 'webp' : 'png';
     const fileName = `page_${item.meta.index}.${ext}`;
+    const wantedIndex = item.meta.index;
 
     item.saving = true;
     item.uploadStatus = 'uploading';
@@ -275,48 +294,46 @@ export class ChapterImagesComponent implements OnInit, OnDestroy {
       item.uploadStatus = 'failed';
       item.uploadPercent = 0;
       item.uploadError = msg;
-      if (toast) this.toastr.error(`Trang ${item.meta.index}: ${msg}`);
+      if (toast) this.toastr.error(`Trang ${wantedIndex}: ${msg}`);
       return false;
     };
 
-    let signed: { fileId: string; signedUrl: string; mocked: boolean };
+    const file = new File([blob], fileName, { type: contentType });
+
+    let created: CreateChapterImageItem;
     try {
-      signed = await firstValueFrom(this.imageService.requestAddUrl({
-        chapterId: this.chapterId,
-        index: item.meta.index,
-        fileName,
-        contentType,
-        fileSize: blob.size,
-      }));
+      const list = await firstValueFrom(
+        this.imageService.createChapterImages(this.chapterId, [file]),
+      );
+      if (!list.length || !list[0].uploadUrl) return fail('server không trả về URL upload');
+      created = list[0];
     } catch {
-      return fail('không xin được signed URL');
+      return fail('không đăng ký được ảnh với server');
     }
 
-    const file = new File([blob], fileName, { type: contentType });
-    let etag: string;
     try {
-      etag = await firstValueFrom(
-        this.imageUpload.uploadToS3(signed.signedUrl, file, p => item.uploadPercent = p),
+      await firstValueFrom(
+        this.imageUpload.uploadToS3(created.uploadUrl, file, p => item.uploadPercent = p),
       );
     } catch {
-      await firstValueFrom(this.imageUpload.failUploads([signed.fileId])).catch(() => null);
       return fail('upload lên S3 thất bại');
     }
 
-    try {
-      await firstValueFrom(this.imageUpload.confirmBatchUploads([
-        { fileId: signed.fileId, etag, status: 'uploaded' },
-      ]));
-    } catch {
-      return fail('upload xong nhưng confirm thất bại');
-    }
-
+    // Nhận id + index THẬT từ server.
+    item.meta.id = created.id;
+    item.meta.index = created.index;
     item.saving = false;
     item.uploadPercent = 100;
     item.uploadStatus = 'success';
+
     if (toast) {
-      if (signed.mocked) this.toastr.warning(`Trang ${item.meta.index}: chưa có API thêm ảnh — mô phỏng thành công`);
-      else this.toastr.success(`Trang ${item.meta.index}: đã thêm ảnh`);
+      if (created.index !== wantedIndex) {
+        this.toastr.warning(
+          `Ảnh đã lên nhưng server đánh là trang ${created.index} (API thêm ảnh chỉ nối vào cuối chương)`,
+        );
+      } else {
+        this.toastr.success(`Trang ${created.index}: đã thêm ảnh`);
+      }
     }
     return true;
   }
@@ -350,11 +367,14 @@ export class ChapterImagesComponent implements OnInit, OnDestroy {
     this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(qp => {
       this.mangaId = qp.get('mangaId') ?? '';
       const idx = qp.get('index');
-      this.chapterLabel = idx ? `Chương ${idx}` : '';
+      const sub = qp.get('subIndex');
       this.chapterIndex = idx != null && idx !== '' ? Number(idx) : null;
+      this.chapterSubIndex = sub != null && sub !== '' ? Number(sub) : 0;
+      this.chapterLabel = idx ? `Chương ${this.chapterNumberLabel}` : '';
       this.chapterTitle = qp.get('title') ?? '';
       this.originalTitle = this.chapterTitle;
       this.originalIndex = this.chapterIndex;
+      this.originalSubIndex = this.chapterSubIndex;
     });
   }
 

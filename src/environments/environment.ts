@@ -4,6 +4,7 @@ export const environment = {
   ratingApi: 'https://localhost:7181/rating',
   mangaApi: 'https://localhost:7181/manga',
   chapterApi: 'https://localhost:7181/chapter',
+  chapterImageApi: 'https://localhost:7181/chapter-image',
   commentApi: 'https://localhost:7181/comment',
   userApi: 'https://localhost:7181/user',
   tagApi: 'https://localhost:7181/tag',

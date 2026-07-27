@@ -139,8 +139,13 @@ export interface Artist {
 
 export interface Chapter {
   id: string;
+  /** MÔ TẢ chương (có thể rỗng/null) — KHÔNG phải tên chương. Tên chương dựng
+   *  từ `index`/`subIndex` bằng `chapterName()`. */
   title: string;
+  /** Số chương chính. */
   index: number;
+  /** Số chương phụ — chương 10.5 là `index: 10`, `subIndex: 5`. 0 = chương thường. */
+  subIndex: number;
   mangaId: string;
   chapterDate: string;
 }
