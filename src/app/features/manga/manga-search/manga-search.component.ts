@@ -1,14 +1,44 @@
 import { Component, OnInit, OnDestroy, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, Observable, of, debounceTime, distinctUntilChanged, switchMap, takeUntil, finalize } from 'rxjs';
+import { Subject, debounceTime, takeUntil, finalize } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { MasterDataService } from '../../../core/services/master-data.service';
+import { AuthorService } from '../../../core/services/author.service';
+import { ArtistService } from '../../../core/services/artist.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { Manga, Tag } from '../../../core/models/interfaces';
+import { MangaSortBy } from '../../../core/models/manga.interface';
 
 export interface RecommendItem {
   id: string;
   name: string;
+}
+
+/** Nhóm chip đã group theo chữ cái đầu (tính sẵn, KHÔNG dùng getter trong template). */
+export interface LetterGroup<T = any> {
+  letter: string;
+  items: T[];
+}
+
+/**
+ * Điều kiện tìm kiếm HỢP NHẤT cho đối tượng Manga — single source of truth.
+ *
+ * Trước đây mỗi kiểu search (ô search / chip tag / chip author / chip artist /
+ * năm) tự gọi API riêng rồi tự gán kết quả, nên `reloadCurrentSearch` phải ĐOÁN
+ * lại "đang search kiểu gì" (đổi trang khi chọn author bị mất — không nhánh nào
+ * chạy), và các bộ lọc loại trừ nhau. Giờ mọi thứ đi qua:
+ *   buildMangaCriteria() → runMangaSearch(page) → applyResult(r)
+ * nên filter kết hợp được và phân trang luôn đúng.
+ */
+export interface MangaSearchCriteria {
+  /** Từ khoá tên truyện (khi không phân giải được ra id cụ thể). */
+  name?: string;
+  tagIds: string[];
+  authorId?: string;
+  artistId?: string;
+  season?: number;
+  sortBy?: MangaSortBy;
+  reverseSort?: boolean;
 }
 
 export interface SearchPrefix {
@@ -49,6 +79,19 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   pageSizeOptions = [10, 20, 50];
   viewMode: 'list' | 'grid' = 'grid';
 
+  // ── Sắp xếp (server-side qua filter-manga) ────────────────────────────────
+  /** null = mặc định của server (không gửi SortBy). */
+  sortBy: MangaSortBy | null = null;
+  reverseSort = true;
+  readonly sortOptions: { value: MangaSortBy | null; label: string }[] = [
+    { value: null,                      label: 'SEARCH.SORT_DEFAULT' },
+    { value: MangaSortBy.LastUpdate,    label: 'SEARCH.SORT_LAST_UPDATE' },
+    { value: MangaSortBy.ViewCount,     label: 'SEARCH.SORT_VIEWS' },
+    { value: MangaSortBy.Rating,        label: 'SEARCH.SORT_RATING' },
+    { value: MangaSortBy.ChapterCount,  label: 'SEARCH.SORT_CHAPTERS' },
+    { value: MangaSortBy.CommentCount,  label: 'SEARCH.SORT_COMMENTS' },
+  ];
+
   // Tier 1 — đối tượng tìm kiếm (mặc định manga). Danh mục lọc + loại kết quả
   // đổi theo giá trị này.
   searchTarget: SearchTarget = 'manga';
@@ -68,6 +111,8 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   showTagGrid = true;
   selectedAuthor: RecommendItem | null = null;
   selectedArtist: RecommendItem | null = null;
+  /** Đối tượng Author/Artist: người đang xem thông tin (chọn từ list bên trái). */
+  selectedPerson: { id: string; name: string; description?: string; birth?: string; lifeStatus?: number } | null = null;
   /** Đối tượng Tag: chỉ chọn MỘT thể loại (single-select), khác manga (multi). */
   selectedTag: any | null = null;
   /** Thông tin thể loại đang xem (từ /tag/get-by-id) — chỉ Name/Description. */
@@ -83,6 +128,17 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   authorFilter = '';
   artistFilter = '';
   categoryFilter = '';
+
+  // Danh sách chip đã group theo chữ cái — TÍNH SẴN (property), không dùng getter:
+  // template bind vào 6 chỗ *ngFor, nếu là getter thì groupByLetter sẽ chạy lại
+  // (tạo array + sort mới) ở MỖI change-detection tick và *ngFor không tái dùng
+  // DOM node. Recompute chỉ khi data hoặc ô lọc đổi.
+  filteredGroupedAuthors: LetterGroup<RecommendItem>[] = [];
+  filteredGroupedArtists: LetterGroup<RecommendItem>[] = [];
+  filteredGroupedCategories: LetterGroup<any>[] = [];
+  isAuthorFilterInvalid = false;
+  isArtistFilterInvalid = false;
+  isCategoryFilterInvalid = false;
 
   readonly prefixOptions: SearchPrefix[] = [
     { prefix: 'tag:',    label: 'SEARCH.PREFIX_TAG',    icon: 'fa-solid fa-tags',    hint: 'SEARCH.PREFIX_TAG_HINT' },
@@ -113,6 +169,8 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     private router: Router,
     private mangaService: MangaService,
     private masterData: MasterDataService,
+    private authorService: AuthorService,
+    private artistService: ArtistService,
     private host: ElementRef,
     private prefs: UserPreferencesService
   ) {}
@@ -126,6 +184,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
     this.masterData.categories$.pipe(takeUntil(this.destroy$)).subscribe(c => {
       this.categories = c;
+      this.recomputeCategoryGroups();
       this.applyPendingParams();
       this.refreshRecommendIfActive();
     });
@@ -135,46 +194,30 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     });
     this.masterData.authors$.pipe(takeUntil(this.destroy$)).subscribe(a => {
       this.authors = a;
+      this.recomputeAuthorGroups();
       this.refreshRecommendIfActive();
     });
     this.masterData.artists$.pipe(takeUntil(this.destroy$)).subscribe(a => {
       this.artists = a;
+      this.recomputeArtistGroups();
       this.refreshRecommendIfActive();
     });
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      if (params['tagId'] || (params['prefix'] && params['q'])) {
+      // Mọi param đều đi qua pending → applyPendingParams (cần categories/authors
+      // đã load mới map được id → chip). `tagId` giữ lại cho link /the-loai/:id cũ.
+      if (this.hasRestorableParams(params)) {
         this.pendingQueryParams = params;
         this.applyPendingParams();
-      } else if (params['q']) {
-        this.searchQuery = params['q'];
-        this.executeSearch(this.searchQuery);
       }
     });
 
+    // Ô search: debounce rồi chạy qua ĐÚNG một pipeline runMangaSearch.
+    // KHÔNG dùng distinctUntilChanged (xoá rồi gõ lại y hệt sẽ bị chặn).
     this.searchSubject.pipe(
       debounceTime(400),
-      distinctUntilChanged(),
-      switchMap(q => {
-        if (!q.trim()) {
-          this.results = [];
-          this.hasSearched = false;
-          return of(null);
-        }
-        this.startLoading();
-        this.currentPage = 1;
-        return this.executeSearchByPrefix(q, 1).pipe(
-          finalize(() => this.stopLoading())
-        );
-      }),
       takeUntil(this.destroy$)
-    ).subscribe(r => {
-      if (!r) return;
-      this.results = r.data;
-      this.totalPages = r.totalPages;
-      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-      this.hasSearched = true;
-    });
+    ).subscribe(() => this.afterCriteriaChange());
   }
 
   ngOnDestroy(): void {
@@ -200,38 +243,67 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Có param nào đáng phục hồi vào bộ lọc không? */
+  private hasRestorableParams(params: any): boolean {
+    return ['q', 'prefix', 'tagId', 'tags', 'author', 'artist', 'year', 'page', 'sort', 'asc']
+      .some(k => params?.[k] != null);
+  }
+
+  /**
+   * Phục hồi bộ lọc từ query params (deep-link / share / back-button) rồi chạy
+   * MỘT lần search. Chờ `categories` load xong mới map được id → chip.
+   */
   private applyPendingParams(): void {
     if (!this.pendingQueryParams || this.categories.length === 0) return;
     const params = this.pendingQueryParams;
     this.pendingQueryParams = null;
-    const prefix = params['prefix'];
+
     const q = params['q'];
-    const tagId = params['tagId'];
+    const prefix = params['prefix'];
+    const tagId = params['tagId'];   // legacy: /the-loai/:id
+    const tags = params['tags'];     // dạng mới: id,id,id
 
     if (tagId) {
       this.selectedCategories = [tagId];
-      this.searchByCategories();
-      return;
+    } else if (tags) {
+      const ids: string[] = String(tags).split(',').filter(Boolean);
+      this.selectedCategories = ids.filter(id => this.categories.some((c: any) => c.genreId === id));
     }
 
+    if (params['author']) {
+      this.selectedAuthor = this.authors.find(a => a.id === params['author']) ?? null;
+    }
+    if (params['artist']) {
+      this.selectedArtist = this.artists.find(a => a.id === params['artist']) ?? null;
+    }
+    if (params['year'] != null) {
+      const y = Number(params['year']);
+      if (!Number.isNaN(y)) this.selectedYear = y;
+    }
+    if (params['sort']) {
+      const s = this.sortOptions.find(o => o.value === params['sort']);
+      if (s) this.sortBy = s.value;
+    }
+    if (params['asc'] === '1' || params['asc'] === 'true') this.reverseSort = false;
+
+    // `prefix=tag&q=<tên thể loại>` (link cũ từ header) → đổi thành chip tag.
     if (prefix === 'tag' && q) {
-      const cat = this.categories.find((c: any) => c.genresIdName.toLowerCase() === q.toLowerCase());
-      if (cat) {
-        this.selectedCategories = [cat.genreId];
-        this.searchByCategories();
-        return;
+      const cat = this.categories.find((c: any) => c.genresIdName.toLowerCase() === String(q).toLowerCase());
+      if (cat && !this.selectedCategories.includes(cat.genreId)) {
+        this.selectedCategories = [...this.selectedCategories, cat.genreId];
       }
+    } else {
+      if (prefix) {
+        const prefixOpt = this.prefixOptions.find(o => o.prefix === prefix + ':');
+        if (prefixOpt) this.selectedPrefix = prefixOpt;
+      }
+      if (q) this.searchQuery = q;
     }
 
-    if (prefix) {
-      const prefixOpt = this.prefixOptions.find(o => o.prefix === prefix + ':');
-      if (prefixOpt) {
-        this.selectedPrefix = prefixOpt;
-      }
-    }
-    if (q) {
-      this.searchQuery = q;
-      this.doSearch();
+    const page = Number(params['page']);
+    this.recomputeAllGroups();
+    if (this.hasAnyQuery) {
+      this.runMangaSearch(!Number.isNaN(page) && page > 0 ? page : 1, false);
     }
   }
 
@@ -270,11 +342,38 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     // Reset lựa chọn thể loại khi rời/đổi đối tượng để tránh highlight "mồ côi".
     this.selectedTag = null;
     this.tagInfo = null;
+    this.selectedPerson = null;
     // TODO(tier): dispatch search theo đối tượng khi làm tier1/tier2.
   }
 
   get isMangaTarget(): boolean {
     return this.searchTarget === 'manga';
+  }
+
+  /** Đối tượng Author/Artist chỉ để tra thông tin — không có ô search manga. */
+  get isPersonTarget(): boolean {
+    return this.searchTarget === 'author' || this.searchTarget === 'artist';
+  }
+
+  /** Kind thu hẹp cho <app-entity-detail> (chỉ dùng khi isPersonTarget). */
+  get personKind(): 'author' | 'artist' {
+    return this.searchTarget === 'artist' ? 'artist' : 'author';
+  }
+
+  /** Tiêu đề panel bên trái đổi theo đối tượng đang chọn. */
+  get filterTitleKey(): string {
+    switch (this.searchTarget) {
+      case 'author': return 'SEARCH.AUTHOR_LIST';
+      case 'artist': return 'SEARCH.ARTIST_LIST';
+      default:       return 'SEARCH.FILTER_BY_GENRE';
+    }
+  }
+
+  /** Panel bên trái có dữ liệu để hiển thị (list) theo đối tượng hiện tại? */
+  get hasFilterData(): boolean {
+    if (this.searchTarget === 'author') return this.authors.length > 0;
+    if (this.searchTarget === 'artist') return this.artists.length > 0;
+    return this.categories.length > 0;
   }
 
   // ── Prefix hints ──────────────────────────────────────────────────────────
@@ -303,9 +402,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   clearPrefix(): void {
     this.selectedPrefix = null;
     this.searchQuery = '';
-    this.results = [];
-    this.hasSearched = false;
     this.hideRecommend();
+    // Bỏ từ khoá nhưng chip lọc có thể vẫn còn → để pipeline quyết định.
+    this.afterCriteriaChange();
     setTimeout(() => this.searchInputRef?.nativeElement.focus(), 0);
   }
 
@@ -357,8 +456,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     }
 
     this.hideRecommend();
+    // URL được cập nhật bên trong runMangaSearch (sau debounce), không ghi ở đây
+    // để tránh navigate mỗi lần gõ một ký tự.
     this.searchSubject.next(this.searchQuery);
-    this.router.navigate([], { queryParams: { q: this.searchQuery }, replaceUrl: true });
   }
 
   onSearchKeyDown(event: KeyboardEvent): void {
@@ -426,75 +526,139 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   doSearch(): void {
-    if (!this.searchQuery.trim()) return;
-    this.startLoading();
-    this.currentPage = 1;
-    this.executeSearchByPrefix(this.searchQuery, 1).pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.stopLoading())
-    ).subscribe(r => {
-      this.results = r.data;
-      this.totalPages = r.totalPages;
-      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-      this.hasSearched = true;
-    });
+    this.afterCriteriaChange();
   }
 
-  private executeSearch(query: string): void {
-    this.startLoading();
-    this.currentPage = 1;
-    this.executeSearchByPrefix(query, 1).pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.stopLoading())
-    ).subscribe(r => {
-      this.results = r.data;
-      this.totalPages = r.totalPages;
-      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-      this.hasSearched = true;
-    });
+  // ── Pipeline tìm kiếm hợp nhất (đối tượng Manga) ──────────────────────────
+
+  /**
+   * Gom TẤT CẢ lựa chọn đang có (ô search + prefix + chip tag/author/artist +
+   * năm + sắp xếp) thành một bộ điều kiện duy nhất. Nhờ vậy các bộ lọc KẾT HỢP
+   * được với nhau (vd: tác giả X + thể loại Y + năm 2024) thay vì loại trừ nhau.
+   */
+  private buildMangaCriteria(): MangaSearchCriteria {
+    const c: MangaSearchCriteria = {
+      tagIds: [...this.selectedCategories],
+      authorId: this.selectedAuthor?.id,
+      artistId: this.selectedArtist?.id,
+      season: this.selectedYear ?? undefined,
+      sortBy: this.sortBy ?? undefined,
+      reverseSort: this.sortBy ? this.reverseSort : undefined,
+    };
+
+    const raw = this.searchQuery.trim();
+    if (!raw) return c;
+
+    // Prefix có thể do user chọn (selectedPrefix) hoặc gõ thẳng ("author:abc").
+    const lower = raw.toLowerCase();
+    const typed = this.prefixOptions.find(o => lower.startsWith(o.prefix));
+    const prefix = this.selectedPrefix?.prefix ?? typed?.prefix;
+    const keyword = typed ? raw.slice(typed.prefix.length).trim() : raw;
+    if (!keyword) return c;
+
+    switch (prefix) {
+      case 'tag:': {
+        const id = this.findTagIdByName(keyword);
+        if (id) c.tagIds = Array.from(new Set([...c.tagIds, id]));
+        else c.name = keyword;
+        break;
+      }
+      case 'author:': {
+        const a = this.findByName(this.authors, keyword);
+        if (a) c.authorId = a.id; else c.name = keyword;
+        break;
+      }
+      case 'artist:': {
+        const a = this.findByName(this.artists, keyword);
+        if (a) c.artistId = a.id; else c.name = keyword;
+        break;
+      }
+      default:
+        c.name = keyword;
+    }
+    return c;
   }
 
-  private executeSearchByPrefix(fullQuery: string, page: number): Observable<{ data: Manga[]; totalPages: number; totalCount: number }> {
-    const effectiveQuery = this.selectedPrefix ? this.selectedPrefix.prefix + fullQuery : fullQuery;
-    const tagMatch = effectiveQuery.match(/^tag:(.+)/i);
-    const nameMatch = effectiveQuery.match(/^name:(.+)/i);
-    const authorMatch = effectiveQuery.match(/^author:(.+)/i);
-    const artistMatch = effectiveQuery.match(/^artist:(.+)/i);
+  /** Khớp tên không phân biệt hoa/thường; ưu tiên khớp chính xác rồi mới "chứa". */
+  private findByName(list: RecommendItem[], name: string): RecommendItem | undefined {
+    const q = name.trim().toLowerCase();
+    return list.find(x => x.name.trim().toLowerCase() === q)
+        ?? list.find(x => x.name.toLowerCase().includes(q));
+  }
 
-    if (tagMatch) {
-      const tagName = tagMatch[1].trim();
-      const tag = this.tags.find((t: Tag) => t.name.toLowerCase().includes(tagName.toLowerCase()));
-      if (tag) {
-        return this.mangaService.filterPaginated({ tagIds:  [tag.id], pageNo : page, pageSize: this.pageSize });
-        //return this.mangaService.filterByTagsPaginated({ tagIds: [tag.id], page, pageSize: this.pageSize });
-      }
-      const catTag = this.categories.find((c: any) => c.genresIdName.toLowerCase().includes(tagName.toLowerCase()));
-      if (catTag) {
-        return this.mangaService.filterPaginated({ tagIds:  [catTag.genreId], pageNo : page, pageSize: this.pageSize });
-        //return this.mangaService.filterByTagsPaginated({ tagIds: [catTag.genreId], page, pageSize: this.pageSize });
-      }
-      return this.mangaService.filterPaginated({ name: tagName, pageNo : page, pageSize: this.pageSize });
+  private findTagIdByName(name: string): string | undefined {
+    const q = name.trim().toLowerCase();
+    const tag = this.tags.find((t: Tag) => t.name.toLowerCase() === q)
+             ?? this.tags.find((t: Tag) => t.name.toLowerCase().includes(q));
+    if (tag) return tag.id;
+    const cat = this.categories.find((c: any) => c.genresIdName.toLowerCase() === q)
+             ?? this.categories.find((c: any) => c.genresIdName.toLowerCase().includes(q));
+    return cat?.genreId;
+  }
+
+  /** ĐƯỜNG DUY NHẤT gọi API cho đối tượng Manga (kể cả đổi trang / đổi sort). */
+  private runMangaSearch(page = this.currentPage, syncUrl = true): void {
+    const c = this.buildMangaCriteria();
+    this.currentPage = page;
+    this.startLoading();
+    this.results = [];
+    this.mangaService.filterPaginated({
+      name: c.name,
+      tagIds: c.tagIds.length ? c.tagIds : undefined,
+      authorId: c.authorId,
+      artistId: c.artistId,
+      season: c.season,
+      sortBy: c.sortBy,
+      reverseSort: c.reverseSort,
+      pageNo: page,
+      pageSize: this.pageSize,
+    }).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.stopLoading())
+    ).subscribe(r => this.applyResult(r));
+    if (syncUrl) this.syncUrl();
+  }
+
+  /** MỘT chỗ duy nhất gán kết quả (trước đây khối này bị lặp 9 lần). */
+  private applyResult(r: { data: Manga[]; totalPages: number; totalCount: number }): void {
+    this.results = r.data;
+    this.totalPages = r.totalPages;
+    this.totalCount = r.totalCount || r.totalPages * this.pageSize;
+    this.hasSearched = true;
+  }
+
+  /**
+   * Gọi sau MỌI thay đổi điều kiện (chip, năm, sort, ô search): về trang 1 và
+   * search lại; nếu không còn điều kiện nào thì xoá kết quả.
+   */
+  private afterCriteriaChange(): void {
+    if (!this.isMangaTarget) return;
+    this.currentPage = 1;
+    if (this.hasAnyQuery) {
+      this.runMangaSearch(1);
+    } else {
+      this.results = [];
+      this.hasSearched = false;
+      this.totalCount = 0;
+      this.totalPages = 1;
+      this.syncUrl();
     }
+  }
 
-    if (nameMatch) {
-      return this.mangaService.filterPaginated({ name: nameMatch[1].trim(), pageNo: page, pageSize: this.pageSize });
-    }
-
-    if(authorMatch)
-    {
-      const name = authorMatch[1].trim();
-      const author = this.authors.find(x => x.name.trim() == name);
-      return  this.mangaService.filterPaginated({pageNo: page, pageSize: this.pageSize, authorId: author?.id})
-    }
-
-    if(artistMatch)
-    {
-      const name = artistMatch[1].trim();
-      const artist = this.artists.find(x => x.name.trim() == name);
-      return  this.mangaService.filterPaginated({pageNo: page, pageSize: this.pageSize, artistId: artist?.id})
-    }
-
-    return this.mangaService.filterPaginated({ name: fullQuery.trim(), pageNo: page, pageSize: this.pageSize });
+  /** Đưa bộ lọc lên URL để share / bookmark / back-button hoạt động. */
+  private syncUrl(): void {
+    const qp: any = {};
+    const raw = this.searchQuery.trim();
+    if (raw) qp.q = raw;
+    if (this.selectedPrefix) qp.prefix = this.selectedPrefix.prefix.replace(':', '');
+    if (this.selectedCategories.length) qp.tags = this.selectedCategories.join(',');
+    if (this.selectedAuthor) qp.author = this.selectedAuthor.id;
+    if (this.selectedArtist) qp.artist = this.selectedArtist.id;
+    if (this.selectedYear != null) qp.year = this.selectedYear;
+    if (this.sortBy) qp.sort = this.sortBy;
+    if (this.sortBy && !this.reverseSort) qp.asc = 1;
+    if (this.currentPage > 1) qp.page = this.currentPage;
+    this.router.navigate([], { queryParams: qp, replaceUrl: true });
   }
 
   // ── View & Pagination ─────────────────────────────────────────────────────
@@ -507,18 +671,28 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     if (size === this.pageSize) return;
     this.pageSize = size;
     this.currentPage = 1;
-    this.totalPages = Math.max(1, Math.ceil(this.totalCount / size));
-    if (size <= this.results.length) {
-      this.results = this.results.slice(0, size);
-    } else {
-      this.reloadCurrentSearch();
-    }
+    // Luôn tải lại từ server: cắt mảng client cho "vừa mắt" sẽ làm totalPages và
+    // dữ liệu lệch nhau ở các trang sau.
+    this.reloadCurrentSearch();
+  }
+
+  /** Đổi tiêu chí sắp xếp (server-side). */
+  setSort(value: MangaSortBy | null): void {
+    if (this.sortBy === value) return;
+    this.sortBy = value;
+    this.reloadCurrentSearch(1);
+  }
+
+  /** Đảo chiều tăng/giảm — chỉ có nghĩa khi đã chọn 1 tiêu chí sắp xếp. */
+  toggleSortDirection(): void {
+    if (!this.sortBy) return;
+    this.reverseSort = !this.reverseSort;
+    this.reloadCurrentSearch(1);
   }
 
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages || page === this.currentPage) return;
-    this.currentPage = page;
-    this.reloadCurrentSearch();
+    this.reloadCurrentSearch(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -531,26 +705,25 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     return pages;
   }
 
-  private reloadCurrentSearch(): void {
-    // Đối tượng Tag: đổi trang gọi lại filter-manga theo tagId đang chọn.
+  /**
+   * Tải lại kết quả ở trang `page` cho ĐÚNG đối tượng đang xem.
+   *
+   * Trước đây hàm này phải đoán "đang search kiểu gì" qua chuỗi if/else, và khi
+   * chỉ chọn chip author/artist thì không nhánh nào khớp (`hasActiveFilter` không
+   * tính author/artist, `searchQuery` rỗng) → đổi trang bị mất im lặng. Giờ
+   * đối tượng Manga luôn đi qua runMangaSearch nên không còn khe hở.
+   */
+  private reloadCurrentSearch(page = this.currentPage): void {
+    this.currentPage = page;
     if (this.searchTarget === 'tag') {
-      if (this.selectedTag) this.loadTagMangas(this.currentPage);
+      if (this.selectedTag) this.loadTagMangas(page);
       return;
     }
-    if (this.hasActiveFilter) {
-      this.searchByCategories();
-    } else if (this.searchQuery.trim()) {
-      this.startLoading();
-      this.executeSearchByPrefix(this.searchQuery, this.currentPage).pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.stopLoading())
-      ).subscribe(r => {
-        this.results = r.data;
-        this.totalPages = r.totalPages;
-        this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-        this.hasSearched = true;
-      });
+    if (this.isPersonTarget) {
+      if (this.selectedPerson) this.loadPersonMangas(page);
+      return;
     }
+    if (this.hasAnyQuery) this.runMangaSearch(page);
   }
 
   // ── Recommend dropdown (tag / author / artist) ─────────────────────────────
@@ -617,35 +790,18 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   removeCategory(id: string): void {
     this.selectedCategories = this.selectedCategories.filter(sid => sid !== id);
-    this.currentPage = 1;
-    if (this.selectedCategories.length > 0) {
-      this.searchByCategories();
-    } else {
-      this.results = [];
-      this.hasSearched = false;
-    }
+    this.afterCriteriaChange();
   }
 
   clearAllCategories(): void {
     this.selectedCategories = [];
-    this.results = [];
-    this.hasSearched = false;
+    this.afterCriteriaChange();
   }
 
   /** Clear the active author/artist/year filter straight from its badge. */
-  clearAuthor(): void { if (this.selectedAuthor) this.selectAuthorChip(this.selectedAuthor); }
-  clearArtist(): void { if (this.selectedArtist) this.selectArtistChip(this.selectedArtist); }
+  clearAuthor(): void { this.selectedAuthor = null; this.afterCriteriaChange(); }
+  clearArtist(): void { this.selectedArtist = null; this.afterCriteriaChange(); }
   clearYear(): void { this.selectYear(null); }
-
-  private removeLastCategory(): void {
-    this.selectedCategories = this.selectedCategories.slice(0, -1);
-    if (this.selectedCategories.length > 0) {
-      this.searchByCategories();
-    } else {
-      this.results = [];
-      this.hasSearched = false;
-    }
-  }
 
   private groupByLetter(items: { name: string }[]): { letter: string; items: any[] }[] {
     const groups: { [key: string]: any[] } = {};
@@ -660,107 +816,106 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     }));
   }
 
-  get groupedAuthors(): { letter: string; items: RecommendItem[] }[] {
-    return this.groupByLetter(this.authors);
+  // ── Recompute nhóm chip (thay cho getter — xem chú thích ở khai báo field) ──
+
+  private recomputeAllGroups(): void {
+    this.recomputeAuthorGroups();
+    this.recomputeArtistGroups();
+    this.recomputeCategoryGroups();
   }
 
-  get groupedArtists(): { letter: string; items: RecommendItem[] }[] {
-    return this.groupByLetter(this.artists);
-  }
-
-  get groupedCategories(): { letter: string; items: any[] }[] {
-    const mapped = this.categories.map((c: any) => ({ ...c, name: c.genresIdName }));
-    return this.groupByLetter(mapped);
-  }
-
-  get filteredGroupedAuthors(): { letter: string; items: RecommendItem[] }[] {
+  /** Gọi từ template khi ô lọc tác giả đổi. */
+  recomputeAuthorGroups(): void {
     const q = this.authorFilter.trim().toLowerCase();
     const filtered = q ? this.authors.filter(a => a.name.toLowerCase().includes(q)) : this.authors;
-    return this.groupByLetter(filtered);
+    this.filteredGroupedAuthors = this.groupByLetter(filtered);
+    this.isAuthorFilterInvalid = !!q && filtered.length === 0;
   }
 
-  get filteredGroupedArtists(): { letter: string; items: RecommendItem[] }[] {
+  recomputeArtistGroups(): void {
     const q = this.artistFilter.trim().toLowerCase();
     const filtered = q ? this.artists.filter(a => a.name.toLowerCase().includes(q)) : this.artists;
-    return this.groupByLetter(filtered);
+    this.filteredGroupedArtists = this.groupByLetter(filtered);
+    this.isArtistFilterInvalid = !!q && filtered.length === 0;
   }
 
-  get filteredGroupedCategories(): { letter: string; items: any[] }[] {
+  recomputeCategoryGroups(): void {
     const mapped = this.categories.map((c: any) => ({ ...c, name: c.genresIdName }));
     const q = this.categoryFilter.trim().toLowerCase();
     const filtered = q ? mapped.filter(c => c.name.toLowerCase().includes(q)) : mapped;
-    return this.groupByLetter(filtered);
+    this.filteredGroupedCategories = this.groupByLetter(filtered);
+    this.isCategoryFilterInvalid = !!q && filtered.length === 0;
   }
 
-  get isAuthorFilterInvalid(): boolean {
-    const q = this.authorFilter.trim().toLowerCase();
-    return !!q && !this.authors.some(a => a.name.toLowerCase().includes(q));
-  }
-
-  get isArtistFilterInvalid(): boolean {
-    const q = this.artistFilter.trim().toLowerCase();
-    return !!q && !this.artists.some(a => a.name.toLowerCase().includes(q));
-  }
-
-  get isCategoryFilterInvalid(): boolean {
-    const q = this.categoryFilter.trim().toLowerCase();
-    return !!q && !this.categories.some((c: any) => c.genresIdName.toLowerCase().includes(q));
-  }
+  // ── Chip lọc (đối tượng Manga) — CHỈ đổi state rồi để pipeline lo phần còn lại.
+  // Không xoá lựa chọn khác nữa: tag + author + artist + năm giờ KẾT HỢP được.
 
   selectAuthorChip(author: RecommendItem): void {
     this.selectedAuthor = this.selectedAuthor?.id === author.id ? null : author;
-    this.selectedArtist = null;
-    this.selectedCategories = [];
-    this.currentPage = 1;
-    if (this.selectedAuthor) {
-      this.startLoading();
-      this.results = [];
-      this.mangaService.filterPaginated({ authorId: author.id, pageNo: 1, pageSize: this.pageSize }).pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.stopLoading())
-      ).subscribe(r => {
-        this.results = r.data;
-        this.totalPages = r.totalPages;
-        this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-        this.hasSearched = true;
-      });
-    } else {
-      this.results = [];
-      this.hasSearched = false;
-    }
+    this.afterCriteriaChange();
   }
 
   selectArtistChip(artist: RecommendItem): void {
     this.selectedArtist = this.selectedArtist?.id === artist.id ? null : artist;
-    this.selectedAuthor = null;
-    this.selectedCategories = [];
-    this.currentPage = 1;
-    if (this.selectedArtist) {
-      this.startLoading();
-      this.results = [];
-      this.mangaService.filterPaginated({ artistId: artist.id, pageNo: 1, pageSize: this.pageSize }).pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.stopLoading())
-      ).subscribe(r => {
-        this.results = r.data;
-        this.totalPages = r.totalPages;
-        this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-        this.hasSearched = true;
-      });
-    } else {
+    this.afterCriteriaChange();
+  }
+
+  /**
+   * Đối tượng Author/Artist — chọn 1 người từ list để XEM THÔNG TIN (không phải
+   * lọc manga như đối tượng Manga). Tải meta của người đó + danh sách truyện họ
+   * tham gia, hiển thị bằng <app-entity-detail> ở khu kết quả. Bấm lại để bỏ chọn.
+   */
+  selectPersonChip(item: RecommendItem): void {
+    if (this.selectedPerson?.id === item.id) {
+      this.selectedPerson = null;
       this.results = [];
       this.hasSearched = false;
+      return;
     }
+    this.currentPage = 1;
+    this.loadPersonInfo(item);
+    this.loadPersonMangas(1);
+  }
+
+  private loadPersonInfo(item: RecommendItem): void {
+    // Hiển thị ngay tên đã biết; bổ sung meta (mô tả, năm sinh...) khi API trả về.
+    this.selectedPerson = { id: item.id, name: item.name };
+    const svc = this.searchTarget === 'author' ? this.authorService : this.artistService;
+    svc.filter({ id: item.id, pageSize: 1 }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res: any) => {
+        const raw = res?.value ?? res;
+        const found = (raw?.data ?? (Array.isArray(raw) ? raw : []))[0];
+        if (found && this.selectedPerson?.id === item.id) {
+          this.selectedPerson = {
+            id: found.id,
+            name: found.name,
+            description: found.depscription ?? found.description ?? '',
+            birth: found.birth,
+            lifeStatus: found.lifeStatus,
+          };
+        }
+      },
+    });
+  }
+
+  private loadPersonMangas(page: number): void {
+    if (!this.selectedPerson) return;
+    this.startLoading();
+    this.results = [];
+    const params = this.searchTarget === 'author'
+      ? { authorId: this.selectedPerson.id, pageNo: page, pageSize: this.pageSize }
+      : { artistId: this.selectedPerson.id, pageNo: page, pageSize: this.pageSize };
+    this.mangaService.filterPaginated(params).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.stopLoading())
+    ).subscribe(r => this.applyResult(r));
   }
 
   toggleCategoryChip(cat: any): void {
-    this.currentPage = 1;
-    if (this.selectedCategories.includes(cat.genreId)) {
-      this.removeCategory(cat.genreId);
-    } else {
-      this.selectedCategories = [...this.selectedCategories, cat.genreId];
-      this.searchByCategories();
-    }
+    this.selectedCategories = this.selectedCategories.includes(cat.genreId)
+      ? this.selectedCategories.filter(id => id !== cat.genreId)
+      : [...this.selectedCategories, cat.genreId];
+    this.afterCriteriaChange();
   }
 
   /**
@@ -793,47 +948,33 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.mangaService.filterPaginated({ tagIds: [this.selectedTag.genreId], pageNo: page, pageSize: this.pageSize }).pipe(
       takeUntil(this.destroy$),
       finalize(() => this.stopLoading())
-    ).subscribe(r => {
-      this.results = r.data;
-      this.totalPages = r.totalPages;
-      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-      this.hasSearched = true;
-    });
+    ).subscribe(r => this.applyResult(r));
   }
 
+  /** @deprecated Giữ cho tương thích — mọi thứ giờ chạy qua afterCriteriaChange(). */
   searchByCategories(): void {
-    this.startLoading();
-    this.results = [];
-    this.mangaService.filterPaginated({
-      tagIds: this.selectedCategories.length ? this.selectedCategories : undefined,
-      season: this.selectedYear ?? undefined,
-      pageNo: this.currentPage,
-      pageSize: this.pageSize,
-    }).pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.stopLoading())
-    ).subscribe(r => {
-      this.results = r.data;
-      this.totalPages = r.totalPages;
-      this.totalCount = r.totalCount || r.totalPages * this.pageSize;
-      this.hasSearched = true;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    this.afterCriteriaChange();
   }
 
-  /** Has any structured filter (category or year) been applied? */
+  /**
+   * Có bộ lọc dạng chip/dropdown nào đang bật? (dùng để hiện badge "đang lọc")
+   * LƯU Ý: phải tính CẢ author/artist — thiếu 2 cái này chính là nguyên nhân bug
+   * đổi trang trước đây.
+   */
   get hasActiveFilter(): boolean {
-    return this.selectedCategories.length > 0 || this.selectedYear != null;
+    return this.selectedCategories.length > 0
+        || this.selectedYear != null
+        || !!this.selectedAuthor
+        || !!this.selectedArtist;
+  }
+
+  /** Có bất kỳ điều kiện nào (bộ lọc HOẶC từ khoá) để chạy search? */
+  get hasAnyQuery(): boolean {
+    return this.hasActiveFilter || !!this.searchQuery.trim();
   }
 
   onYearChange(): void {
-    this.currentPage = 1;
-    if (this.hasActiveFilter) {
-      this.searchByCategories();
-    } else {
-      this.results = [];
-      this.hasSearched = false;
-    }
+    this.afterCriteriaChange();
   }
 
 }

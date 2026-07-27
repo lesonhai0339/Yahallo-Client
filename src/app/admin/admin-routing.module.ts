@@ -14,6 +14,12 @@ import { UserAnalyticsComponent } from './pages/user-analytics/user-analytics.co
 import { TopicListComponent } from './pages/topic-list/topic-list.component';
 import { TaxonomyListComponent } from './pages/taxonomy-list/taxonomy-list.component';
 import { TaxonomyRequestsComponent } from './pages/taxonomy-requests/taxonomy-requests.component';
+// ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md
+import { CommentModerationComponent } from './pages/comment-moderation/comment-moderation.component';
+import { TrashBinComponent } from './pages/trash-bin/trash-bin.component';
+import { RoleListComponent } from './pages/role-list/role-list.component';
+import { ImageEditorComponent } from './pages/image-editor/image-editor.component';
+import { ChapterImagesComponent } from './pages/chapter-images/chapter-images.component';
 
 const routes: Routes = [
   {
@@ -80,6 +86,40 @@ const routes: Routes = [
         component: TaxonomyRequestsComponent,
         canActivate: [PermissionGuard],
         data: { permission: Permission.ManageTaxonomy }
+      },
+      // ── ⚠️ MODULE MỚI THÊM (3 route dưới) — docs/ADMIN_MODULES_ADDED.md ──
+      {
+        path: 'comments',
+        component: CommentModerationComponent,
+        canActivate: [PermissionGuard],
+        // ModerateComments (Admin + Mod), KHÔNG dùng ManageManga vì Trans cũng có.
+        data: { permission: Permission.ModerateComments }
+      },
+      {
+        path: 'trash',
+        component: TrashBinComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageManga }
+      },
+      {
+        path: 'roles',
+        component: RoleListComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageRoles }
+      },
+      {
+        // Quan ly anh cua 1 chuong (xem/xoa/thay/dao vi tri/sua anh).
+        path: 'chapter/:chapterId/images',
+        component: ChapterImagesComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageChapters }
+      },
+      {
+        // Translator dung duoc: gate bang ManageChapters (Admin/Mod/Trans deu co).
+        path: 'image-editor',
+        component: ImageEditorComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageChapters }
       },
     ]
   }

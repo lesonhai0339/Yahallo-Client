@@ -709,6 +709,18 @@
   @media (max-width: 768px) {
     max-height: 220px;
   }
+
+  // Author/Artist objects: the list is shown directly (no toggle button above),
+  // so drop the pull-up and give the filter input a full border + radius since
+  // it no longer attaches to a button.
+  &--standalone {
+    margin-top: 0;
+
+    .tag-grid-filter-input {
+      border-top: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+  }
 }
 
 .tag-group {
@@ -741,11 +753,11 @@
 .tag-chip-filter {
   display: inline-flex;
   align-items: center;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 0.82rem;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 0.74rem;
   font-weight: 500;
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
   background: var(--bg-secondary);
   color: var(--text-secondary);
   cursor: pointer;
@@ -805,6 +817,45 @@
   &:not(:last-child) { border-right: 1px solid var(--border-color); }
   &:hover { color: var(--accent-primary); }
   &.active { background: rgba(233,69,96,0.15); color: var(--accent-primary); }
+}
+
+// Sắp xếp: select + nút đảo chiều, dùng chung look với page-size-select.
+.sort-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  select {
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:hover, &:focus { border-color: var(--accent-primary); }
+    option { background: var(--bg-primary); color: var(--text-primary); }
+  }
+}
+
+.sort-dir {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+
+  &:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
 }
 
 .page-size-select {

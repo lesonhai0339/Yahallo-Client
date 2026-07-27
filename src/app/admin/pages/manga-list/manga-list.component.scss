@@ -246,25 +246,16 @@
 }
 
 .table-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: rgba(15, 15, 26, 0.6);
-  z-index: 5;
+  // KHONG dung overlay absolute nua: `.table-wrapper` co `overflow: hidden`, va
+  // khi chua co du lieu thi wrapper co lai bang chieu cao header => skeleton bi
+  // cat mat, trong nhu vo layout. De skeleton nam trong luong binh thuong thi no
+  // tu chiem dung chieu cao can thiet.
+  position: static;
+  display: block;
+  background: var(--bg-card);
   color: var(--text-secondary);
   font-size: 0.9rem;
 
-  .spinner {
-    width: 24px;
-    height: 24px;
-    border: 2px solid var(--border-light);
-    border-top-color: var(--accent-primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
 }
 
 @keyframes spin {
@@ -275,7 +266,9 @@
   width: 100%;
   background: transparent !important;
 
-  &.loading { opacity: 0.4; pointer-events: none; }
+  // Dung display:none thay opacity: van giu directive matSort + dataSource
+  // (khac *ngIf se huy component va reset trang thai sort).
+  &.loading { display: none; }
 
   th.mat-header-cell {
     background: var(--bg-secondary) !important;

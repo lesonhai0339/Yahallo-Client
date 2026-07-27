@@ -19,6 +19,7 @@ export const CACHE_TTL = {
   CHAPTERS: 10 * 60_000,
   INTERACTION: 10 * 60_000,
   COMMENTS: 2 * 60_000,
+  PROFILE: 5 * 60_000,
 } as const;
 
 interface CacheEntry {

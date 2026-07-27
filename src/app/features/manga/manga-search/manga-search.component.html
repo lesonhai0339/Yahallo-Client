@@ -20,10 +20,11 @@
   <!-- Panel: search-bar + danh mục lọc (dính liền tab active) -->
   <div class="search-left__panel">
 
-  <!-- Search Input with Prefix Hints.
-       Ẩn ở đối tượng Tag: đã load full danh sách thể loại (chọn trực tiếp) và
-       vẫn có prefix "tag:" ở các đối tượng khác nên field này không cần thiết. -->
-  <div class="search-box" *ngIf="searchTarget !== 'tag'">
+  <!-- Search Input with Prefix Hints. Chỉ đối tượng Manga cần ô search này.
+       Ẩn ở Tag (chọn trực tiếp từ danh sách thể loại) và ở Author/Artist (2 đối
+       tượng này chỉ để tra thông tin, chọn thẳng từ list bên dưới — không search
+       manga trên đó). -->
+  <div class="search-box" *ngIf="isMangaTarget">
     <div class="search-input-group" [class.search-input-group--prefix]="!!activePrefixOption">
 
       <!-- Search icon — click to show prefix hints -->
@@ -88,16 +89,16 @@
   <!-- /search-box -->
 
   <!-- Category Filter (danh mục lọc — giữ cấu trúc row dọc tuần tự) -->
-  <div class="filter-section" [class.filter-section--collapsed]="!isFilterExpanded" *ngIf="categories.length > 0">
+  <div class="filter-section" [class.filter-section--collapsed]="!isFilterExpanded" *ngIf="hasFilterData">
     <h3 class="filter-title" (click)="isFilterExpanded = !isFilterExpanded">
-      {{ 'SEARCH.FILTER_BY_GENRE' | translate }}
+      {{ filterTitleKey | translate }}
       <i class="fa-solid ms-2" [class.fa-chevron-down]="!isFilterExpanded" [class.fa-chevron-up]="isFilterExpanded"></i>
     </h3>
 
     <ng-container *ngIf="isFilterExpanded">
     <!-- Year filter (custom dropdown — scrollable, never overflows the screen).
-         Ẩn ở đối tượng Tag: chỉ giữ danh sách thể loại. -->
-    <div class="filter-year-row" *ngIf="searchTarget !== 'tag'">
+         Chỉ đối tượng Manga: Tag/Author/Artist không lọc theo năm. -->
+    <div class="filter-year-row" *ngIf="isMangaTarget">
       <label>{{ 'SEARCH.FILTER_YEAR' | translate }}</label>
       <div class="year-dd" [class.year-dd--open]="yearOpen">
         <button type="button" class="year-dd__trigger" (click)="yearOpen = !yearOpen">
@@ -137,6 +138,7 @@
     <div class="tag-filter-grid" *ngIf="showAuthorGrid">
       <div class="tag-grid-filter-input">
         <input type="text" [(ngModel)]="authorFilter" [ngModelOptions]="{ standalone: true }"
+               (ngModelChange)="recomputeAuthorGroups()"
                [placeholder]="'SEARCH.FILTER_AUTHOR_PLACEHOLDER' | translate">
         <span class="filter-invalid-label" *ngIf="isAuthorFilterInvalid">
           <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
@@ -170,6 +172,7 @@
     <div class="tag-filter-grid" *ngIf="showArtistGrid">
       <div class="tag-grid-filter-input">
         <input type="text" [(ngModel)]="artistFilter" [ngModelOptions]="{ standalone: true }"
+               (ngModelChange)="recomputeArtistGroups()"
                [placeholder]="'SEARCH.FILTER_ARTIST_PLACEHOLDER' | translate">
         <span class="filter-invalid-label" *ngIf="isArtistFilterInvalid">
           <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
@@ -203,6 +206,7 @@
     <div class="tag-filter-grid" *ngIf="showCategoryGrid">
       <div class="tag-grid-filter-input">
         <input type="text" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }"
+               (ngModelChange)="recomputeCategoryGroups()"
                [placeholder]="'SEARCH.FILTER_CATEGORY_PLACEHOLDER' | translate">
         <span class="filter-invalid-label" *ngIf="isCategoryFilterInvalid">
           <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
@@ -234,6 +238,7 @@
     <div class="tag-filter-grid" *ngIf="showTagGrid">
       <div class="tag-grid-filter-input">
         <input type="text" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }"
+               (ngModelChange)="recomputeCategoryGroups()"
                [placeholder]="'SEARCH.FILTER_CATEGORY_PLACEHOLDER' | translate">
         <span class="filter-invalid-label" *ngIf="isCategoryFilterInvalid">
           <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
@@ -250,6 +255,53 @@
     </div>
     </ng-container>
     <!-- /tag target -->
+
+    <!-- Đối tượng Author: danh sách tác giả hiện thẳng (không collapse), chọn 1
+         người để xem thông tin ở khu kết quả. -->
+    <ng-container *ngIf="searchTarget === 'author'">
+    <div class="tag-filter-grid tag-filter-grid--standalone">
+      <div class="tag-grid-filter-input">
+        <input type="text" [(ngModel)]="authorFilter" [ngModelOptions]="{ standalone: true }"
+               (ngModelChange)="recomputeAuthorGroups()"
+               [placeholder]="'SEARCH.FILTER_AUTHOR_PLACEHOLDER' | translate">
+        <span class="filter-invalid-label" *ngIf="isAuthorFilterInvalid">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
+        </span>
+      </div>
+      <div class="tag-group" *ngFor="let group of filteredGroupedAuthors">
+        <span class="tag-group__letter">{{ group.letter }}</span>
+        <div class="tag-group__items">
+          <button class="tag-chip-filter" *ngFor="let item of group.items"
+            [class.active]="selectedPerson?.id === item.id"
+            (click)="selectPersonChip(item)">{{ item.name }}</button>
+        </div>
+      </div>
+    </div>
+    </ng-container>
+    <!-- /author target -->
+
+    <!-- Đối tượng Artist: danh sách hoạ sĩ hiện thẳng, tương tự Author. -->
+    <ng-container *ngIf="searchTarget === 'artist'">
+    <div class="tag-filter-grid tag-filter-grid--standalone">
+      <div class="tag-grid-filter-input">
+        <input type="text" [(ngModel)]="artistFilter" [ngModelOptions]="{ standalone: true }"
+               (ngModelChange)="recomputeArtistGroups()"
+               [placeholder]="'SEARCH.FILTER_ARTIST_PLACEHOLDER' | translate">
+        <span class="filter-invalid-label" *ngIf="isArtistFilterInvalid">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ 'SEARCH.FILTER_NO_MATCH' | translate }}
+        </span>
+      </div>
+      <div class="tag-group" *ngFor="let group of filteredGroupedArtists">
+        <span class="tag-group__letter">{{ group.letter }}</span>
+        <div class="tag-group__items">
+          <button class="tag-chip-filter" *ngFor="let item of group.items"
+            [class.active]="selectedPerson?.id === item.id"
+            (click)="selectPersonChip(item)">{{ item.name }}</button>
+        </div>
+      </div>
+    </div>
+    </ng-container>
+    <!-- /artist target -->
     </ng-container>
   </div>
   <!-- /filter-section -->
@@ -270,6 +322,19 @@
         <span>{{ totalCount }} {{ 'SEARCH.RESULTS_COUNT' | translate }}</span>
       </div>
       <div class="view-controls">
+        <!-- Sắp xếp (server-side qua filter-manga) -->
+        <div class="sort-select">
+          <select [ngModel]="sortBy" (ngModelChange)="setSort($event)"
+                  [title]="'SEARCH.SORT_LABEL' | translate">
+            <option *ngFor="let o of sortOptions" [ngValue]="o.value">{{ o.label | translate }}</option>
+          </select>
+          <button class="sort-dir" type="button" *ngIf="sortBy"
+                  (click)="toggleSortDirection()"
+                  [title]="(reverseSort ? 'SEARCH.SORT_DESC' : 'SEARCH.SORT_ASC') | translate">
+            <i class="fa-solid" [class.fa-arrow-down-wide-short]="reverseSort"
+               [class.fa-arrow-up-short-wide]="!reverseSort"></i>
+          </button>
+        </div>
         <div class="page-size-select">
           <select [ngModel]="pageSize" (ngModelChange)="setPageSize($event)">
             <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }} / {{ 'TOP.PAGE' | translate }}</option>
@@ -370,15 +435,36 @@
 
   </ng-container>
 
-  <!-- Loại 3: Author/Artist — DỰNG KHUNG, wiring ở tier sau -->
-  <ng-container *ngIf="searchTarget === 'author' || searchTarget === 'artist'">
-    <div class="entity-result">
-      <div class="entity-result__placeholder">
-        <i class="fa-solid fa-screwdriver-wrench"></i>
-        <h3>{{ 'SEARCH.TIER_PLACEHOLDER_TITLE' | translate }}</h3>
-        <p>{{ 'SEARCH.TIER_PLACEHOLDER_HINT' | translate }}</p>
+  <!-- Loại 3: Author/Artist — thông tin người + truyện họ tham gia (chung
+       template với person-detail qua <app-entity-detail>). -->
+  <ng-container *ngIf="isPersonTarget">
+
+    <ng-container *ngIf="selectedPerson; else personInitial">
+      <app-entity-detail
+        [kind]="personKind"
+        [name]="selectedPerson.name"
+        [description]="selectedPerson.description"
+        [birth]="selectedPerson.birth"
+        [lifeStatus]="selectedPerson.lifeStatus"
+        [mangas]="results"
+        [isLoading]="isLoading"
+        [showTags]="false"
+        [count]="hasSearched ? totalCount : null"
+        [showPagination]="true"
+        [currentPage]="currentPage"
+        [totalCount]="totalCount"
+        [pageSize]="pageSize"
+        (pageChange)="goToPage($event)">
+      </app-entity-detail>
+    </ng-container>
+
+    <ng-template #personInitial>
+      <div class="initial-state">
+        <i [class]="searchTarget === 'author' ? 'fa-solid fa-pen-nib' : 'fa-solid fa-palette'"></i>
+        <p>{{ 'SEARCH.PERSON_PICK_HINT' | translate }}</p>
       </div>
-    </div>
+    </ng-template>
+
   </ng-container>
 
   </div>

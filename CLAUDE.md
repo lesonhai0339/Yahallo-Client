@@ -9,26 +9,71 @@
 
 | Key | Value |
 |-----|-------|
-| **Framework** | Angular 16, **NgModule** (không dùng standalone components) |
-| **UI** | Bootstrap 5 (layout) + Angular Material (tables/dialogs) |
-| **Theme** | Dark default, CSS variables (`--bg-primary`, `--accent-primary: #e94560`) |
-| **Auth** | JWT cookie + AES-encrypted user in localStorage |
-| **API Base** | `https://localhost:7181` (dev) — xem `src/environments/environment.ts` |
-| **Branch chính** | `master` |
+| **App** | `yahallo-client-refactor` — frontend đọc truyện (manga reader) |
+| **Framework** | Angular **16.2**, **NgModule** (KHÔNG dùng standalone), TypeScript, RxJS 7.8 |
+| **UI** | Bootstrap 5.3 (layout/grid) + Angular Material 16 (table/dialog/menu) + `ngx-toastr` (toast) |
+| **Realtime** | SignalR (`@microsoft/signalr` 8) — hub notification tại `/hubs/notification` |
+| **Theme** | Dark mặc định, CSS variables (`--bg-primary`, `--accent-primary: #e94560`) — `ThemeService` |
+| **i18n** | `vi` / `en` — `TranslationService` + `translate` pipe, file `src/assets/i18n/*.json` |
+| **Auth** | JWT qua cookie (`withCredentials`) + user mã hoá AES (`crypto-js`) trong localStorage |
+| **Backend** | .NET API cùng cấp: `../Yahallo-API`. Base URL dev `https://localhost:7181` — `src/environments/environment.ts` |
+| **Branch chính** | `master` (đang làm trên các nhánh `dev_agent*`) |
 
-**Cấu trúc thư mục quan trọng:**
+### Kiến trúc runtime (cần nhớ)
+- **Bootstrap:** `app.module.ts` dùng 2 `APP_INITIALIZER` — `initTranslations` rồi `initAuth` (nạp i18n + phục hồi phiên trước khi app chạy).
+- **HTTP interceptor chain (đúng thứ tự):** `AuthInterceptor` → `RefreshInterceptor` (bắt 401 → gọi refresh → retry) → `ErrorInterceptor`. Xem `core/interceptors/`.
+- **Cache:** `core/services/cache.service.ts` — `CacheService.get(key, ttlMs, producer)` (Map + `shareReplay`, lỗi không cache) + hằng `CACHE_TTL`. Dùng cho GET ít đổi (homepage, manga-detail, chapters, **user-profile**). Mutation xong nhớ gọi `invalidate(keyOrPrefix)`.
+- **Master data:** `MasterDataService` phát `categories$/tags$/authors$/artists$/homepage$` (ReplaySubject) — load 1 lần, share cho header + search.
+
+### Cấu trúc thư mục
 ```
 src/app/
-├── core/          — guards, interceptors, services, models
-├── features/      — user-facing pages (home, manga, auth, user)
-├── shared/        — reusable components (manga-card, comments...)
-├── Layout/        — header, footer
-└── admin/         — admin panel (lazy-loaded tại /admin)
-    ├── services/
-    ├── layout/
-    ├── pages/
-    └── shared/    — dialogs, multi-tag-select, related-manga-selector
+├── core/                    — hạ tầng dùng chung (không phải UI page)
+│   ├── guards/              — auth.guard, admin.guard, permission.guard
+│   ├── interceptors/        — auth / refresh / error
+│   ├── models/              — interfaces.ts, manga/chapter/comment/country/permission
+│   ├── services/            — ~24 service (xem mục 1.1)
+│   └── utils/               — file-upload-info.ts
+├── features/                — TRANG người dùng (routed components)
+│   ├── home/                — trang chủ
+│   ├── manga/               — manga-detail, manga-reader, manga-search (advanced),
+│   │                          top-manga, manga-list, manga-list-page
+│   ├── user/                — profile (tabs: info/following/history/frames/downloads/settings),
+│   │                          settings, avatar-frames, notifications
+│   ├── person/person-detail — trang author / artist / tag (dùng chung, phân biệt qua route data.kind)
+│   ├── auth/                — login, register, forgot-password
+│   ├── offline-reader/      — đọc offline (đã tải)
+│   └── error/               — server-error
+├── shared/                  — COMPONENT tái dùng (khai báo/eXport ở SharedModule)
+│   ├── components/          — manga-card, manga-sumary-card, entity-detail, comment-section/
+│   │                          comment-item/comment-editor, pagination, loading-skeleton,
+│   │                          avatar-frame, image-crop-dialog, reader-viewer, download-tray,
+│   │                          session-expired-dialog
+│   ├── directives/          — image-fallback (appImageFallback)
+│   └── pipes/               — translate, format-text
+├── Layout/                  — header, footer, sidebar (khung app)
+├── admin/                   — panel quản trị, LAZY-LOAD tại /admin (AdminModule)
+│   ├── layout/admin-layout
+│   ├── pages/               — dashboard, manga-list, manga-form, chapter-list,
+│   │                          manga-analytics, user-list, user-analytics, topic-list,
+│   │                          taxonomy-list, taxonomy-requests
+│   ├── services/            — admin-manga, admin-state, admin, analytics, image-upload, taxonomy
+│   └── shared/              — dialog + control riêng của admin (multi-tag-select,
+│                              related-manga-selector, các *-dialog)
+└── Tool/ · Service/ · Extension/   — CODE CŨ (pre-refactor). Còn vài chỗ dùng
+                                       (vd Tool/skeletonscreen, Tool/search). Ưu tiên code
+                                       trong core/features/shared; tránh mở rộng thư mục cũ.
 ```
+
+### 1.1 Services (`core/services/`) — tra nhanh
+- **Dữ liệu manga:** `manga.service` (homepage, filter-manga, detail, stats, chapters, images…), `chapter.service`, `tag.service`, `author.service`, `artist.service`, `country.service`, `master-data.service`, `search.service` (suggest cho header).
+- **Người dùng & tương tác:** `auth.service`, `user.service` (profile — có cache), `user-interaction.service` (following, notification read…), `user-settings.service`, `user-preferences.service`, `follow-manga.service`, `reading-progress.service`, `comment.service`, `avatar-frame.service`, `permission.service`.
+- **Hạ tầng:** `cache.service`, `notification.service` (SignalR hub), `download.service` (tải offline), `theme.service`, `translation.service`, `seo.service`, `health.service`.
+
+### 1.2 Routes chính (`app-routing.module.ts`)
+`/` home · `/manga/:id` detail · `/manga/:id/chapter/:chapterId/:chapterIndex` reader · `/search` + `/search/advanced` · `/the-loai/:id` · `/latest` · `/popular` · `/top-manga[/:criterion]` · `/author|artist|tag/:id` (PersonDetail) · `/auth/{login,register,forgot-password}` · `/user/:id/:name[/:tab]` (AuthGuard; tab = info|following|history|frames|downloads|settings|notifications) · `/offline` · `/admin` (lazy) · `**` → home.
+
+> ⚠️ **Lưu ý routing profile:** `user/:id/:name` (tab info) và `user/:id/:name/:tab` là **2 route config khác nhau** → chuyển giữa info và các tab con sẽ **destroy/recreate `ProfileComponent`** (re-fire API). Vì vậy `getProfile` được cache theo id.
 
 ---
 
@@ -54,6 +99,27 @@ src/app/
 - **Array inputs** cho component phải là property thường, không dùng getter (tránh `ExpressionChangedAfterItHasBeenCheckedError`)
 - **`ngModel` trong `[formGroup]`** phải có `[ngModelOptions]="{ standalone: true }"`
 - Không tạo file `.md` documentation trừ khi được yêu cầu
+
+### 3.1 Comment cho method — BẮT BUỘC 4 nhánh
+
+Mỗi method (trừ getter/setter một dòng và event handler thuần chuyển tiếp) phải có
+comment theo đúng 4 nhánh dưới đây, để người đọc sau — hoặc dev khác — hiểu ngay
+mà không phải đọc thân hàm:
+
+```ts
+/**
+ * Chức năng: <làm gì, và vì sao cần — nếu có lý do không hiển nhiên>
+ * Yêu cầu: <từng tham số: ý nghĩa, ràng buộc, đơn vị; state/điều kiện tiên quyết>
+ * Kết quả trả về: <trả gì; Observable/Promise thì nói rõ emit gì, có complete không>
+ * Exception: <ném/emit lỗi gì, khi nào; hoặc "không ném — trả X khi lỗi">
+ */
+```
+
+Quy ước:
+- Viết bằng **tiếng Việt**, ngắn gọn, không diễn giải lại code từng dòng.
+- Method `void` → `Kết quả trả về: không (cập nhật <field> tại chỗ)`.
+- Không bao giờ ném lỗi → ghi rõ `Exception: không ném — <hành vi thay thế>`.
+- Nhánh nào thực sự không có nội dung thì vẫn giữ dòng và ghi `không`.
 
 ---
 
@@ -86,7 +152,7 @@ src/app/
 # Session: <Chủ đề>
 **Date:** YYYY-MM-DD HH:MM  
 **Branch:** <git branch>  
-**Model:** claude-sonnet-4-6  
+**Model:** <model đang dùng, vd claude-opus-5>  
 
 ## Summary
 <!-- 2-3 câu tóm tắt những gì đã làm trong session này -->

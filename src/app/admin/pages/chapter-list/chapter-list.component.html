@@ -52,6 +52,11 @@
             <th mat-header-cell *matHeaderCellDef>Thao tác</th>
             <td mat-cell *matCellDef="let c">
               <div class="action-btns">
+                <!-- ⚠️ MODULE MỚI THÊM: mo trang quan ly anh cua chuong -->
+                <button class="action-btn action-btn--images" (click)="manageImages(c)"
+                        title="Quản lý ảnh (xoá SFX, ghi chữ, đảo trang...)">
+                  <span class="material-icons">brush</span>
+                </button>
                 <button class="action-btn action-btn--edit" (click)="openEditDialog(c)" title="Chỉnh sửa">
                   <span class="material-icons">edit</span>
                 </button>

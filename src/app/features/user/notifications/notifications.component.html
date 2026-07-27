@@ -14,7 +14,7 @@
       </div>
       <div class="notif-body">
         <p>{{ n.message }}</p>
-        <span class="notif-date">{{ n.createDate | date:'dd/MM/yyyy - HH:mm' }}</span>
+        <span class="notif-date">{{ n.createDate | utcDate | date:'dd/MM/yyyy - HH:mm' }}</span>
       </div>
       <div class="notif-status" *ngIf="!n.seen">
         <span class="unread-dot"></span>

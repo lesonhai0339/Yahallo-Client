@@ -21,7 +21,7 @@
       <!-- Desktop table -->
       <div class="table-wrapper desktop-only">
         <div *ngIf="loading" class="table-loading">
-          <div class="spinner"></div><span>Đang tải...</span>
+          <app-table-skeleton leading="avatar" [rows]="7" [cols]="2"></app-table-skeleton>
         </div>
 
         <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
@@ -86,7 +86,9 @@
 
       <!-- Mobile cards: tap a row to reveal the user card inline below it -->
       <div class="mcard-list mobile-only">
-        <div *ngIf="loading" class="table-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+        <div *ngIf="loading" class="table-loading">
+          <app-table-skeleton variant="card" leading="avatar" [rows]="5" [cols]="2"></app-table-skeleton>
+        </div>
 
         <div class="mcard" *ngFor="let u of dataSource.filteredData" [class.mcard--open]="selectedUser?.id === u.id">
           <div class="mcard__head" (click)="selectUser(u)">

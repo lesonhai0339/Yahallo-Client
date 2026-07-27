@@ -130,6 +130,54 @@ export class ThemeService {
     this.setTheme(this.currentTheme === 'light' ? 'dark' : 'light');
   }
 
+  /**
+   * Đổi theme kèm hiệu ứng "lan như mặt nước" toả ra từ vị trí click.
+   *
+   * Cách làm: View Transitions API chụp ảnh trạng thái cũ/mới, rồi animate
+   * `clip-path: circle()` trên snapshot MỚI từ bán kính 0 tại điểm click ra tới
+   * góc xa nhất của viewport → trông như gợn nước lan ra.
+   *
+   * Fallback: trình duyệt không hỗ trợ `startViewTransition`, hoặc user bật
+   * "giảm chuyển động", hoặc không có toạ độ click → đổi theme ngay, không hiệu ứng.
+   */
+  toggleWithRipple(event?: MouseEvent): void {
+    const doc = document as any;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (typeof doc.startViewTransition !== 'function' || reduceMotion || !event) {
+      this.toggle();
+      return;
+    }
+
+    const x = event.clientX;
+    const y = event.clientY;
+    // Bán kính đủ để phủ hết viewport từ điểm click (góc xa nhất).
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    );
+
+    const transition = doc.startViewTransition(() => this.toggle());
+    transition.ready
+      .then(() => {
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${endRadius}px at ${x}px ${y}px)`,
+            ],
+          },
+          {
+            duration: 520,
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            pseudoElement: '::view-transition-new(root)',
+          },
+        );
+      })
+      // Transition bị skip (vd điều hướng chen ngang) → bỏ qua, theme đã đổi rồi.
+      .catch(() => {});
+  }
+
   setTheme(theme: Theme): void {
     localStorage.setItem(STORAGE_KEY, theme);
     document.documentElement.setAttribute('data-theme', theme);

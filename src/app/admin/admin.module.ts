@@ -50,6 +50,15 @@ import { TaxonomyListComponent } from './pages/taxonomy-list/taxonomy-list.compo
 import { TaxonomyRequestsComponent } from './pages/taxonomy-requests/taxonomy-requests.component';
 import { TaxonomyFormDialogComponent } from './shared/taxonomy-form-dialog/taxonomy-form-dialog.component';
 import { DetailCardSkeletonComponent } from './shared/detail-card-skeleton/detail-card-skeleton.component';
+import { TableSkeletonComponent } from './shared/table-skeleton/table-skeleton.component';
+// ⚠️ MODULE MỚI THÊM (comment-moderation / trash-bin / role-list)
+// → xem docs/ADMIN_MODULES_ADDED.md để remove chính xác.
+import { CommentModerationComponent } from './pages/comment-moderation/comment-moderation.component';
+import { TrashBinComponent } from './pages/trash-bin/trash-bin.component';
+import { RoleListComponent } from './pages/role-list/role-list.component';
+import { ImageEditorComponent } from './pages/image-editor/image-editor.component';
+import { ImageEditorPanelComponent } from './shared/image-editor-panel/image-editor-panel.component';
+import { ChapterImagesComponent } from './pages/chapter-images/chapter-images.component';
 
 const MAT_MODULES = [
   MatTableModule,
@@ -74,6 +83,7 @@ const MAT_MODULES = [
   declarations: [
     AdminLayoutComponent,
     DetailCardSkeletonComponent,
+    TableSkeletonComponent,
     DashboardComponent,
     MangaListComponent,
     MangaFormComponent,
@@ -94,6 +104,13 @@ const MAT_MODULES = [
     TaxonomyListComponent,
     TaxonomyRequestsComponent,
     TaxonomyFormDialogComponent,
+    // ⚠️ MODULE MỚI THÊM — xoá 3 dòng dưới khi remove (docs/ADMIN_MODULES_ADDED.md)
+    CommentModerationComponent,
+    TrashBinComponent,
+    RoleListComponent,
+    ImageEditorComponent,
+    ImageEditorPanelComponent,
+    ChapterImagesComponent,
   ],
   imports: [
     CommonModule,

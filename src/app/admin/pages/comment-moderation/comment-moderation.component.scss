@@ -1,0 +1,321 @@
+// ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md
+.cm-page { padding: 4px 0 32px; }
+
+.cm-page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.cm-page__title { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+.cm-page__sub { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0; }
+
+.cm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 1rem; }
+  &:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+  &.active {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(233, 69, 96, 0.1);
+  }
+}
+
+.cm-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+
+  .material-icons { font-size: 1.1rem; color: var(--text-muted); }
+
+  input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    &:focus { outline: none; }
+    &::placeholder { color: var(--text-muted); }
+  }
+}
+
+.cm-loading, .cm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  color: var(--text-muted);
+
+  .material-icons { font-size: 2.4rem; opacity: 0.6; }
+  p { margin: 0; font-size: 0.9rem; }
+}
+
+.cm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.cm-item {
+  // Cột: hàng chính (avatar | body | actions) + panel chi tiết bên dưới.
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+
+  &:hover { border-color: var(--border-light); }
+
+  // Comment đã xoá: mờ + viền cảnh báo để phân biệt ngay.
+  &--deleted {
+    opacity: 0.62;
+    border-left: 3px solid var(--accent-primary);
+  }
+
+  // Đang mở chi tiết: nổi lên để thấy rõ đang xem cái nào.
+  &--open {
+    border-color: var(--accent-primary);
+    opacity: 1;
+  }
+
+  &__main {
+    display: flex;
+    gap: 12px;
+  }
+
+  &__avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__body { flex: 1; min-width: 0; }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+
+    strong { color: var(--text-primary); font-weight: 600; }
+  }
+
+  &__dot { opacity: 0.5; }
+
+  &__badge {
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: rgba(233, 69, 96, 0.16);
+    color: var(--accent-primary);
+
+    &--reply {
+      background: rgba(66, 135, 245, 0.16);
+      color: #6ba3f7;
+    }
+  }
+
+  // Like / dislike / reply count cạnh vị trí comment.
+  &__stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 10px;
+
+    .material-icons { font-size: 0.85rem; }
+  }
+
+  &__content {
+    margin: 0 0 6px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  &__ctx {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+
+    .material-icons { font-size: 0.9rem; }
+    a { color: var(--text-secondary); text-decoration: none; &:hover { color: var(--accent-primary); } }
+  }
+
+  &__actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+}
+
+.cm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+
+  .material-icons { font-size: 0.95rem; }
+  &:hover:not(:disabled) { border-color: var(--border-light); color: var(--text-primary); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  &--danger:hover:not(:disabled) { border-color: #e5484d; color: #e5484d; }
+
+  // Nút mở chi tiết: nhẹ hơn 2 nút hành động kia.
+  &--ghost {
+    background: transparent;
+    &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+  }
+}
+
+// ── Panel chi tiết (dropdown) ────────────────────────────────────────────────
+.cm-detail {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+  animation: cmDetailIn 0.14s ease;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 20px;
+
+    @media (max-width: 768px) { grid-template-columns: 1fr; }
+  }
+
+  &__row {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+    font-size: 0.8rem;
+    align-items: baseline;
+  }
+
+  &__label {
+    flex: none;
+    width: 130px;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__val {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+
+    a { color: var(--text-secondary); text-decoration: none; &:hover { color: var(--accent-primary); } }
+  }
+
+  // Id dài → font mono, nhỏ, cho phép chọn để copy.
+  code.cm-detail__val {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    user-select: all;
+  }
+
+  &__user {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+  }
+
+  &__full {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+  }
+
+  &__message {
+    margin: 6px 0 0;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+@keyframes cmDetailIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cm-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+
+  &__info { font-size: 0.8rem; color: var(--text-muted); }
+}
+
+.cm-page-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  .material-icons { font-size: 1.1rem; }
+  &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+@media (max-width: 768px) {
+  .cm-page__head { flex-direction: column; align-items: stretch; }
+  .cm-toggle { justify-content: center; }
+}
+
+@media (max-width: 640px) {
+  .cm-page__title { font-size: 1.1rem; }
+  .cm-item__main { flex-wrap: wrap; }
+  // Nut hanh dong xuong hang rieng, tran chieu ngang cho de bam.
+  .cm-item__actions { flex-direction: row; width: 100%; }
+  .cm-btn { flex: 1 1 auto; justify-content: center; }
+  // Label/value cua panel chi tiet xep doc de khong bi bop.
+  .cm-detail__row { flex-direction: column; gap: 2px; }
+  .cm-detail__label { width: auto; }
+  .cm-pager { flex-wrap: wrap; }
+}

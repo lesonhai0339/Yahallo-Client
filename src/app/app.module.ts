@@ -26,6 +26,7 @@ import { PaginationComponent } from './shared/components/pagination/pagination.c
 import { ImageFallbackDirective } from './shared/directives/image-fallback.directive';
 import { TranslatePipe } from './shared/pipes/translate.pipe';
 import { FormatTextPipe } from './shared/pipes/format-text.pipe';
+import { UtcDatePipe } from './shared/pipes/utc-date.pipe';
 import { CommentEditorComponent } from './shared/components/comment-editor/comment-editor.component';
 import { CommentItemComponent } from './shared/components/comment-item/comment-item.component';
 import { CommentSectionComponent } from './shared/components/comment-section/comment-section.component';
@@ -81,6 +82,7 @@ export function initTranslations(translation: TranslationService) {
     ImageFallbackDirective,
     TranslatePipe,
     FormatTextPipe,
+    UtcDatePipe,
     CommentEditorComponent,
     CommentItemComponent,
     CommentSectionComponent,

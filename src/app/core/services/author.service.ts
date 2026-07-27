@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { toIsoWithOffset } from '../utils/date-format';
 
 @Injectable({ providedIn: 'root' })
 export class AuthorService {
@@ -25,7 +26,12 @@ export class AuthorService {
     if (params.id) hp = hp.set('Id', params.id);
     if (params.name) hp = hp.set('Name', params.name);
     if (params.countries != null) hp = hp.set('Countries', params.countries);
-    if (params.birth) hp = hp.set('Birth', params.birth);
+    // `Birth` đi qua StrictDateTimeOffsetBinder (áp cả cho query param) nên PHẢI
+    // có offset — chuẩn hoá tại đây để caller truyền "yyyy-MM-dd" cũng không bị 400.
+    if (params.birth) {
+      const birth = toIsoWithOffset(params.birth);
+      if (birth) hp = hp.set('Birth', birth);
+    }
     if (params.lifeStatus != null) hp = hp.set('LifeStatus', params.lifeStatus);
     return this.http.get(`${this.base}/filter-author`, { params: hp });
   }

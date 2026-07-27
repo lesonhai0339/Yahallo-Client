@@ -1,0 +1,173 @@
+<!-- ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md -->
+<div class="iep">
+  <header class="iep__head">
+    <div class="iep__title">
+      <span class="material-icons">brush</span>
+      <span>Sửa ảnh<span class="iep__label" *ngIf="label"> · {{ label }}</span></span>
+    </div>
+    <button class="iep-mini" (click)="close()" title="Đóng">
+      <span class="material-icons">close</span>
+    </button>
+  </header>
+
+  <div class="iep__body">
+    <div class="iep__loading" *ngIf="loading">
+      <mat-progress-spinner mode="indeterminate" diameter="30"></mat-progress-spinner>
+      <span>Đang tải ảnh...</span>
+    </div>
+
+    <div class="iep__error" *ngIf="loadError">
+      <span class="material-icons">error_outline</span>
+      <span>{{ loadError }}</span>
+    </div>
+
+    <!-- Khung ảnh -->
+    <div class="iep__stage" *ngIf="!loading && !loadError">
+      <div class="iep__bar">
+        <button class="iep-mini" [class.active]="tool === 'select'" (click)="tool = 'select'"
+                title="Chọn vùng">
+          <span class="material-icons">crop_free</span>
+        </button>
+        <button class="iep-mini" [class.active]="tool === 'pick'" (click)="tool = 'pick'"
+                title="Hút màu">
+          <span class="material-icons">colorize</span>
+        </button>
+        <span class="iep-sep"></span>
+        <button class="iep-mini" [disabled]="!canUndo" (click)="undo()" title="Hoàn tác">
+          <span class="material-icons">undo</span>
+        </button>
+        <button class="iep-mini" [disabled]="!canRedo" (click)="redo()" title="Làm lại">
+          <span class="material-icons">redo</span>
+        </button>
+        <span class="iep-sep"></span>
+        <button class="iep-mini" (click)="setZoom(zoom - 0.1)"><span class="material-icons">zoom_out</span></button>
+        <span class="iep__zoom">{{ (zoom * 100) | number:'1.0-0' }}%</span>
+        <button class="iep-mini" (click)="setZoom(zoom + 0.1)"><span class="material-icons">zoom_in</span></button>
+        <button class="iep-mini" (click)="fitZoom()" title="Vừa khung"><span class="material-icons">fit_screen</span></button>
+      </div>
+
+      <div class="iep__canvas-wrap">
+        <div class="iep__canvas-inner" [style.width.px]="imgW * zoom" [style.height.px]="imgH * zoom">
+          <canvas #cv [style.width.px]="imgW * zoom" [style.height.px]="imgH * zoom"
+                  [class.pick]="tool === 'pick'"
+                  (mousedown)="onCanvasMouseDown($event)"
+                  (touchstart)="onCanvasTouchStart($event)"
+                  (touchmove)="onCanvasTouchMove($event)"></canvas>
+          <div class="iep__sel" [ngStyle]="selStyle"></div>
+        </div>
+      </div>
+
+      <p class="iep__selinfo">
+        <ng-container *ngIf="sel">Vùng chọn {{ sel.w }}×{{ sel.h }}</ng-container>
+        <ng-container *ngIf="!sel">Kéo chuột trên ảnh để chọn vùng</ng-container>
+        <button class="iep-mini" *ngIf="sel" (click)="clearSelection()"><span class="material-icons">close</span></button>
+      </p>
+    </div>
+
+    <!-- Công cụ -->
+    <div class="iep__tools" *ngIf="!loading && !loadError && !tainted">
+
+      <div class="iep-card">
+        <h4>Màu vùng lân cận</h4>
+        <p class="iep-muted" *ngIf="palette.length === 0">Chọn vùng để xem màu xung quanh.</p>
+        <div class="iep-swatches" *ngIf="palette.length">
+          <button class="iep-swatch" *ngFor="let s of palette" [style.background]="s.hex"
+                  (click)="useSwatch(s)" [title]="s.hex">
+            <span>{{ s.hex }}</span>
+          </button>
+        </div>
+        <div class="iep-row">
+          <input type="color" [(ngModel)]="fillColor">
+          <input type="text" class="iep-hex" [(ngModel)]="fillColor">
+        </div>
+      </div>
+
+      <div class="iep-card">
+        <h4>Xoá SFX / tô vùng</h4>
+        <button class="iep-btn iep-btn--primary" (click)="applyPatch(true)">
+          <span class="material-icons">auto_fix_high</span> Tô bằng màu nền lân cận
+        </button>
+        <button class="iep-btn" (click)="applyPatch(false)">
+          <span class="material-icons">format_color_fill</span> Tô bằng màu đang chọn
+        </button>
+      </div>
+
+      <div class="iep-card">
+        <h4>Đổi màu trong vùng</h4>
+        <div class="iep-row">
+          <input type="color" [(ngModel)]="targetColor">
+          <input type="text" class="iep-hex" [(ngModel)]="targetColor">
+        </div>
+        <label class="iep-lbl">Ngưỡng: {{ tolerance }}</label>
+        <input type="range" min="0" max="255" [(ngModel)]="tolerance">
+        <button class="iep-btn" (click)="applyRecolor()">
+          <span class="material-icons">palette</span> Đổi sang màu đang chọn
+        </button>
+      </div>
+
+      <div class="iep-card">
+        <h4>Ghi chữ lên vùng</h4>
+        <textarea rows="3" [(ngModel)]="text" placeholder="Nội dung dịch..."></textarea>
+        <label class="iep-check">
+          <input type="checkbox" [(ngModel)]="clearBeforeText"> Tô nền trước (xoá chữ gốc)
+        </label>
+        <div class="iep-grid2">
+          <div>
+            <label class="iep-lbl">Cỡ chữ</label>
+            <input type="number" min="6" max="200" [(ngModel)]="fontSize">
+          </div>
+          <div>
+            <label class="iep-lbl">Font</label>
+            <select [(ngModel)]="fontFamily">
+              <option *ngFor="let f of fontOptions" [value]="f">{{ f }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="iep-grid2">
+          <div>
+            <label class="iep-lbl">Màu chữ</label>
+            <input type="color" [(ngModel)]="textColor">
+          </div>
+          <div>
+            <label class="iep-lbl">Canh lề</label>
+            <select [(ngModel)]="align">
+              <option value="left">Trái</option>
+              <option value="center">Giữa</option>
+              <option value="right">Phải</option>
+            </select>
+          </div>
+        </div>
+        <div class="iep-inline">
+          <label class="iep-check"><input type="checkbox" [(ngModel)]="bold"> Đậm</label>
+          <label class="iep-check"><input type="checkbox" [(ngModel)]="italic"> Nghiêng</label>
+        </div>
+        <div class="iep-grid2">
+          <div>
+            <label class="iep-lbl">Viền: {{ strokeWidth }}px</label>
+            <input type="range" min="0" max="8" [(ngModel)]="strokeWidth">
+          </div>
+          <div>
+            <label class="iep-lbl">Màu viền</label>
+            <input type="color" [(ngModel)]="strokeColor">
+          </div>
+        </div>
+        <button class="iep-btn iep-btn--primary" (click)="applyText()">
+          <span class="material-icons">title</span> Ghi chữ vào vùng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Áp dụng / huỷ -->
+  <footer class="iep__foot">
+    <span class="iep__dirty" *ngIf="dirty">
+      <span class="material-icons">edit</span> Có thay đổi chưa áp dụng
+    </span>
+    <div class="iep__foot-actions">
+      <button class="iep-btn" (click)="close()">Đóng</button>
+      <button class="iep-btn iep-btn--primary" [disabled]="!dirty || tainted" (click)="apply()">
+        <span class="material-icons">check</span> Áp dụng vào ảnh
+      </button>
+    </div>
+  </footer>
+</div>

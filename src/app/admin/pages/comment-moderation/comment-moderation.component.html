@@ -1,0 +1,200 @@
+<!-- ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md -->
+<div class="cm-page">
+  <header class="cm-page__head">
+    <div>
+      <h1 class="cm-page__title">Kiểm duyệt bình luận</h1>
+      <p class="cm-page__sub">Tìm, ẩn và phục hồi bình luận vi phạm.</p>
+    </div>
+    <button class="cm-toggle" [class.active]="includeDeleted" (click)="toggleIncludeDeleted()">
+      <span class="material-icons">{{ includeDeleted ? 'visibility' : 'visibility_off' }}</span>
+      Hiện cả đã xoá
+    </button>
+  </header>
+
+  <div class="cm-search">
+    <span class="material-icons">search</span>
+    <input [(ngModel)]="search" (ngModelChange)="onSearchChange()"
+           placeholder="Tìm theo nội dung bình luận..." />
+  </div>
+
+  <!-- Skeleton thay spinner: giu dung hinh dang danh sach comment -->
+  <app-table-skeleton *ngIf="isLoading"
+    variant="card" leading="avatar" [rows]="6" [cols]="3"></app-table-skeleton>
+
+  <div class="cm-empty" *ngIf="!isLoading && comments.length === 0">
+    <span class="material-icons">forum</span>
+    <p>Không có bình luận nào</p>
+  </div>
+
+  <ul class="cm-list" *ngIf="!isLoading && comments.length > 0">
+    <li class="cm-item" *ngFor="let c of comments; trackBy: trackById"
+        [class.cm-item--deleted]="c.isDeleted"
+        [class.cm-item--open]="isExpanded(c)">
+
+      <!-- Hàng chính -->
+      <div class="cm-item__main">
+        <img class="cm-item__avatar" [src]="c.avatar || '/assets/user.jpg'" [alt]="c.displayName">
+
+        <div class="cm-item__body">
+          <div class="cm-item__meta">
+            <strong>{{ c.displayName }}</strong>
+            <span class="cm-item__dot">·</span>
+            <span>{{ (c.dateTime || c.createDate) ? ((c.dateTime || c.createDate) | date:'dd/MM/yyyy HH:mm') : '—' }}</span>
+            <span class="cm-item__badge" *ngIf="c.isDeleted">đã xoá</span>
+            <span class="cm-item__badge cm-item__badge--reply" *ngIf="isReply(c)">trả lời</span>
+          </div>
+          <p class="cm-item__content">{{ c.message }}</p>
+          <div class="cm-item__ctx">
+            <span class="material-icons">menu_book</span>
+            <a *ngIf="c.mangaId" [routerLink]="['/manga', c.mangaId]" target="_blank">
+              {{ locationLabel(c) }}
+            </a>
+            <span *ngIf="!c.mangaId">{{ locationLabel(c) }}</span>
+            <span class="cm-item__stat"><span class="material-icons">thumb_up</span>{{ c.like }}</span>
+            <span class="cm-item__stat"><span class="material-icons">thumb_down</span>{{ c.dislike }}</span>
+            <span class="cm-item__stat" *ngIf="c.replyCount">
+              <span class="material-icons">reply</span>{{ c.replyCount }}
+            </span>
+          </div>
+        </div>
+
+        <div class="cm-item__actions">
+          <!-- Dropdown chi tiết: API đã trả đủ field nên không cần request thêm -->
+          <button class="cm-btn cm-btn--ghost" (click)="toggleExpand(c)"
+                  [title]="isExpanded(c) ? 'Ẩn chi tiết' : 'Xem chi tiết'">
+            <span class="material-icons">{{ isExpanded(c) ? 'expand_less' : 'expand_more' }}</span>
+            Chi tiết
+          </button>
+          <button class="cm-btn cm-btn--danger" *ngIf="!c.isDeleted"
+                  [disabled]="busyId === c.id" (click)="askDelete(c)">
+            <span class="material-icons">delete</span> Xoá
+          </button>
+          <button class="cm-btn" *ngIf="c.isDeleted"
+                  [disabled]="busyId === c.id" (click)="restore(c)">
+            <span class="material-icons">restore</span> Phục hồi
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel chi tiết (toàn bộ field của AdminCommentDto) -->
+      <div class="cm-detail" *ngIf="isExpanded(c)">
+        <div class="cm-detail__grid">
+
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Comment ID</span>
+            <code class="cm-detail__val">{{ c.id }}</code>
+          </div>
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">User ID</span>
+            <code class="cm-detail__val">{{ c.userId || '—' }}</code>
+          </div>
+
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Truyện</span>
+            <span class="cm-detail__val">
+              <a *ngIf="c.mangaId" [routerLink]="['/manga', c.mangaId]" target="_blank">
+                {{ c.mangaName || c.mangaId }}
+              </a>
+              <span *ngIf="!c.mangaId">—</span>
+            </span>
+          </div>
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Manga ID</span>
+            <code class="cm-detail__val">{{ c.mangaId || '—' }}</code>
+          </div>
+
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Chương</span>
+            <span class="cm-detail__val">
+              {{ c.chapterName || (c.chapterIndex != null ? ('Chương ' + c.chapterIndex) : '—') }}
+            </span>
+          </div>
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Chapter ID</span>
+            <code class="cm-detail__val">{{ c.chapterId || '—' }}</code>
+          </div>
+
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Parent ID</span>
+            <code class="cm-detail__val">{{ c.parentId || '—' }}</code>
+          </div>
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Reply to comment</span>
+            <code class="cm-detail__val">{{ c.replyToCommentId || '—' }}</code>
+          </div>
+
+          <div class="cm-detail__row" *ngIf="c.blogId">
+            <span class="cm-detail__label">Blog ID</span>
+            <code class="cm-detail__val">{{ c.blogId }}</code>
+          </div>
+
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Trả lời tới</span>
+            <span class="cm-detail__val cm-detail__user" *ngIf="c.userCommentTo; else noReplyTo">
+              <img [src]="c.userCommentTo.avatar || '/assets/user.jpg'" alt="">
+              {{ c.userCommentTo.displayName || c.userCommentTo.id || '—' }}
+            </span>
+            <ng-template #noReplyTo><span class="cm-detail__val">—</span></ng-template>
+          </div>
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Like / Dislike</span>
+            <span class="cm-detail__val">{{ c.like }} / {{ c.dislike }}</span>
+          </div>
+
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Số reply</span>
+            <span class="cm-detail__val">{{ c.replyCount }}</span>
+          </div>
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Thời điểm (DateTime)</span>
+            <span class="cm-detail__val">
+              {{ c.dateTime ? (c.dateTime | date:'dd/MM/yyyy HH:mm:ss') : '—' }}
+            </span>
+          </div>
+
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Ngày tạo</span>
+            <span class="cm-detail__val">
+              {{ c.createDate ? (c.createDate | date:'dd/MM/yyyy HH:mm:ss') : '—' }}
+            </span>
+          </div>
+          <div class="cm-detail__row">
+            <span class="cm-detail__label">Trạng thái</span>
+            <span class="cm-detail__val">
+              <span class="cm-item__badge" *ngIf="c.isDeleted">đã xoá</span>
+              <span *ngIf="!c.isDeleted">đang hiển thị</span>
+            </span>
+          </div>
+
+          <ng-container *ngIf="c.isDeleted">
+            <div class="cm-detail__row">
+              <span class="cm-detail__label">Ngày xoá</span>
+              <span class="cm-detail__val">
+                {{ c.deleteDate ? (c.deleteDate | date:'dd/MM/yyyy HH:mm:ss') : '—' }}
+              </span>
+            </div>
+            <div class="cm-detail__row">
+              <span class="cm-detail__label">Người xoá</span>
+              <code class="cm-detail__val">{{ c.idUserDeleted || '—' }}</code>
+            </div>
+          </ng-container>
+        </div>
+
+        <div class="cm-detail__full">
+          <span class="cm-detail__label">Nội dung đầy đủ</span>
+          <p class="cm-detail__message">{{ c.message || '(trống)' }}</p>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <div class="cm-pager" *ngIf="!isLoading && totalPages > 1">
+    <button class="cm-page-btn" [disabled]="page === 1" (click)="goToPage(page - 1)">
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <span class="cm-pager__info">{{ page }} / {{ totalPages }} · {{ totalCount }} bình luận</span>
+    <button class="cm-page-btn" [disabled]="page === totalPages" (click)="goToPage(page + 1)">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+</div>

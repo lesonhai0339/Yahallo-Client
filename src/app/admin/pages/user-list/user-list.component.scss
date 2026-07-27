@@ -68,12 +68,14 @@ $radius-md: var(--radius-md);
 }
 
 .table-loading {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  background: rgba(15, 15, 26, 0.6);
-  z-index: 5;
+  // KHONG overlay absolute: .table-wrapper co overflow:hidden, khi chua co du lieu
+  // wrapper co lai bang header => skeleton bi cat, trong nhu vo layout.
+  position: static;
+  display: block;
+  background: var(--bg-card);
   color: $text-sec;
   font-size: 0.9rem;
+
 }
 
 .spinner { width: 24px; height: 24px; border: 2px solid $border; border-top-color: $accent; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -82,7 +84,8 @@ $radius-md: var(--radius-md);
 .admin-table {
   width: 100%;
   background: transparent !important;
-  &.loading { opacity: 0.4; pointer-events: none; }
+  // display:none giu duoc matSort + dataSource (khac *ngIf).
+  &.loading { display: none; }
 
   th.mat-header-cell {
     background: $bg-alt !important;

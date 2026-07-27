@@ -48,13 +48,13 @@
 
       <div class="admin-header__right">
         <!-- View-as switcher (Admin only) -->
-        <div class="view-as" *ngIf="perm.isRealAdmin">
+        <div class="view-as admin-only-lg" *ngIf="perm.isRealAdmin">
+          <!-- Chi icon: role dang xem da hien o badge canh avatar nen khong can
+               lap lai chu, va header do bot chat cho. -->
           <button class="view-as__trigger" (click)="toggleViewAsSwitcher()"
-            [class.view-as__trigger--active]="perm.isViewingAs">
+            [class.view-as__trigger--active]="perm.isViewingAs"
+            [title]="perm.isViewingAs ? 'Đang xem như: ' + perm.getRoleLabel() : 'Chuyển view'">
             <span class="material-icons">swap_horiz</span>
-            <span class="view-as__label">
-              {{ perm.isViewingAs ? 'Xem như: ' + perm.getRoleLabel() : 'Chuyển view' }}
-            </span>
           </button>
           <div class="view-as__dropdown" *ngIf="showViewAsSwitcher">
             <button
@@ -68,16 +68,119 @@
           </div>
         </div>
 
-        <div class="admin-header__user" *ngIf="currentUser">
-          <span class="role-badge" [ngClass]="perm.getRoleBadgeClass()">
-            {{ perm.getRoleLabel() }}
-            <span *ngIf="perm.isViewingAs" class="role-badge__preview">(preview)</span>
-          </span>
-          <img
-            [src]="currentUser.avatar || '/assets/user.jpg'"
-            [alt]="currentUser.name"
-            class="admin-header__avatar" />
-          <span class="admin-header__username">{{ currentUser.name }}</span>
+        <!-- Đổi theme sáng/tối (dùng chung ThemeService với trang chính) -->
+        <button class="admin-icon-btn admin-only-lg" (click)="toggleTheme($event)"
+                [title]="themeService.isDark ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối'">
+          <span class="material-icons">{{ themeService.isDark ? 'light_mode' : 'dark_mode' }}</span>
+        </button>
+
+        <!-- Ngôn ngữ -->
+        <div class="admin-lang admin-only-lg">
+          <button class="admin-icon-btn admin-lang__trigger" (click)="toggleLang()" title="Ngôn ngữ">
+            <img class="admin-lang__flag" [src]="flagUrl(currentLang)" [alt]="currentLang">
+            <span class="admin-lang__code">{{ langLabels[currentLang].label }}</span>
+          </button>
+          <div class="admin-dropdown admin-dropdown--sm" *ngIf="isLangOpen">
+            <button *ngFor="let l of availableLangs" class="admin-dropdown__item"
+                    [class.active]="l === currentLang" (mousedown)="switchLang(l)">
+              <img class="admin-lang__flag" [src]="flagUrl(l)" [alt]="l">
+              {{ langLabels[l].label }}
+              <span class="material-icons admin-dropdown__check" *ngIf="l === currentLang">check</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Thông báo -->
+        <div class="admin-notif" *ngIf="currentUser">
+          <button class="admin-icon-btn" (click)="toggleNotif()" title="Thông báo">
+            <span class="material-icons">notifications</span>
+            <span class="admin-notif__badge" *ngIf="unreadCount > 0">
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </button>
+          <div class="admin-dropdown admin-dropdown--wide" *ngIf="isNotifOpen">
+            <div class="admin-dropdown__head">
+              Thông báo
+              <a class="admin-dropdown__link" *ngIf="profileLink"
+                 [routerLink]="[profileLink[0], profileLink[1], profileLink[2], 'notifications']"
+                 (click)="isNotifOpen = false">Xem tất cả</a>
+            </div>
+            <div class="admin-dropdown__empty" *ngIf="notifications.length === 0">
+              <span class="material-icons">notifications_off</span> Không có thông báo
+            </div>
+            <button *ngFor="let n of notifications" class="admin-notif__item"
+                    [class.unseen]="!n.seen" (click)="openNotif(n)">
+              <span class="material-icons admin-notif__icon">{{ notifIcon(n) }}</span>
+              <span class="admin-notif__body">
+                <span class="admin-notif__text">{{ n.message || n.title || n.content }}</span>
+                <span class="admin-notif__time">{{ notifTime(n) | date:'dd/MM HH:mm' }}</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Avatar + menu profile -->
+        <div class="admin-user-menu" *ngIf="currentUser">
+          <button class="admin-user-menu__trigger" (click)="toggleUserMenu()" title="Tài khoản">
+            <span class="role-badge" [ngClass]="perm.getRoleBadgeClass()">
+              {{ perm.getRoleLabel() }}
+              <span *ngIf="perm.isViewingAs" class="role-badge__preview">(preview)</span>
+            </span>
+            <img
+              [src]="currentUser.avatar || '/assets/user.jpg'"
+              [alt]="currentUser.name"
+              class="admin-header__avatar" />
+            <span class="admin-header__username">{{ currentUser.name }}</span>
+            <span class="material-icons admin-user-menu__chev">
+              {{ isUserMenuOpen ? 'expand_less' : 'expand_more' }}
+            </span>
+          </button>
+
+          <div class="admin-dropdown" *ngIf="isUserMenuOpen">
+            <button class="admin-dropdown__item" (click)="goToProfile()">
+              <span class="material-icons">person</span> Trang cá nhân
+            </button>
+            <button class="admin-dropdown__item" (click)="goToProfile('following')">
+              <span class="material-icons">favorite_border</span> Đang theo dõi
+            </button>
+            <button class="admin-dropdown__item" (click)="goToProfile('history')">
+              <span class="material-icons">history</span> Lịch sử đọc
+            </button>
+            <button class="admin-dropdown__item" (click)="goToProfile('settings')">
+              <span class="material-icons">settings</span> Cài đặt
+            </button>
+            <!-- Man hep: dua theme / ngon ngu / view-as vao day thay vi de ngoai
+                 header (header chi con thong bao + avatar, khong bi tran). -->
+            <div class="admin-dropdown__sep admin-only-sm"></div>
+            <button class="admin-dropdown__item admin-only-sm" (click)="toggleTheme($event)">
+              <span class="material-icons">{{ themeService.isDark ? 'light_mode' : 'dark_mode' }}</span>
+              {{ themeService.isDark ? 'Giao diện sáng' : 'Giao diện tối' }}
+            </button>
+            <button class="admin-dropdown__item admin-only-sm" *ngFor="let l of availableLangs"
+                    [class.active]="l === currentLang" (click)="switchLang(l)">
+              <img class="admin-lang__flag" [src]="flagUrl(l)" [alt]="l">
+              {{ langLabels[l].label }}
+              <span class="material-icons admin-dropdown__check" *ngIf="l === currentLang">check</span>
+            </button>
+            <ng-container *ngIf="perm.isRealAdmin">
+              <div class="admin-dropdown__sep admin-only-sm"></div>
+              <button class="admin-dropdown__item admin-only-sm" *ngFor="let opt of viewAsOptions"
+                      [class.active]="(!perm.isViewingAs && !opt.role) || (perm.viewingAsRole === opt.role)"
+                      (click)="switchViewAs(opt.role); isUserMenuOpen = false">
+                <span class="material-icons">swap_horiz</span> Xem như {{ opt.label }}
+                <span class="material-icons admin-dropdown__check"
+                      *ngIf="(!perm.isViewingAs && !opt.role) || (perm.viewingAsRole === opt.role)">check</span>
+              </button>
+            </ng-container>
+
+            <div class="admin-dropdown__sep"></div>
+            <a class="admin-dropdown__item" routerLink="/" (click)="isUserMenuOpen = false">
+              <span class="material-icons">home</span> Về trang chủ
+            </a>
+            <button class="admin-dropdown__item admin-dropdown__item--danger" (click)="logout()">
+              <span class="material-icons">logout</span> Đăng xuất
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -91,9 +194,10 @@
       </button>
     </div>
 
-    <!-- Page content -->
+    <!-- Page content. Outlet bị destroy/tạo lại khi đổi view-as (xem
+         switchViewAs) để trang chạy lại ngOnInit với quyền mới. -->
     <div class="admin-content">
-      <router-outlet></router-outlet>
+      <router-outlet *ngIf="!reloadingOutlet"></router-outlet>
     </div>
   </div>
 </div>

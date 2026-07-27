@@ -123,7 +123,7 @@
               <span class="notif-icon"><i [class]="notifIcon(n)"></i></span>
               <div class="notif-content">
                 <p>{{ n.message }}</p>
-                <span>{{ n.createDate | date:'dd/MM HH:mm' }}</span>
+                <span>{{ n.createDate | utcDate | date:'dd/MM HH:mm' }}</span>
               </div>
             </li>
             <li *ngIf="notifications.length === 0" class="notif-empty">
@@ -136,7 +136,7 @@
 
       <!-- Theme Toggle -->
       <button class="icon-btn theme-btn"
-              (click)="themeService.toggle()"
+              (click)="themeService.toggleWithRipple($event)"
               [title]="themeService.isDark ? ('NAV.SWITCH_LIGHT' | translate) : ('NAV.SWITCH_DARK' | translate)">
         <i [class]="themeService.isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
       </button>
@@ -235,7 +235,7 @@
     </div>
     <!-- Mobile theme toggle -->
     <hr>
-    <button class="mobile-theme-btn" (click)="themeService.toggle()">
+    <button class="mobile-theme-btn" (click)="themeService.toggleWithRipple($event)">
       <i [class]="themeService.isDark ? 'fa-solid fa-sun me-2' : 'fa-solid fa-moon me-2'"></i>
       {{ themeService.isDark ? ('NAV.SWITCH_LIGHT' | translate) : ('NAV.SWITCH_DARK' | translate) }}
     </button>

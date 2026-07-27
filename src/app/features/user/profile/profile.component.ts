@@ -272,6 +272,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.clearPicks();
         if (res?.uploadFailed) this.toastr.warning(this.t('USER.T_UPLOAD_WARN'));
         else this.toastr.success(this.t('USER.T_PROFILE_SAVED'));
+        // Vừa đổi profile → bỏ cache để load lại lấy dữ liệu mới (không dùng bản cũ).
+        this.userService.invalidateProfile(id);
         this.loadProfile(id);
       },
       error: () => {

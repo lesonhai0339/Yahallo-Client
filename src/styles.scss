@@ -562,6 +562,24 @@ a {
   &.toast-info    { color: #0284c7 !important; }  // blue
 }
 
+// === View Transition: hiệu ứng đổi theme lan như mặt nước ===
+// Tắt cross-fade mặc định của View Transitions API để chỉ còn hiệu ứng clip-path
+// circle do ThemeService.toggleWithRipple() animate. Snapshot MỚI nằm trên
+// snapshot CŨ, nên vòng tròn lớn dần chính là "gợn nước" lộ theme mới ra.
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2147483646; }
+
+// Tôn trọng "giảm chuyển động" (ThemeService cũng đã bỏ qua hiệu ứng ở phía TS).
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none !important; }
+}
+
 // === Angular Material Overrides ===
 .mat-mdc-dialog-container .mdc-dialog__surface {
   // Match the "add manga" form surface: bg-card (dark in dark theme, white in
@@ -572,6 +590,14 @@ a {
 // NOTE: admin dialogs now follow the active theme via CSS variables. The old
 // `.light-dialog` white override was removed so every dialog respects
 // [data-theme="light|dark"]. The panelClass is now a harmless no-op.
+
+// Confirm dialog (app-confirm-dialog): component tự quản toàn bộ khoảng cách bên
+// trong, nên ép padding của surface về một giá trị XÁC ĐỊNH. Nếu để mặc định,
+// padding của MDC cộng thêm padding của component → viền trong dày bất thường.
+// Dùng `:has()` giống override ở block @media bên dưới.
+.mat-mdc-dialog-container:has(app-confirm-dialog) .mdc-dialog__surface {
+  padding: 22px 24px;
+}
 
 // Mobile: dialog content wrappers hardcode large min-widths (480–760px) that
 // overflow the pane. The min-width lives a couple levels below the surface

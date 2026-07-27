@@ -80,6 +80,8 @@
 
 .action-btns { display: flex; gap: 4px; }
 .action-btn { width: 32px; height: 32px; border: none; border-radius: var(--radius-sm); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); .material-icons { font-size: 1rem !important; } }
+// ⚠️ MODULE MỚI THÊM: nút mở trang quản lý ảnh chương
+.action-btn--images { color: var(--accent-primary); &:hover { background: rgba(233, 69, 96, 0.12); } }
 .action-btn--edit { color: #0ea5e9; &:hover { background: rgba(14, 165, 233, 0.12); } }
 .action-btn--delete { color: #ef4444; &:hover { background: rgba(239, 68, 68, 0.12); } }
 

@@ -1,0 +1,389 @@
+// ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md
+.ie-page { padding: 4px 0 32px; }
+
+.ie-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  &__title { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+  &__sub { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0; line-height: 1.5; }
+  &__actions { display: flex; align-items: center; gap: 8px; }
+}
+
+.ie-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+// ── Vùng kéo-thả ─────────────────────────────────────────────────────────────
+.ie-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 64px 20px;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  text-align: center;
+
+  .material-icons { font-size: 3rem; opacity: 0.6; }
+  p { margin: 0; font-size: 0.9rem; }
+
+  kbd {
+    padding: 1px 6px;
+    border: 1px solid var(--border-color);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+  }
+}
+
+// ── Layout: sidebar công cụ | khung ảnh ──────────────────────────────────────
+.ie-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+    // Mobile: dua KHUNG ANH len truoc, cot cong cu xuong duoi. Neu khong, phai
+    // cuon qua toan bo thanh cong cu moi thay duoc anh.
+    .ie-stage { order: 1; }
+    .ie-side  { order: 2; }
+  }
+}
+
+.ie-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  // Cột công cụ tự cuộn riêng, ảnh dài bên phải không đẩy nó đi.
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding-right: 4px;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  @media (max-width: 1100px) { max-height: none; overflow: visible; }
+}
+
+.ie-card {
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+
+  &__title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+}
+
+.ie-tools { display: flex; gap: 6px; }
+
+.ie-tool {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 1.15rem; }
+  &:hover { border-color: var(--border-light); color: var(--text-primary); }
+  &.active {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(233, 69, 96, 0.1);
+  }
+}
+
+.ie-hint {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+
+  .material-icons { font-size: 0.95rem; flex: none; }
+  kbd {
+    padding: 0 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background: var(--bg-secondary);
+    font-size: 0.7rem;
+  }
+}
+
+.ie-muted { font-size: 0.76rem; color: var(--text-muted); margin: 0 0 8px; line-height: 1.5; }
+
+// ── Bảng màu ────────────────────────────────────────────────────────────────
+.ie-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.ie-swatch {
+  position: relative;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.12s, border-color 0.12s;
+
+  &:hover { transform: translateY(-2px); border-color: var(--accent-primary); }
+
+  // Hex đặt trên dải mờ để đọc được trên mọi màu nền.
+  &__hex {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 1px 0;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.56rem;
+    font-family: monospace;
+    text-align: center;
+  }
+}
+
+// ── Form ────────────────────────────────────────────────────────────────────
+.ie-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+
+  label { font-size: 0.74rem; color: var(--text-muted); }
+
+  input[type="number"], input[type="text"], select {
+    padding: 6px 9px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    &:focus { outline: none; border-color: var(--accent-primary); }
+  }
+
+  input[type="color"] {
+    width: 100%;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-secondary);
+    cursor: pointer;
+  }
+
+  input[type="range"] { accent-color: var(--accent-primary); }
+}
+
+.ie-color-row {
+  display: flex;
+  gap: 6px;
+
+  input[type="color"] { width: 42px; flex: none; }
+  .ie-hex { flex: 1; font-family: monospace; }
+}
+
+.ie-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.ie-inline { display: flex; gap: 14px; margin-bottom: 10px; }
+
+.ie-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input { accent-color: var(--accent-primary); }
+}
+
+.ie-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  resize: vertical;
+  &:focus { outline: none; border-color: var(--accent-primary); }
+}
+
+// ── Nút ─────────────────────────────────────────────────────────────────────
+.ie-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 1rem; }
+  &:hover:not(:disabled) { border-color: var(--border-light); color: var(--text-primary); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  &--block { width: 100%; margin-bottom: 6px; &:last-child { margin-bottom: 0; } }
+
+  &--primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+    &:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
+}
+
+.ie-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 1rem; }
+  &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+// ── Khung ảnh ───────────────────────────────────────────────────────────────
+.ie-stage {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.ie-stagebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-wrap: wrap;
+}
+
+.ie-sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 2px; }
+.ie-zoom { font-size: 0.76rem; color: var(--text-secondary); min-width: 42px; text-align: center; }
+
+.ie-selinfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.ie-canvas-wrap {
+  // Ảnh manhwa rất cao → cuộn trong khung riêng, không kéo dài cả trang.
+  max-height: calc(100vh - 200px);
+  overflow: auto;
+  padding: 12px;
+  background:
+    repeating-conic-gradient(var(--bg-secondary) 0% 25%, transparent 0% 50%) 50% / 18px 18px;
+
+  &::-webkit-scrollbar { width: 8px; height: 8px; }
+  &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+}
+
+// Bọc canvas để overlay (vùng chọn, vạch cắt) định vị theo đúng ảnh.
+.ie-canvas-inner { position: relative; margin: 0 auto; }
+
+.ie-canvas {
+  display: block;
+  cursor: crosshair;
+  // Chan browser cuon/zoom khi keo ngon tay tren canvas, de touchmove dung de
+  // ve khung chon thay vi scroll trang.
+  touch-action: none;
+  // Giữ pixel sắc nét khi zoom lớn để chọn vùng chính xác.
+  image-rendering: pixelated;
+
+  &--pick { cursor: copy; }
+}
+
+// Khung vùng chọn — marching-ants đơn giản.
+.ie-sel {
+  position: absolute;
+  border: 1px dashed var(--accent-primary);
+  background: rgba(233, 69, 96, 0.12);
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+// Vạch chỉ đường cắt.
+.ie-guide {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px dashed #4287f5;
+  pointer-events: none;
+}
+
+// ── Responsive: dien thoai nho ──────────────────────────────────────────────
+@media (max-width: 640px) {
+  .ie-head__title { font-size: 1.1rem; }
+  .ie-head__actions { width: 100%; .ie-btn { flex: 1 1 auto; } }
+  .ie-chip { flex: 1 1 auto; text-align: center; }
+  // 2 cot qua bo tren dien thoai -> xep doc.
+  .ie-grid2 { grid-template-columns: 1fr; }
+  .ie-swatches { grid-template-columns: repeat(3, 1fr); }
+  .ie-drop { padding: 40px 16px; }
+  // Khung anh gon lai de con thay duoc thanh cong cu ben duoi.
+  .ie-canvas-wrap { max-height: 55vh; }
+  .ie-stagebar { gap: 4px; }
+  .ie-selinfo { width: 100%; margin-left: 0; }
+}

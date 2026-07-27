@@ -1,0 +1,293 @@
+// ⚠️ MODULE MỚI THÊM — xem docs/ADMIN_MODULES_ADDED.md
+.iep {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-color);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    flex: none;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 0;
+
+    .material-icons { font-size: 1.05rem; color: var(--accent-primary); }
+  }
+
+  &__label {
+    font-weight: 400;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Thân panel tự cuộn, header/footer cố định.
+  &__body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; }
+
+  &__loading, &__error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 8px;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+
+    .material-icons { font-size: 1.15rem; }
+  }
+  &__error { color: #e5484d; align-items: flex-start; line-height: 1.5; }
+
+  &__stage { margin-bottom: 14px; }
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px) var(--radius-sm, 6px) 0 0;
+    background: var(--bg-secondary);
+    flex-wrap: wrap;
+  }
+
+  &__zoom { font-size: 0.72rem; color: var(--text-secondary); min-width: 38px; text-align: center; }
+
+  &__canvas-wrap {
+    max-height: 45vh;
+    overflow: auto;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-top: none;
+    background: repeating-conic-gradient(var(--bg-secondary) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+
+    &::-webkit-scrollbar { width: 7px; height: 7px; }
+    &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+  }
+
+  &__canvas-inner { position: relative; margin: 0 auto; }
+
+  canvas {
+    display: block;
+    cursor: crosshair;
+    image-rendering: pixelated;
+    // Chan cuon/zoom mac dinh khi keo ngon tay tren canvas.
+    touch-action: none;
+    &.pick { cursor: copy; }
+  }
+
+  &__sel {
+    position: absolute;
+    border: 1px dashed var(--accent-primary);
+    background: rgba(233, 69, 96, 0.12);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+  }
+
+  &__selinfo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 0;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+  }
+
+  &__tools { display: flex; flex-direction: column; gap: 10px; }
+
+  &__foot {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+  }
+
+  &__dirty {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.74rem;
+    color: var(--accent-primary);
+    .material-icons { font-size: 0.9rem; }
+  }
+
+  &__foot-actions { display: flex; gap: 8px; margin-left: auto; }
+}
+
+.iep-card {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary);
+
+  h4 {
+    margin: 0 0 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  textarea, input[type="number"], input[type="text"], select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    &:focus { outline: none; border-color: var(--accent-primary); }
+  }
+  textarea { resize: vertical; margin-bottom: 8px; }
+
+  input[type="color"] {
+    width: 100%;
+    height: 30px;
+    padding: 2px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-card);
+    cursor: pointer;
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--accent-primary); margin-bottom: 8px; }
+}
+
+.iep-muted { font-size: 0.74rem; color: var(--text-muted); margin: 0 0 8px; }
+.iep-lbl { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 3px; }
+
+.iep-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+
+  input[type="color"] { width: 40px; flex: none; }
+  .iep-hex { flex: 1; font-family: monospace; }
+}
+
+.iep-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.iep-inline { display: flex; gap: 12px; margin-bottom: 8px; }
+
+.iep-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  input { accent-color: var(--accent-primary); }
+}
+
+.iep-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.iep-swatch {
+  position: relative;
+  height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover { border-color: var(--accent-primary); }
+
+  span {
+    position: absolute;
+    inset: auto 0 0 0;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.52rem;
+    font-family: monospace;
+    text-align: center;
+  }
+}
+
+.iep-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+
+  .material-icons { font-size: 0.98rem; }
+  &:last-child { margin-bottom: 0; }
+  &:hover:not(:disabled) { border-color: var(--border-light); color: var(--text-primary); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  &--primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+    &:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
+}
+
+// Footer: nút không chiếm full width như trong card.
+.iep__foot .iep-btn { width: auto; margin-bottom: 0; }
+
+.iep-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  .material-icons { font-size: 0.95rem; }
+  &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+  &.active { border-color: var(--accent-primary); color: var(--accent-primary); background: rgba(233,69,96,0.1); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+.iep-sep { width: 1px; height: 18px; background: var(--border-color); margin: 0 2px; }
+
+// ── Responsive ──────────────────────────────────────────────────────────────
+// Panel co the bi thu hep (parent chuyen ve 1 cot tu 1200px) nen grid 2 cot
+// phai xep doc, va khung anh cao hon vi khong con bi chia doi chieu ngang.
+@media (max-width: 700px) {
+  .iep-grid2 { grid-template-columns: 1fr; }
+  .iep-swatches { grid-template-columns: repeat(3, 1fr); }
+  .iep__canvas-wrap { max-height: 38vh; }
+  .iep__foot { flex-direction: column; align-items: stretch; }
+  .iep__foot-actions { margin-left: 0; .iep-btn { flex: 1 1 auto; } }
+}

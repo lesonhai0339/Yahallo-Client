@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, delay, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { toDateTimeOffset, getTimeZone } from '../../core/utils/date.util';
+import { toIsoWithOffset } from '../../core/utils/date-format';
 
 export type TimeRange = 'daily' | 'monthly' | 'yearly';
 export type ChartType = 'line' | 'bar' | 'area';
@@ -85,6 +85,7 @@ export class AnalyticsService {
    * Dashboard charts use the real backend count endpoints:
    *   GET {userApi}/count  → JsonResponse<PagedResult<CountUserQueryResult>>
    *   GET {mangaApi}/count → JsonResponse<PagedResult<CountNewMangaQueryResult>>
+   * Params: ?From&To&GroupBy(Day|Month|Year)&PageNo&PageSize
    * Each row is { period, count }. The backend only returns periods that have
    * data, so we scaffold the full label/date axis and fill missing buckets with 0.
    */
@@ -104,7 +105,7 @@ export class AnalyticsService {
 
   /**
    * Real endpoint: GET {mangaApi}/analytics
-   *   ?MangaId&From&To&TimeZone&GroupBy(Day|Month|Year)
+   *   ?MangaId&From&To&GroupBy(Day|Month|Year)
    *   → JsonResponse<GetMangaAnalyticsResult { totalChapter, mangaAnalytics[] }>
    * Each bucket carries per-period sums (totalView/totalComment/totalFollower) tagged
    * with day/month/year. Backend only returns non-empty buckets, so we scaffold the
@@ -120,21 +121,85 @@ export class AnalyticsService {
     const { labels, dates } = this.rangeAxis(from, to, groupBy);
     const params = new HttpParams()
       .set('MangaId', mangaId)
-      .set('From', toDateTimeOffset(from)!)
-      .set('To', toDateTimeOffset(to)!)
-      .set('TimeZone', getTimeZone())
-      .set('GroupBy', this.filterByOf(groupBy));
+      .set('From', from.toISOString())
+      .set('To', to.toISOString())
+      .set('GroupBy', this.groupByOf(groupBy));
     return this.http.get(`${this.mangaBase}/analytics`, { params }).pipe(
       map(res => this.mapMangaAnalytics(res, labels, dates, groupBy)),
       catchError(() => of(this.emptyMangaAnalytics(labels, dates)))
     );
   }
 
+  /**
+   * Chức năng: Lấy thống kê của một user. Dùng CÙNG convention với
+   *   `getMangaAnalytics`: `GET {userApi}/analytics?UserId&From&To&GroupBy`
+   *   (`GroupBy` = Day|Month|Year, gom nhóm theo khoảng thời gian).
+   * Yêu cầu: `userId` hợp lệ; `range` quyết định cửa sổ lịch + mức gom nhóm;
+   *   `startYear` chỉ dùng cho range 'yearly' (năm bắt đầu của trục).
+   * Kết quả trả về: Observable emit `UserAnalytics`. Field nào API chưa trả thì
+   *   lấy từ mock để chart không bị trống.
+   * Exception: không ném — lỗi mạng/404 rơi về `mockUserAnalytics` qua catchError.
+   */
   getUserAnalytics(userId: string, range: TimeRange, startYear?: number): Observable<UserAnalytics> {
-    if (USE_MOCK) return of(this.mockUserAnalytics(range, startYear));
-    return this.http.get<UserAnalytics>(
-      `${this.baseUrl}/analytics/user/${userId}`, { params: { range } }
-    ).pipe(catchError(() => of(this.mockUserAnalytics(range, startYear))));
+    const { from, to } = this.calWindow(range, startYear);
+    const params = new HttpParams()
+      .set('UserId', userId)
+      .set('From', from.toISOString())
+      .set('To', to.toISOString())
+      .set('GroupBy', this.groupByOf(range));
+    return this.http.get(`${this.userBase}/analytics`, { params }).pipe(
+      map(res => this.mapUserAnalytics(res, range, startYear)),
+      catchError(() => of(this.mockUserAnalytics(range, startYear)))
+    );
+  }
+
+  /**
+   * Chức năng: Map response `/user/analytics` sang `UserAnalytics`, dựng đủ trục
+   *   nhãn/ngày rồi zero-fill các bucket server không trả (server chỉ trả bucket
+   *   có dữ liệu). Chấp nhận cả camelCase và PascalCase.
+   * Yêu cầu: `res` là response thô; `range`/`startYear` để dựng trục.
+   * Kết quả trả về: `UserAnalytics` đã zero-fill.
+   * Exception: không ném — thiếu field nào thì dùng giá trị mặc định/mock.
+   */
+  private mapUserAnalytics(res: any, range: TimeRange, startYear?: number): UserAnalytics {
+    const body = res?.value ?? res;
+    // Chưa có dữ liệu bucket → dùng mock để chart không trống trơn.
+    const rows: any[] = body?.userAnalytics ?? body?.UserAnalytics ?? [];
+    if (!rows.length) return this.mockUserAnalytics(range, startYear);
+
+    const labels = this.calLabels(range, startYear);
+    const dates = this.calDates(range, startYear);
+    const activity = new Map<string, number>();
+    const comments = new Map<string, number>();
+    let totalComments = 0, totalMangaRead = 0;
+
+    for (const row of rows) {
+      const key = this.rowKey(row, range);
+      if (!key) continue;
+      const a = row?.totalView ?? row?.TotalView ?? row?.totalActivity ?? 0;
+      const c = row?.totalComment ?? row?.TotalComment ?? 0;
+      activity.set(key, (activity.get(key) ?? 0) + a);
+      comments.set(key, (comments.get(key) ?? 0) + c);
+      totalComments += c;
+      totalMangaRead += row?.totalMangaRead ?? row?.TotalMangaRead ?? 0;
+    }
+
+    const fallback = this.mockUserAnalytics(range, startYear);
+    return {
+      totalComments: body?.totalComment ?? body?.TotalComment ?? totalComments,
+      totalMangaRead: body?.totalMangaRead ?? body?.TotalMangaRead ?? totalMangaRead,
+      // Các mục dưới đây API chưa trả → giữ mock, xem ghi chú trong CLAUDE.md.
+      activeHours: body?.activeHours ?? fallback.activeHours,
+      topManga: body?.topManga ?? fallback.topManga,
+      topTags: body?.topTags ?? fallback.topTags,
+      recentSearches: body?.recentSearches ?? fallback.recentSearches,
+      activityByTime: labels.map((label, i) => ({
+        label, date: dates[i], value: activity.get(dates[i]) ?? 0,
+      })),
+      commentsByTime: labels.map((label, i) => ({
+        label, date: dates[i], value: comments.get(dates[i]) ?? 0,
+      })),
+    };
   }
 
   // ── Detail endpoints (click on a specific date) ─────────────────────────
@@ -339,32 +404,44 @@ export class AnalyticsService {
 
   // ── Count endpoint helpers ──────────────────────────────────────────────
 
-  /** Build From/To/GroupBy/paging params matching the selected range. */
+  /**
+   * Chức năng: Dựng query cho 2 endpoint đếm của dashboard (`/user/count`,
+   *   `/manga/count`). Cửa sổ ở đây là ROLLING (30 ngày / 12 tháng / 5 năm gần
+   *   nhất), khác `calWindow()` của analytics dùng cửa sổ theo LỊCH.
+   * Yêu cầu: `range` là 'daily' | 'monthly' | 'yearly'.
+   * Kết quả trả về: `HttpParams` gồm From, To, GroupBy, PageNo, PageSize.
+   * Exception: không ném.
+   */
   private buildCountParams(range: TimeRange): HttpParams {
     const now = new Date();
     const from = new Date(now);
-    let countBy: string;
-    if (range === 'daily') {
-      from.setDate(from.getDate() - 29);
-      countBy = 'Day';
-    } else if (range === 'monthly') {
-      from.setMonth(from.getMonth() - 11);
-      countBy = 'Month';
-    } else {
-      from.setFullYear(from.getFullYear() - 4);
-      countBy = 'Year';
-    }
+    if (range === 'daily') from.setDate(from.getDate() - 29);
+    else if (range === 'monthly') from.setMonth(from.getMonth() - 11);
+    else from.setFullYear(from.getFullYear() - 4);
+
+    // KHÔNG gửi `TimeZoneOffset` riêng nữa: From/To là DateTimeOffset nên đã mang
+    // sẵn offset. Nhưng phải gửi offset THẬT của máy (`+07:00`) chứ không phải
+    // `toISOString()` (`...Z` = +00:00) — nếu không server sẽ gom nhóm theo ngày
+    // của UTC thay vì giờ địa phương, làm lệch mốc ngày ở múi giờ dương.
     return new HttpParams()
-      .set('From', toDateTimeOffset(from)!)
-      .set('To', toDateTimeOffset(now)!)
-      .set('TimeZone', getTimeZone())
-      .set('GroupBy', countBy)
+      .set('From', toIsoWithOffset(from)!)
+      .set('To', toIsoWithOffset(now)!)
+      // Dùng chung groupByOf() với manga/user analytics — trước đây gán tay 'Day'/
+      // 'Month'/'Year' ngay trong hàm này nên dễ lệch khi đổi tên/giá trị enum.
+      .set('GroupBy', this.groupByOf(range))
       .set('PageNo', '1')
       .set('PageSize', '1000');
   }
 
-  /** TimeRange → backend MangaDailyFilterBy enum name. */
-  private filterByOf(range: TimeRange): 'Day' | 'Month' | 'Year' {
+  /**
+   * Chức năng: Đổi khoảng thời gian của UI sang tên enum mà API
+   *   `/manga/analytics` và `/user/analytics` nhận qua param `GroupBy`
+   *   (gom nhóm theo ngày/tháng/năm).
+   * Yêu cầu: `range` là một trong 'daily' | 'monthly' | 'yearly'.
+   * Kết quả trả về: 'Day' | 'Month' | 'Year'.
+   * Exception: không ném.
+   */
+  private groupByOf(range: TimeRange): 'Day' | 'Month' | 'Year' {
     return range === 'daily' ? 'Day' : range === 'monthly' ? 'Month' : 'Year';
   }
 

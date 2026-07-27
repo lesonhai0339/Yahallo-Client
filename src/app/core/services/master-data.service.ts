@@ -39,15 +39,21 @@ export class MasterDataService {
       this._categories$.next(
         tags.map(t => ({ genreId: t.id, genresIdName: t.name }))
       );
+    });
 
+    // Authors/artists đến từ endpoint riêng (author/get-all, artist/get-all),
+    // không còn lấy từ payload homepage.
+    this.mangaService.getAllAuthors().subscribe(authors => {
       this._authors$.next(
-        (homepage.authors || [])
+        authors
           .map(a => ({ id: a.id, name: a.name } as SimpleItem))
           .sort((a, b) => a.name.localeCompare(b.name))
       );
+    });
 
+    this.mangaService.getAllArtists().subscribe(artists => {
       this._artists$.next(
-        (homepage.artists || [])
+        artists
           .map(a => ({ id: a.id, name: a.name } as SimpleItem))
           .sort((a, b) => a.name.localeCompare(b.name))
       );
