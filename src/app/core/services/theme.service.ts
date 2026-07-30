@@ -5,6 +5,18 @@ import { dropLegacyKey, scopedKey } from '../utils/user-storage';
 
 export type Theme = 'dark' | 'light' | 'midnight' | 'sepia' | 'ocean';
 
+/** Hiệu ứng chuyển cảnh khi đổi theme. */
+export type ThemeTransition = 'none' | 'ripple';
+
+export interface ThemeTransitionMeta {
+  id: ThemeTransition;
+  /** i18n key cho tên hiệu ứng. */
+  label: string;
+  /** i18n key mô tả ngắn. */
+  desc: string;
+  icon: string;
+}
+
 export interface ThemeMeta {
   id: Theme;
   /** i18n key for the theme's display name (translated at the view layer). */
@@ -16,6 +28,7 @@ export interface ThemeMeta {
 }
 
 const STORAGE_KEY = 'yhl_theme';
+const FX_KEY = 'yhl_theme_fx';           // hiệu ứng chuyển theme
 const BG_KEY = 'yhl_bg_image';
 const BG_OPACITY_KEY = 'yhl_bg_opacity'; // tint overlay strength (0 = image clear, 1 = fully tinted)
 const BG_BLUR_KEY = 'yhl_bg_blur';       // px
@@ -49,6 +62,15 @@ export const THEMES: ThemeMeta[] = [
   { id: 'sepia',    label: 'SETTINGS.THEME_SEPIA',    swatch: ['#efe3cf', '#b4622f'], supportsImage: false },
   { id: 'ocean',    label: 'SETTINGS.THEME_OCEAN',    swatch: ['#06212b', '#1ab5b0'], supportsImage: true },
 ];
+
+// Còn 2 hiệu ứng; thêm hiệu ứng mới thì khai báo ở đây và xử lý trong
+// `setThemeWithEffect()`.
+export const THEME_TRANSITIONS: ThemeTransitionMeta[] = [
+  { id: 'ripple', label: 'SETTINGS.FX_RIPPLE', desc: 'SETTINGS.FX_RIPPLE_DESC', icon: 'fa-solid fa-water' },
+  { id: 'none',   label: 'SETTINGS.FX_NONE',   desc: 'SETTINGS.FX_NONE_DESC',   icon: 'fa-solid fa-ban' },
+];
+
+const DEFAULT_TRANSITION: ThemeTransition = 'ripple';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
@@ -85,7 +107,13 @@ export class ThemeService {
   private fontColorSubject = new BehaviorSubject<string>('');
   fontColor$ = this.fontColorSubject.asObservable();
 
+  private transitionSubject = new BehaviorSubject<ThemeTransition>(DEFAULT_TRANSITION);
+  themeTransition$ = this.transitionSubject.asObservable();
+
+  readonly transitions = THEME_TRANSITIONS;
+
   get currentTheme(): Theme { return this.themeSubject.value; }
+  get themeTransition(): ThemeTransition { return this.transitionSubject.value; }
   get isDark(): boolean { return this.currentTheme !== 'light' && this.currentTheme !== 'sepia'; }
   get backgroundImage(): string | null { return this.bgSubject.value; }
   get backgroundOpacity(): number { return this.opacitySubject.value; }
@@ -143,6 +171,7 @@ export class ThemeService {
     this.fontSizeSubject.next(this.loadNum(FONT_SIZE_KEY, DEFAULT_FONT_SIZE));
     this.fontWeightSubject.next(this.read(FONT_WEIGHT_KEY) || DEFAULT_FONT_WEIGHT);
     this.fontColorSubject.next(this.read(FONT_COLOR_KEY) || '');
+    this.transitionSubject.next(this.getSavedTransition());
     // Scope mới = chưa ai đụng vào nền trong phiên này.
     this.bgTouchedByUser = false;
   }
@@ -159,7 +188,7 @@ export class ThemeService {
 
   constructor(private auth: AuthService) {
     // Dọn key global của bản cũ (dùng chung cho mọi tài khoản).
-    [STORAGE_KEY, BG_KEY, BG_OPACITY_KEY, BG_BLUR_KEY, BG_COVER_KEY,
+    [STORAGE_KEY, FX_KEY, BG_KEY, BG_OPACITY_KEY, BG_BLUR_KEY, BG_COVER_KEY,
       FONT_FAMILY_KEY, FONT_SIZE_KEY, FONT_WEIGHT_KEY, FONT_COLOR_KEY]
       .forEach(dropLegacyKey);
 
@@ -181,6 +210,11 @@ export class ThemeService {
     return THEMES.some(t => t.id === saved) ? saved : 'dark';
   }
 
+  private getSavedTransition(): ThemeTransition {
+    const saved = this.read(FX_KEY) as ThemeTransition;
+    return THEME_TRANSITIONS.some(t => t.id === saved) ? saved : DEFAULT_TRANSITION;
+  }
+
   /** Apply theme + background image + fonts to the document (call on bootstrap). */
   apply(): void {
     document.documentElement.setAttribute('data-theme', this.currentTheme);
@@ -194,23 +228,48 @@ export class ThemeService {
   }
 
   /**
-   * Đổi theme kèm hiệu ứng "lan như mặt nước" toả ra từ vị trí click.
-   *
-   * Cách làm: View Transitions API chụp ảnh trạng thái cũ/mới, rồi animate
-   * `clip-path: circle()` trên snapshot MỚI từ bán kính 0 tại điểm click ra tới
-   * góc xa nhất của viewport → trông như gợn nước lan ra.
-   *
-   * Fallback: trình duyệt không hỗ trợ `startViewTransition`, hoặc user bật
-   * "giảm chuyển động", hoặc không có toạ độ click → đổi theme ngay, không hiệu ứng.
+   * Chức năng: Đổi nhanh dark ⇄ light kèm hiệu ứng người dùng đã chọn (nút theme
+   *   ở header / admin layout gọi hàm này).
+   * Yêu cầu: `event` — click event để lấy tâm hiệu ứng; thiếu thì đổi ngay.
+   * Kết quả trả về: không (theme đổi ngay hoặc sau khi hiệu ứng phủ kín màn hình).
+   * Exception: không ném.
    */
   toggleWithRipple(event?: MouseEvent): void {
-    const doc = document as any;
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    this.setThemeWithEffect(this.currentTheme === 'light' ? 'dark' : 'light', event);
+  }
 
-    if (typeof doc.startViewTransition !== 'function' || reduceMotion || !event) {
-      this.toggle();
-      return;
-    }
+  /**
+   * Chức năng: Đổi sang theme chỉ định kèm hiệu ứng chuyển cảnh đang chọn.
+   * Yêu cầu: `theme` — theme đích; `event` — click event để lấy tâm toả (không
+   *   có toạ độ thì không có hiệu ứng nào chạy được → đổi ngay).
+   * Kết quả trả về: không (cập nhật theme, có thể trễ tới cuối pha "phủ").
+   * Exception: không ném — trình duyệt thiếu API thì rơi về đổi ngay.
+   */
+  setThemeWithEffect(theme: Theme, event?: MouseEvent): void {
+    const apply = () => this.setTheme(theme);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const fx = this.themeTransition;
+
+    // Không hiệu ứng, máy xin giảm chuyển động, hoặc không biết tâm toả → đổi ngay.
+    if (fx === 'none' || reduceMotion || !event) { apply(); return; }
+    this.runRippleTransition(event, apply);
+  }
+
+  /**
+   * Chức năng: Hiệu ứng "lan như mặt nước" toả ra từ vị trí bấm.
+   *
+   *   Cách làm: View Transitions API chụp ảnh trạng thái cũ/mới, rồi animate
+   *   `clip-path: circle()` trên snapshot MỚI từ bán kính 0 tại điểm bấm ra tới
+   *   góc xa nhất của viewport → trông như gợn nước lan ra.
+   *
+   * Yêu cầu: `event` — click event; `apply` — hàm đổi theme thật sự.
+   * Kết quả trả về: không.
+   * Exception: không ném — trình duyệt không hỗ trợ `startViewTransition` thì
+   *   gọi thẳng `apply()`, không hiệu ứng.
+   */
+  private runRippleTransition(event: MouseEvent, apply: () => void): void {
+    const doc = document as any;
+    if (typeof doc.startViewTransition !== 'function') { apply(); return; }
 
     const x = event.clientX;
     const y = event.clientY;
@@ -220,7 +279,7 @@ export class ThemeService {
       Math.max(y, window.innerHeight - y),
     );
 
-    const transition = doc.startViewTransition(() => this.toggle());
+    const transition = doc.startViewTransition(apply);
     transition.ready
       .then(() => {
         document.documentElement.animate(
@@ -239,6 +298,17 @@ export class ThemeService {
       })
       // Transition bị skip (vd điều hướng chen ngang) → bỏ qua, theme đã đổi rồi.
       .catch(() => {});
+  }
+
+  /**
+   * Chức năng: Chọn hiệu ứng chuyển theme (lưu theo tài khoản trong localStorage).
+   * Yêu cầu: `fx` — một trong `THEME_TRANSITIONS`.
+   * Kết quả trả về: không (phát giá trị mới qua `themeTransition$`).
+   * Exception: không ném.
+   */
+  setThemeTransition(fx: ThemeTransition): void {
+    this.write(FX_KEY, fx);
+    this.transitionSubject.next(fx);
   }
 
   setTheme(theme: Theme): void {
@@ -307,6 +377,7 @@ export class ThemeService {
     this.setFontSize(DEFAULT_FONT_SIZE);
     this.setFontWeight(DEFAULT_FONT_WEIGHT);
     this.setFontColor('');
+    this.setThemeTransition(DEFAULT_TRANSITION);
   }
 
   // ── Fonts ────────────────────────────────────────────────────────────────────

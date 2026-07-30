@@ -155,6 +155,7 @@ body.has-bg-image:not(.bg-cover-main) {
     padding: 16px;
   }
   // .search-page already paints var(--bg-card); leave it as the solid panel.
+  // .person-page paints its own .person-panel (see person-detail.component.scss).
 }
 body.has-bg-image.bg-cover-main {
   // The search page is a single full-height PANEL: making it fully transparent
@@ -165,6 +166,14 @@ body.has-bg-image.bg-cover-main {
   .search-page {
     background-color: var(--bg-card);                                // fallback
     background-color: color-mix(in srgb, var(--bg-card) 62%, transparent);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  // Same reasoning for the author/artist/tag page: its panel is the whole page,
+  // so cover mode makes it translucent rather than backgroundless.
+  .person-page .person-panel {
+    background-color: var(--bg-primary);                             // fallback
+    background-color: color-mix(in srgb, var(--bg-primary) 55%, transparent);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
   }
@@ -589,6 +598,7 @@ a {
   ::view-transition-old(root),
   ::view-transition-new(root) { animation: none !important; }
 }
+
 
 // === Angular Material Overrides ===
 .mat-mdc-dialog-container .mdc-dialog__surface {

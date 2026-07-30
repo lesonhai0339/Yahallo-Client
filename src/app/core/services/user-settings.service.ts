@@ -4,7 +4,7 @@ import { from, Observable, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { buildFileUploadInfo, appendFileUploadInfo, FileUploadInfo } from '../utils/file-upload-info';
 import { environment } from '../../../environments/environment';
-import { Theme, ThemeService } from './theme.service';
+import { Theme, ThemeService, ThemeTransition } from './theme.service';
 import {
   ListView, ReadProgressMode, UserPreferences, UserPreferencesService,
 } from './user-preferences.service';
@@ -21,11 +21,21 @@ const VIEW_VALUES: ListView[] = ['list', 'grid'];
 const MODE_NAMES = ['Off', 'Ask', 'Always'];
 const MODE_VALUES: ReadProgressMode[] = ['off', 'ask', 'always'];
 
+// Thứ tự phải khớp enum Transition ở backend (None = 0, Ripple = 1, Blocks = 2)
+// vì enum có thể về dưới dạng số. Client đã bỏ hiệu ứng Blocks nhưng vẫn giữ chỗ
+// thứ 3: tài khoản từng lưu `Blocks` thì đọc về sẽ rơi êm sang `ripple` thay vì
+// hỏng. Chiều gửi đi thì `indexOf('ripple')` luôn khớp ô số 1 nên không bao giờ
+// ghi ngược `Blocks` lên server.
+const TRANSITION_NAMES = ['None', 'Ripple', 'Blocks'];
+const TRANSITION_VALUES: ThemeTransition[] = ['none', 'ripple', 'ripple'];
+
 /** Shape returned by GET /user-settings-get (UserSettingsDto). Enums may arrive as int or name. */
 export interface UserSettingsDto {
   id?: string;
   language?: string | null;
   theme?: string | number | null;
+  /** Hiệu ứng chuyển theme (enum Transition — nullable ở backend). */
+  transition?: string | number | null;
   bgImageUrl?: string | null;
   bgOpacity?: number | null;
   bgBlur?: number | null;
@@ -127,6 +137,10 @@ export class UserSettingsService {
     const theme = parseEnum(dto.theme, THEME_NAMES, THEME_VALUES);
     if (theme) this.theme.setTheme(theme);
 
+    // Field nullable: chưa từng lưu → parseEnum trả null → giữ nguyên lựa chọn local.
+    const transition = parseEnum(dto.transition, TRANSITION_NAMES, TRANSITION_VALUES);
+    if (transition) this.theme.setThemeTransition(transition);
+
     if (dto.bgImageUrl != null) this.theme.setBackgroundImage(dto.bgImageUrl, false);
     if (dto.bgOpacity != null) this.theme.setBackgroundOpacity(dto.bgOpacity);
     if (dto.bgBlur != null) this.theme.setBackgroundBlur(dto.bgBlur);
@@ -180,6 +194,7 @@ export class UserSettingsService {
 
     form.append('Language', this.translation.currentLang);
     form.append('Theme', toEnumName(this.theme.currentTheme, THEME_VALUES, THEME_NAMES));
+    form.append('Transition', toEnumName(this.theme.themeTransition, TRANSITION_VALUES, TRANSITION_NAMES));
 
     if (bgInfo) appendFileUploadInfo(form, 'BgImage', bgInfo);
     form.append('BgOpacity', String(this.theme.backgroundOpacity));

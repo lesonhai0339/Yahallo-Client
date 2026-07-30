@@ -8,6 +8,17 @@
   }
 }
 
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+
+  &:hover { color: var(--accent-primary); }
+}
+
 .page-title {
   font-size: 1.3rem;
   font-weight: 700;
@@ -15,6 +26,13 @@
   margin-bottom: 20px;
 
   i { color: var(--accent-primary); }
+
+  // Tên tác giả / hoạ sĩ / thể loại đang lọc.
+  &__subject {
+    color: var(--accent-primary);
+
+    &::before { content: '— '; color: var(--text-muted); }
+  }
 }
 
 // Controls bar

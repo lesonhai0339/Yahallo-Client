@@ -220,6 +220,79 @@
   }
 }
 
+// ── Hiệu ứng chuyển theme ─────────────────────────────────────────────────────
+.fx-section {
+  margin-bottom: 20px;
+
+  &__label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  &__hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+}
+
+.fx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.fx-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 30px 12px 12px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover { border-color: var(--accent-primary); }
+  &--active { border-color: var(--accent-primary); }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: rgba(233, 69, 96, 0.12);
+    color: var(--accent-primary);
+    font-size: 0.9rem;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    strong { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+    small { font-size: 0.72rem; color: var(--text-muted); }
+  }
+
+  &__check {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    color: var(--accent-primary);
+    font-size: 0.85rem;
+  }
+}
+
 // ── Background image ──────────────────────────────────────────────────────────
 .bg-section__label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
 

@@ -22,7 +22,104 @@
       <input
         class="toolbar__search-input"
         placeholder="Tìm theo tên..."
-        (keyup)="applyFilter($event)" />
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange($event)" />
+    </div>
+
+    <!-- Sắp xếp: dùng MangaSortBy của backend, bấm lại để đảo chiều -->
+    <div class="sort-chips">
+      <button *ngFor="let s of sortOptions" class="sort-chip"
+        [class.sort-chip--active]="sortBy === s.value"
+        (click)="setSort(s.value)">
+        {{ s.label }}
+        <span class="material-icons" *ngIf="sortBy === s.value">
+          {{ reverseSort ? 'arrow_downward' : 'arrow_upward' }}
+        </span>
+      </button>
+    </div>
+
+    <button class="btn btn-filter" [class.btn-filter--active]="activeFilterCount > 0"
+      (click)="toggleFilters()">
+      <span class="material-icons">filter_list</span> Lọc
+      <span class="filter-count" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
+    </button>
+
+    <!-- Bỏ hết lọc/tìm/sắp xếp mà không cần mở panel. -->
+    <button class="btn btn-clear" *ngIf="hasAnyActive" (click)="clearAll()" title="Bỏ tất cả bộ lọc">
+      <span class="material-icons">close</span> Bỏ tất cả
+    </button>
+  </div>
+
+  <!-- Panel lọc (mirror AdminFilterMangaQuery) -->
+  <div class="filter-panel" *ngIf="showFilters">
+    <div class="filter-grid">
+      <label class="filter-field">
+        <span>Trạng thái</span>
+        <select [(ngModel)]="draft.status">
+          <option value="">Tất cả</option>
+          <option *ngFor="let o of statusOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Hiển thị</span>
+        <select [(ngModel)]="draft.displayMode">
+          <option value="">Tất cả</option>
+          <option *ngFor="let o of displayModeOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Loại</span>
+        <select [(ngModel)]="draft.type">
+          <option value="">Tất cả</option>
+          <option *ngFor="let o of typeOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Độ tuổi</span>
+        <select [(ngModel)]="draft.level">
+          <option value="">Tất cả</option>
+          <option *ngFor="let o of levelOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Quốc gia</span>
+        <input type="number" [(ngModel)]="draft.countries" placeholder="Mã quốc gia" />
+      </label>
+
+      <label class="filter-field">
+        <span>Tác giả (id)</span>
+        <input [(ngModel)]="draft.authorId" placeholder="AuthorId" />
+      </label>
+
+      <label class="filter-field">
+        <span>Hoạ sĩ (id)</span>
+        <input [(ngModel)]="draft.artistId" placeholder="ArtistId" />
+      </label>
+
+      <label class="filter-field">
+        <span>Thẻ (id, cách nhau dấu phẩy)</span>
+        <input [(ngModel)]="draft.tagIds" placeholder="tagId1,tagId2" />
+      </label>
+
+      <label class="filter-field">
+        <span>Người đăng (id)</span>
+        <input [(ngModel)]="draft.userId" placeholder="UserId" />
+      </label>
+
+      <label class="filter-check">
+        <input type="checkbox" [(ngModel)]="draft.isDeleted" />
+        <span>Chỉ truyện đã xoá</span>
+      </label>
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn" (click)="clearAll()">Bỏ tất cả</button>
+      <button class="btn" (click)="resetFilters()">Xoá tiêu chí</button>
+      <button class="btn btn-primary" (click)="applyFilters()">Áp dụng</button>
     </div>
   </div>
 
@@ -64,7 +161,11 @@
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Trạng thái</th>
         <td mat-cell *matCellDef="let m">
-          <span class="status-badge" [ngClass]="getStatusClass(m.status)">{{ getStatusLabel(m.status) }}</span>
+          <div class="status-cell">
+            <span class="status-badge" [ngClass]="getStatusClass(m.status)">{{ getStatusLabel(m.status) }}</span>
+            <!-- Ẩn/hiện là `displayMode`, tách khỏi `status` (tình trạng ra chương). -->
+            <span class="status-badge status-badge--hidden" *ngIf="isHidden(m)">Đã ẩn</span>
+          </div>
         </td>
       </ng-container>
 
@@ -117,11 +218,11 @@
             <button
               *ngIf="perm.canEditManga(m)"
               class="action-btn"
-              [class.action-btn--hide]="m.status !== 'Hidden'"
-              [class.action-btn--show]="m.status === 'Hidden'"
-              (click)="toggleStatus(m)"
-              [title]="m.status === 'Hidden' ? 'Hiện truyện' : 'Ẩn truyện'">
-              <span class="material-icons">{{ m.status === 'Hidden' ? 'visibility' : 'visibility_off' }}</span>
+              [class.action-btn--hide]="!isHidden(m)"
+              [class.action-btn--show]="isHidden(m)"
+              (click)="toggleVisibility(m)"
+              [title]="isHidden(m) ? 'Hiện truyện' : 'Ẩn truyện'">
+              <span class="material-icons">{{ isHidden(m) ? 'visibility' : 'visibility_off' }}</span>
             </button>
             <button
               *ngIf="perm.canDeleteSpecificManga(m)"
@@ -171,6 +272,7 @@
         <div class="mcard__info">
           <div class="mcard__row"><span class="mcard__k">Loại</span><span class="mcard__v">{{ getTypeLabel(m.type) }}</span></div>
           <div class="mcard__row"><span class="mcard__k">Trạng thái</span><span class="mcard__v">{{ getStatusLabel(m.status) }}</span></div>
+          <div class="mcard__row"><span class="mcard__k">Hiển thị</span><span class="mcard__v">{{ getDisplayModeLabel(m) }}</span></div>
           <div class="mcard__row"><span class="mcard__k">Chương</span><span class="mcard__v">{{ m.totalChapters ?? 0 }}</span></div>
           <div class="mcard__row"><span class="mcard__k">Lượt xem</span><span class="mcard__v">{{ m.totalViews ?? 0 | number }}</span></div>
           <div class="mcard__row"><span class="mcard__k">ID</span><span class="mcard__v">{{ m.id }}</span></div>
@@ -186,9 +288,9 @@
             <span class="material-icons">bar_chart</span>
           </button>
           <button *ngIf="perm.canEditManga(m)" class="action-btn"
-            [class.action-btn--hide]="m.status !== 'Hidden'" [class.action-btn--show]="m.status === 'Hidden'"
-            (click)="toggleStatus(m)" [title]="m.status === 'Hidden' ? 'Hiện truyện' : 'Ẩn truyện'">
-            <span class="material-icons">{{ m.status === 'Hidden' ? 'visibility' : 'visibility_off' }}</span>
+            [class.action-btn--hide]="!isHidden(m)" [class.action-btn--show]="isHidden(m)"
+            (click)="toggleVisibility(m)" [title]="isHidden(m) ? 'Hiện truyện' : 'Ẩn truyện'">
+            <span class="material-icons">{{ isHidden(m) ? 'visibility' : 'visibility_off' }}</span>
           </button>
           <button *ngIf="perm.canDeleteSpecificManga(m)" class="action-btn action-btn--delete" (click)="deleteManga(m)" title="Xóa">
             <span class="material-icons">delete</span>
@@ -299,9 +401,9 @@
     <button class="card-act" (click)="goAnalytics(m)">
       <span class="material-icons">bar_chart</span> Xem thống kê
     </button>
-    <button class="card-act" *ngIf="perm.canEditManga(m)" (click)="toggleStatus(m)">
-      <span class="material-icons">{{ m.status === 'Hidden' ? 'visibility' : 'visibility_off' }}</span>
-      {{ m.status === 'Hidden' ? 'Hiện truyện' : 'Ẩn truyện' }}
+    <button class="card-act" *ngIf="perm.canEditManga(m)" (click)="toggleVisibility(m)">
+      <span class="material-icons">{{ isHidden(m) ? 'visibility' : 'visibility_off' }}</span>
+      {{ isHidden(m) ? 'Hiện truyện' : 'Ẩn truyện' }}
     </button>
     <button class="card-act card-act--warn" *ngIf="perm.canDeleteSpecificManga(m)" (click)="deleteManga(m)">
       <span class="material-icons">delete</span> Xóa truyện

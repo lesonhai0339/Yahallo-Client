@@ -5,6 +5,7 @@ import { AuthorService } from '../../../core/services/author.service';
 import { ArtistService } from '../../../core/services/artist.service';
 import { MangaService } from '../../../core/services/manga.service';
 import { TranslationService } from '../../../core/services/translation.service';
+import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 
 type PersonKind = 'author' | 'artist' | 'tag';
 
@@ -37,6 +38,22 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   isMangaMock = false;
   notFound = false;
 
+  /** Tổng số truyện của đối tượng (hiện cạnh tiêu đề, kể cả phần chưa show). */
+  totalCount = 0;
+
+  /**
+   * Trang này chỉ là "xem nhanh": đúng một hàng 6 truyện mới nhất, còn lại xem ở
+   * trang danh sách đầy đủ (`moreLink`) — nên không có phân trang ở đây.
+   */
+  readonly previewSize = 6;
+
+  /**
+   * Link tới trang danh sách đầy đủ của đối tượng (nút "xem thêm"). Property
+   * thường, gán lại khi đổi đối tượng — getter sẽ trả mảng mới mỗi vòng
+   * change-detection và làm `ngOnChanges` của entity-detail chạy vô ích.
+   */
+  moreLink: any[] = [];
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -68,10 +85,12 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   get isAuthor(): boolean { return this.kind === 'author'; }
   get isTag(): boolean { return this.kind === 'tag'; }
 
+
   private load(): void {
     this.isLoading = true;
     this.notFound = false;
     this.person = null;
+    this.moreLink = ['/' + this.kind, this.personId, 'manga'];
 
     if (this.isTag) {
       // Thể loại: chỉ có Name/Description (không ngày sinh / tình trạng).
@@ -110,27 +129,37 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.loadMangas();
   }
 
+  /**
+   * Chức năng: Nạp hàng truyện xem nhanh của đối tượng (6 truyện mới nhất).
+   * Yêu cầu: `personId` + `kind` đã xác định.
+   * Kết quả trả về: không (cập nhật `mangas`, `totalCount`, `isMangaLoading`).
+   * Exception: không ném — lỗi API thì hiển thị dữ liệu mock và bật `isMangaMock`.
+   */
   private loadMangas(): void {
     this.isMangaLoading = true;
     this.isMangaMock = false;
+    const paging = { pageNo: 1, pageSize: this.previewSize };
     const params = this.isAuthor
-      ? { pageNo: 1, pageSize: 12, authorId: this.personId }
+      ? { ...paging, authorId: this.personId }
       : this.isTag
-        ? { pageNo: 1, pageSize: 12, tagIds: [this.personId] }
-        : { pageNo: 1, pageSize: 12, artistId: this.personId };
+        ? { ...paging, tagIds: [this.personId] }
+        : { ...paging, artistId: this.personId };
 
     this.mangaService.filterPaginated(params).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         if (res.data.length > 0) {
           this.mangas = res.data;
+          this.totalCount = res.totalCount;
         } else {
           this.mangas = this.mockMangas();
+          this.totalCount = this.mangas.length;
           this.isMangaMock = true;
         }
         this.isMangaLoading = false;
       },
       error: () => {
         this.mangas = this.mockMangas();
+        this.totalCount = this.mangas.length;
         this.isMangaMock = true;
         this.isMangaLoading = false;
       },
@@ -144,7 +173,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
    */
   private mockMangas(): any[] {
     const base = this.person?.name ?? 'Manga';
-    return Array.from({ length: 4 }, (_, i) => ({
+    return Array.from({ length: this.previewSize }, (_, i) => ({
       id: `mock-${this.personId}-${i}`,
       name: `${base} — ${this.t('PERSON.WORKS')} ${i + 1}`,
       displayName: `${base} — ${this.t('PERSON.WORKS')} ${i + 1}`,

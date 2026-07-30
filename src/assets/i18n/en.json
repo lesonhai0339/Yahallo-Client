@@ -168,7 +168,8 @@
     "NO_DESCRIPTION": "No description available.",
     "NOT_FOUND": "Information not found",
     "MOCK_NOTICE": "Works shown are mock data — will be replaced with real data once the API is ready.",
-    "BACK": "Back"
+    "BACK": "Back",
+    "SEE_MORE": "See more"
   },
   "AUTH": {
     "LOGIN_TITLE": "Welcome back",
@@ -381,6 +382,12 @@
     "THEME_MIDNIGHT": "Midnight",
     "THEME_SEPIA": "Sepia",
     "THEME_OCEAN": "Ocean",
+    "FX_TITLE": "Theme switch effect",
+    "FX_HINT": "Also applies to the theme button in the header. Skipped when your system asks for reduced motion.",
+    "FX_RIPPLE": "Ripple",
+    "FX_RIPPLE_DESC": "Circular sweep from the click",
+    "FX_NONE": "None",
+    "FX_NONE_DESC": "Switch instantly",
     "FRAME_DEFAULT": "Default",
     "FRAME_GRADIENT": "Gradient",
     "FRAME_GLOW": "Glow",

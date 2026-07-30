@@ -1,5 +1,5 @@
 <!-- Part 1: thông tin đối tượng (author / artist / tag) -->
-<section class="person-hero">
+<section class="person-hero" [class.person-hero--half]="splitHeight">
   <div class="person-hero__avatar">
     <i [class]="iconClass"></i>
   </div>
@@ -29,20 +29,77 @@
 </section>
 
 <!-- Part 2: danh sách manga phụ thuộc đối tượng -->
-<section class="person-works">
-  <h2 class="section-title">
-    <i class="fa-solid fa-book-open me-2"></i>{{ worksTitleKey | translate }}
-    <span class="section-title__count" *ngIf="count != null">({{ count }})</span>
-  </h2>
+<section class="person-works" [class.person-works--half]="splitHeight">
+  <div class="works-bar">
+    <h2 class="section-title">
+      <i class="fa-solid fa-book-open me-2"></i>{{ worksTitleKey | translate }}
+      <span class="section-title__count" *ngIf="count != null">({{ count }})</span>
+    </h2>
+
+    <a class="more-link" *ngIf="moreLink" [routerLink]="moreLink">
+      {{ 'PERSON.SEE_MORE' | translate }}<i class="fa-solid fa-arrow-right ms-1"></i>
+    </a>
+
+    <div class="view-toggle" *ngIf="showViewToggle">
+      <button type="button" class="view-btn" [class.active]="viewMode === 'list'"
+        (click)="setViewMode('list')" [title]="'TOP.VIEW_LIST' | translate">
+        <i class="fa-solid fa-list"></i>
+      </button>
+      <button type="button" class="view-btn" [class.active]="viewMode === 'grid'"
+        (click)="setViewMode('grid')" [title]="'TOP.VIEW_GRID' | translate">
+        <i class="fa-solid fa-table-cells-large"></i>
+      </button>
+    </div>
+  </div>
 
   <div class="person-works__notice" *ngIf="mockNotice && !isLoading">
     <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ 'PERSON.MOCK_NOTICE' | translate }}
   </div>
 
-  <app-loading-skeleton *ngIf="isLoading" [count]="4" [cols]="4"></app-loading-skeleton>
+  <!-- Skeleton: khung chờ khớp với chế độ đang chọn để không nhảy layout -->
+  <app-loading-skeleton *ngIf="isLoading && viewMode === 'grid'"
+    [count]="skeletonCount" [cols]="6"></app-loading-skeleton>
 
-  <div class="manga-grid" *ngIf="!isLoading && mangas.length > 0">
+  <div class="row-skeletons" *ngIf="isLoading && viewMode === 'list'">
+    <div class="row-skeleton" *ngFor="let i of skeletonItems">
+      <div class="skeleton row-skeleton__thumb"></div>
+      <div class="row-skeleton__body">
+        <div class="skeleton row-skeleton__line row-skeleton__line--title"></div>
+        <div class="skeleton row-skeleton__line row-skeleton__line--meta"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid view -->
+  <div class="manga-grid" *ngIf="!isLoading && viewMode === 'grid' && mangas.length > 0">
     <app-manga-sumary-card *ngFor="let manga of mangas" [manga]="manga" [showTags]="showTags"></app-manga-sumary-card>
+  </div>
+
+  <!-- List view -->
+  <div class="manga-list" *ngIf="!isLoading && viewMode === 'list' && rows.length > 0">
+    <a class="manga-row" *ngFor="let row of rows" [routerLink]="['/manga', row.manga.id]">
+      <img class="manga-row__thumb" [src]="row.manga.mangaThumbnail" [alt]="row.title" appImageFallback loading="lazy">
+
+      <div class="manga-row__info">
+        <div class="manga-row__name">{{ row.title }}</div>
+        <div class="manga-row__tags" *ngIf="row.tags.length">
+          <button type="button" class="row-tag" *ngFor="let t of row.tags"
+            (click)="goToTag($event, t.id)">{{ t.name }}</button>
+        </div>
+      </div>
+
+      <div class="manga-row__stats">
+        <span class="stat" [title]="'TOP.VIEWS' | translate">
+          <i class="fa-solid fa-eye"></i>{{ formatViews(row.manga.totalViews) }}
+        </span>
+        <span class="stat" [title]="'TOP.RATING' | translate">
+          <i class="fa-solid fa-star" style="color:#ffd700"></i>{{ row.manga.averageRating ? row.manga.averageRating.toFixed(1) : 'N/A' }}
+        </span>
+        <span class="stat stat--update" [title]="'TOP.UPDATED' | translate" *ngIf="row.updatedAt">
+          <i class="fa-solid fa-clock-rotate-left"></i>{{ row.updatedAt | date:'dd/MM/yyyy' }}
+        </span>
+      </div>
+    </a>
   </div>
 
   <app-pagination *ngIf="showPagination && !isLoading && mangas.length > 0"

@@ -1,5 +1,32 @@
 :host { display: block; }
 
+// ── Chế độ chia đôi (trang /author, /artist, /tag) ────────────────────────────
+// Khung phủ hết chiều cao trang: nửa trên thông tin đối tượng, nửa dưới danh
+// sách truyện. Dùng `flex: 1 1 0` chứ không phải `height: 50%` để nửa nào có nội
+// dung cao hơn phần chia vẫn nở ra thay vì bị cắt.
+:host(.entity-detail--split) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+
+  .person-hero--half,
+  .person-works--half {
+    flex: 1 1 0;
+  }
+
+  .person-hero--half {
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .person-works--half {
+    display: flex;
+    flex-direction: column;
+
+    .manga-grid { flex: 1; align-content: center; }
+  }
+}
+
 .person-empty {
   display: flex;
   flex-direction: column;
@@ -92,14 +119,73 @@
   &--deceased i { color: var(--text-muted); }
 }
 
-// ── Works ─────────────────────────────────────────────────────────────────────
+// ── Works: tiêu đề + chuyển lưới/danh sách ────────────────────────────────────
+.works-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .section-title {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 16px;
+  margin: 0;
 
   &__count { color: var(--text-muted); font-weight: 600; margin-left: 4px; }
+}
+
+// Nút "xem thêm" → trang danh sách đầy đủ của đối tượng.
+.more-link {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--accent-primary);
+  background: rgba(233, 69, 96, 0.12);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--accent-primary);
+    background: rgba(233, 69, 96, 0.2);
+  }
+}
+
+.view-toggle {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-btn {
+  width: 34px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:not(:last-child) { border-right: 1px solid var(--border-color); }
+  &:hover { color: var(--accent-primary); }
+  &.active {
+    background: rgba(233, 69, 96, 0.15);
+    color: var(--accent-primary);
+  }
 }
 
 .person-works__notice {
@@ -114,18 +200,146 @@
   border: 1px solid rgba(255, 193, 7, 0.3);
 }
 
+// ── Grid view ─────────────────────────────────────────────────────────────────
+// 6 cột (trước là 4) → card nhỏ hơn, nhiều truyện hơn trong một màn hình.
 .manga-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+// Card nhỏ hơn thì chữ/chip mặc định (dành cho card 4 cột) bị chật — thu nhỏ
+// theo. Phải dùng ::ng-deep vì `.manga-card` nằm trong template của
+// <app-manga-sumary-card>, ngoài phạm vi style của component này.
+:host ::ng-deep .manga-grid {
+  .manga-card__info { padding: 8px; }
+  .manga-card__title { font-size: 0.8rem; line-height: 1.35; min-height: calc(1.35em * 2); }
+  .manga-card__meta { font-size: 0.7rem; }
+  .manga-card__chapter { font-size: 0.68rem; padding: 2px 6px; }
+  .manga-card__update-time { font-size: 0.62rem; bottom: 28px; }
+  .manga-card__tags .tag-chip { font-size: 0.62rem; padding: 1px 6px; }
+}
+
+// ── List view ─────────────────────────────────────────────────────────────────
+.manga-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.manga-row {
+  display: flex;
+  align-items: center;
   gap: 14px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--border-color);
+    background: var(--bg-card-hover, rgba(255, 255, 255, 0.03));
+    transform: translateX(4px);
+  }
+
+  &__thumb {
+    width: 44px;
+    height: 62px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  &__info { flex: 1; min-width: 0; }
+
+  &__name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__tags {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  &__stats {
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+}
+
+.row-tag {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+  &:hover {
+    background: rgba(233, 69, 96, 0.12);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+
+  i { font-size: 0.7rem; }
+}
+
+// ── Skeleton của list view ────────────────────────────────────────────────────
+.row-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+
+  &__thumb { width: 44px; height: 62px; border-radius: 4px; flex-shrink: 0; }
+  &__body { flex: 1; min-width: 0; }
+  &__line { height: 12px; border-radius: 4px; }
+  &__line--title { width: 46%; }
+  &__line--meta { width: 22%; height: 10px; margin-top: 8px; }
 }
 
 // ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 1200px) {
+  .manga-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
 @media (max-width: 992px) {
-  .manga-grid { grid-template-columns: repeat(3, 1fr); }
+  .manga-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 @media (max-width: 768px) {
+  .manga-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .manga-row__stats { display: none; }
+
   .person-hero {
     flex-direction: column;
     align-items: center;
@@ -133,6 +347,10 @@
 
     &__meta { justify-content: center; }
   }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .stat--update { display: none; }
 }
 
 @media (max-width: 520px) {

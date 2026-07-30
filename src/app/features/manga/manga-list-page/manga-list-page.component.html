@@ -1,8 +1,13 @@
 <div class="list-page">
   <div class="container-fluid px-3 px-md-4">
 
+    <a class="back-link" *ngIf="backLink" [routerLink]="backLink">
+      <i class="fa-solid fa-arrow-left me-1"></i>{{ 'PERSON.BACK' | translate }}
+    </a>
+
     <h1 class="page-title">
       <i [class]="icon" class="me-2"></i>{{ titleKey | translate }}
+      <span class="page-title__subject" *ngIf="subject">{{ subject }}</span>
     </h1>
 
     <!-- View Controls -->

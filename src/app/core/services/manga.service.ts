@@ -214,12 +214,18 @@ export class MangaService {
     pageSize = 20,
     sortBy: MangaSortBy = MangaSortBy.LastUpdate,
     reverseSort = true,
+    filters?: { authorId?: string; artistId?: string; tagIds?: string[] },
   ): Observable<{ data: MangaSumaryDto[]; totalPages: number; totalCount: number }> {
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('PageNo', page)
       .set('PageSize', pageSize)
       .set('SortBy', sortBy)
       .set('ReverseSort', reverseSort);
+    // Lọc theo tác giả / hoạ sĩ / thể loại — dùng cho trang "xem tất cả truyện
+    // của <đối tượng>", vốn chỉ khác /latest ở bộ lọc này.
+    if (filters?.authorId) params = params.set('authorId', filters.authorId);
+    if (filters?.artistId) params = params.set('artistId', filters.artistId);
+    if (filters?.tagIds?.length) params = params.set('tagIds', filters.tagIds.join(','));
     return this.http.get(`${this.base}/filter-manga`, { params }).pipe(
       map((res: any) => {
         const raw = res?.value ?? res;

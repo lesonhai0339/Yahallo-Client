@@ -121,6 +121,22 @@ Quy ước:
 - Không bao giờ ném lỗi → ghi rõ `Exception: không ném — <hành vi thay thế>`.
 - Nhánh nào thực sự không có nội dung thì vẫn giữ dòng và ghi `không`.
 
+### 3.2 Ghi chú chức năng đã làm — BẮT BUỘC
+
+Làm xong một chức năng (hoặc sửa đáng kể một chức năng đã có) → cập nhật ngay
+**mục 8. Feature Index** ở cuối file này. Mục đích: cả người lẫn Claude tra được
+"chức năng X nằm ở đâu" mà không phải grep lại cả repo mỗi session.
+
+Quy ước ghi:
+- **Neo bằng TÊN, không bằng số dòng.** Ghi tên class / method / `@Input` / class
+  CSS / path route. Số dòng hỏng ngay ở lần sửa kế tiếp, tên thì grep ra được.
+- **Một dòng = một chức năng**, không phải một file. Chức năng trải nhiều file thì
+  liệt kê các file trong cùng ô, cách nhau bằng `<br>`.
+- **Sửa chức năng cũ → sửa đúng dòng đó**, không thêm dòng trùng.
+- Nhóm theo khu vực (trang / module). Thêm mới vào đúng nhóm sẵn có.
+- Chỉ ghi chức năng thật sự tra cứu lại được. Đổi màu, sửa chính tả, refactor
+  thuần tuý thì bỏ qua — index phồng lên là mất tác dụng.
+
 ---
 
 ## 4. Mock APIs (chưa có backend — cần implement)
@@ -189,11 +205,49 @@ Quy ước:
 ## 6. Hành động khi bắt đầu conversation
 
 1. Đọc `CLAUDE.md` (file này) ✓
-2. Nếu user đề cập đến feature/bug đã làm trước đó → đọc file session log liên quan trong `sessions_chat/`
-3. Trả lời theo đúng conventions của project
+2. User nhắc tới một chức năng đã có → tra **mục 8. Feature Index** trước, đừng grep mò
+3. Nếu cần thêm bối cảnh vì sao làm vậy → đọc session log liên quan trong `sessions_chat/`
+4. Trả lời theo đúng conventions của project
 
 ## 7. Hành động khi kết thúc conversation
 
 1. Xác định topic chính của conversation
 2. Tạo file `sessions_chat/<topic>_<datetime>.md` theo format ở mục 5
-3. Cập nhật `memory/MEMORY.md` nếu có thông tin mới cần lưu dài hạn
+3. Cập nhật **mục 8. Feature Index** cho các chức năng vừa làm (xem quy ước ở 3.2)
+4. Cập nhật `memory/MEMORY.md` nếu có thông tin mới cần lưu dài hạn
+
+---
+
+## 8. Feature Index
+
+Tra "chức năng này nằm ở đâu". Neo là **tên** (class / method / `@Input` / class CSS /
+route), không phải số dòng — quy ước ghi ở mục 3.2.
+
+### Giao diện & theme
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| Theme + ảnh nền + font (lưu theo tài khoản) | `core/services/theme.service.ts` | `THEMES`, `hydrate()`, `applyBackground()`, `setBackgroundCoverMain()` |
+| Lớp ảnh nền tuỳ chỉnh + chế độ phủ nội dung | `src/styles.scss` | `body.has-bg-image`, `body.has-bg-image:not(.bg-cover-main)`, `body.has-bg-image.bg-cover-main` |
+| Hiệu ứng đổi theme (`ripple` / `none`) | `core/services/theme.service.ts`<br>`src/styles.scss` | `THEME_TRANSITIONS`, `setThemeWithEffect()`, `runRippleTransition()`<br>`::view-transition-old(root)` / `::view-transition-new(root)` |
+| Chọn hiệu ứng trong Settings | `features/user/settings/settings.component.{ts,html,scss}` | `selectTransition()`, `.fx-section`, `.fx-card`; i18n `SETTINGS.FX_*` |
+| Đồng bộ settings với server (gồm `Transition`) | `core/services/user-settings.service.ts` | `TRANSITION_NAMES`/`TRANSITION_VALUES`, `applyDto()`, `saveWith()` |
+
+### Admin — quản lý truyện
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| Danh sách truyện (endpoint riêng của admin) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.ts` | `getAll()` → `manga/admin/get-all-pagination`<br>`loadData()`, `hasActiveFilter` |
+| Lọc / tìm / sắp xếp truyện (server-side) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html,scss}` | `AdminMangaFilter`, `filter()` → `manga/admin/filter`, `getDetail()`<br>`criteria`/`draft`, `applyFilters()`, `resetFilters()`, `setSort()`, `.filter-panel`, `.sort-chips` |
+| Ẩn / hiện truyện (`DisplayMode`, tách khỏi `status`) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html}` | `DisplayMode`, `updateDisplayMode()` → `manga/update`<br>`isHidden()`, `toggleVisibility()`, `getDisplayModeLabel()` |
+| Tạo / sửa truyện | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-form/manga-form.component.ts` | `create()`, `update()` (Id nằm TRONG form, route `manga/update`)<br>`buildFormData()` |
+
+### Trang tác giả / hoạ sĩ / thể loại
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| Trang `/author/:id`, `/artist/:id`, `/tag/:id` | `features/person/person-detail/person-detail.component.{ts,html,scss}` | `load()`, `loadMangas()`, `previewSize` (6 truyện), `moreLink`, `.person-panel`, `.hero-skeleton` |
+| Container nền riêng (ảnh nền không phủ nội dung) | `features/person/person-detail/person-detail.component.scss`<br>`src/styles.scss` | `.person-panel`<br>`.person-page .person-panel` trong khối `bg-cover-main` |
+| Khối info + danh sách truyện (dùng chung với search) | `shared/components/entity-detail/entity-detail.component.{ts,html,scss}` | `@Input splitHeight` / `moreLink` / `showViewToggle`, `:host(.entity-detail--split)`, `.person-hero`, `.person-works` |
+| Chuyển lưới / danh sách + skeleton theo chế độ | `shared/components/entity-detail/entity-detail.component.{ts,html,scss}` | `viewMode`, `setViewMode()`, `buildRows()`, `skeletonItems`, `.manga-list`, `.row-skeletons` |
+| Trang "xem thêm" — danh sách đầy đủ theo đối tượng | `app-routing.module.ts`<br>`features/manga/manga-list-page/manga-list-page.component.ts`<br>`core/services/manga.service.ts` | route `author\|artist\|tag/:id/manga`<br>`ListMode`, `isEntityMode`, `loadEntityName()`, `backLink`<br>`getSortedPaginated(..., filters)` |

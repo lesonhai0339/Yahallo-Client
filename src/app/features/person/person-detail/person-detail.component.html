@@ -1,27 +1,43 @@
 <div class="person-page">
   <div class="container-fluid px-3 px-md-4">
+    <!-- Container riêng của trang: giữ nền/bo góc của chính nó nên ảnh nền tuỳ
+         chỉnh (Cài đặt) chỉ hiện ở viền ngoài, không phủ lên nội dung. -->
+    <div class="person-panel">
 
-    <!-- Loading -->
-    <div class="person-loading" *ngIf="isLoading">
-      <i class="fa-solid fa-spinner fa-spin"></i>
+      <!-- Loading: skeleton phần hero (phần truyện có skeleton riêng trong entity-detail) -->
+      <div class="hero-skeleton" *ngIf="isLoading">
+        <div class="skeleton hero-skeleton__avatar"></div>
+        <div class="hero-skeleton__body">
+          <div class="skeleton hero-skeleton__line hero-skeleton__line--role"></div>
+          <div class="skeleton hero-skeleton__line hero-skeleton__line--name"></div>
+          <div class="skeleton hero-skeleton__line hero-skeleton__line--meta"></div>
+          <div class="skeleton hero-skeleton__line hero-skeleton__line--desc"></div>
+          <div class="skeleton hero-skeleton__line hero-skeleton__line--desc2"></div>
+        </div>
+      </div>
+
+      <!-- Not found -->
+      <div class="person-empty" *ngIf="!isLoading && notFound">
+        <i class="fa-regular fa-face-frown"></i>
+        <p>{{ 'PERSON.NOT_FOUND' | translate }}</p>
+      </div>
+
+      <app-entity-detail *ngIf="!isLoading && person"
+        [kind]="kind"
+        [name]="person.name"
+        [description]="person.depscription"
+        [birth]="person.birth"
+        [lifeStatus]="person.lifeStatus"
+        [mangas]="mangas"
+        [isLoading]="isMangaLoading"
+        [mockNotice]="isMangaMock"
+        [count]="totalCount"
+        [pageSize]="previewSize"
+        [splitHeight]="true"
+        [showViewToggle]="false"
+        [moreLink]="moreLink">
+      </app-entity-detail>
+
     </div>
-
-    <!-- Not found -->
-    <div class="person-empty" *ngIf="!isLoading && notFound">
-      <i class="fa-regular fa-face-frown"></i>
-      <p>{{ 'PERSON.NOT_FOUND' | translate }}</p>
-    </div>
-
-    <app-entity-detail *ngIf="!isLoading && person"
-      [kind]="kind"
-      [name]="person.name"
-      [description]="person.depscription"
-      [birth]="person.birth"
-      [lifeStatus]="person.lifeStatus"
-      [mangas]="mangas"
-      [isLoading]="isMangaLoading"
-      [mockNotice]="isMangaMock">
-    </app-entity-detail>
-
   </div>
 </div>

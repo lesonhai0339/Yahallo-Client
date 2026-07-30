@@ -31,6 +31,10 @@ const routes: Routes = [
   { path: 'author/:id', component: PersonDetailComponent, data: { kind: 'author' } },
   { path: 'artist/:id', component: PersonDetailComponent, data: { kind: 'artist' } },
   { path: 'tag/:id', component: PersonDetailComponent, data: { kind: 'tag' } },
+  // "Xem thêm" từ trang đối tượng → cùng giao diện /latest nhưng lọc theo đối tượng.
+  { path: 'author/:id/manga', component: MangaListPageComponent, data: { mode: 'author', titleKey: 'PERSON.WORKS_BY', icon: 'fa-solid fa-pen-nib' } },
+  { path: 'artist/:id/manga', component: MangaListPageComponent, data: { mode: 'artist', titleKey: 'PERSON.WORKS_BY', icon: 'fa-solid fa-palette' } },
+  { path: 'tag/:id/manga', component: MangaListPageComponent, data: { mode: 'tag', titleKey: 'PERSON.MANGA_IN_TAG', icon: 'fa-solid fa-tags' } },
   { path: 'auth/login', component: LoginComponent },
   { path: 'auth/register', component: RegisterComponent },
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },

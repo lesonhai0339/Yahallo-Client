@@ -5,7 +5,8 @@ import {
 } from '../../../core/services/user-preferences.service';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
 import {
-  ThemeService, Theme, ThemeMeta, FONT_FAMILY_OPTIONS, FONT_WEIGHT_OPTIONS,
+  ThemeService, Theme, ThemeMeta, ThemeTransition, ThemeTransitionMeta,
+  FONT_FAMILY_OPTIONS, FONT_WEIGHT_OPTIONS,
 } from '../../../core/services/theme.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslationService, SupportedLang } from '../../../core/services/translation.service';
@@ -20,6 +21,8 @@ export class SettingsComponent implements OnInit {
   prefs!: UserPreferences;
   themes: ThemeMeta[] = [];
   currentTheme: Theme = 'dark';
+  transitions: ThemeTransitionMeta[] = [];
+  currentTransition: ThemeTransition = 'ripple';
   bgImageInput = '';
   bgImage: string | null = null;
   bgOpacity = 0.82;
@@ -69,6 +72,8 @@ export class SettingsComponent implements OnInit {
     this.prefs = { ...this.prefsService.current };
     this.themes = this.themeService.themes;
     this.currentTheme = this.themeService.currentTheme;
+    this.transitions = this.themeService.transitions;
+    this.currentTransition = this.themeService.themeTransition;
     this.bgImage = this.themeService.backgroundImage;
     this.bgImageInput = this.bgImage ?? '';
     this.bgOpacity = this.themeService.backgroundOpacity;
@@ -112,6 +117,7 @@ export class SettingsComponent implements OnInit {
     // Re-read the now-default values back into the form.
     this.prefs = { ...this.prefsService.current };
     this.currentTheme = this.themeService.currentTheme;
+    this.currentTransition = this.themeService.themeTransition;
     this.currentLang = this.i18n.currentLang;
     this.bgImage = this.themeService.backgroundImage;
     this.bgImageInput = '';
@@ -212,9 +218,31 @@ export class SettingsComponent implements OnInit {
   }
 
   // ── Theme ────────────────────────────────────────────────────────────────────
-  selectTheme(theme: Theme): void {
+  /**
+   * Chức năng: Đổi theme từ ô chọn, chạy kèm hiệu ứng đang bật — nhờ vậy chính
+   *   thao tác này cũng là bản xem thử của hiệu ứng vừa chọn.
+   * Yêu cầu: `theme` — theme đích; `event` — click event lấy tâm toả của hiệu ứng.
+   * Kết quả trả về: không.
+   * Exception: không ném.
+   */
+  selectTheme(theme: Theme, event?: MouseEvent): void {
     this.currentTheme = theme;
-    this.themeService.setTheme(theme);
+    this.themeService.setThemeWithEffect(theme, event);
+  }
+
+  /**
+   * Chức năng: Chọn hiệu ứng chuyển theme.
+   * Yêu cầu: `fx` — hiệu ứng.
+   * Kết quả trả về: không (lưu vào localStorage theo tài khoản).
+   * Exception: không ném.
+   *
+   * Không chạy thử tại chỗ: cả hai hiệu ứng đều dựa trên ảnh chụp trước/sau của
+   * View Transitions, đổi-vào-chính-theme-hiện-tại thì hai ảnh giống hệt nhau
+   * nên không thấy gì. Bấm một ô theme phía trên chính là bản xem thử.
+   */
+  selectTransition(fx: ThemeTransition): void {
+    this.currentTransition = fx;
+    this.themeService.setThemeTransition(fx);
   }
 
   get activeThemeMeta(): ThemeMeta | undefined {

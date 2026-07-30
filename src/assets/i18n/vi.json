@@ -168,7 +168,8 @@
     "NO_DESCRIPTION": "Chưa có thông tin mô tả.",
     "NOT_FOUND": "Không tìm thấy thông tin",
     "MOCK_NOTICE": "Dữ liệu truyện đang là mẫu (mock) — sẽ thay bằng dữ liệu thật khi API sẵn sàng.",
-    "BACK": "Quay lại"
+    "BACK": "Quay lại",
+    "SEE_MORE": "Xem thêm"
   },
   "AUTH": {
     "LOGIN_TITLE": "Chào mừng trở lại",
@@ -381,6 +382,12 @@
     "THEME_MIDNIGHT": "Nửa đêm",
     "THEME_SEPIA": "Sepia",
     "THEME_OCEAN": "Đại dương",
+    "FX_TITLE": "Hiệu ứng khi đổi giao diện",
+    "FX_HINT": "Hiệu ứng áp dụng cho cả nút đổi giao diện trên thanh đầu trang. Máy bật \"giảm chuyển động\" sẽ đổi ngay, không chạy hiệu ứng.",
+    "FX_RIPPLE": "Gợn sóng",
+    "FX_RIPPLE_DESC": "Lan tròn từ điểm bấm",
+    "FX_NONE": "Không hiệu ứng",
+    "FX_NONE_DESC": "Đổi ngay lập tức",
     "FRAME_DEFAULT": "Mặc định",
     "FRAME_GRADIENT": "Chuyển sắc",
     "FRAME_GLOW": "Phát sáng",

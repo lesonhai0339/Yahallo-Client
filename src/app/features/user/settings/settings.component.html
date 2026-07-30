@@ -104,13 +104,31 @@
     <div class="theme-grid">
       <button *ngFor="let t of themes" class="theme-card"
         [class.theme-card--active]="currentTheme === t.id"
-        (click)="selectTheme(t.id)">
+        (click)="selectTheme(t.id, $event)">
         <span class="theme-card__swatch" [style.background]="t.swatch[0]">
           <span class="theme-card__dot" [style.background]="t.swatch[1]"></span>
         </span>
         <span class="theme-card__label">{{ t.label | translate }}</span>
         <i class="fa-solid fa-check theme-card__check" *ngIf="currentTheme === t.id"></i>
       </button>
+    </div>
+
+    <!-- Hiệu ứng chuyển theme (áp dụng cho cả nút theme ở header) -->
+    <div class="fx-section">
+      <label class="fx-section__label">{{ 'SETTINGS.FX_TITLE' | translate }}</label>
+      <div class="fx-grid">
+        <button *ngFor="let fx of transitions" class="fx-card"
+          [class.fx-card--active]="currentTransition === fx.id"
+          (click)="selectTransition(fx.id)">
+          <i [class]="fx.icon" class="fx-card__icon"></i>
+          <span class="fx-card__body">
+            <strong>{{ fx.label | translate }}</strong>
+            <small>{{ fx.desc | translate }}</small>
+          </span>
+          <i class="fa-solid fa-check fx-card__check" *ngIf="currentTransition === fx.id"></i>
+        </button>
+      </div>
+      <small class="fx-section__hint">{{ 'SETTINGS.FX_HINT' | translate }}</small>
     </div>
 
     <!-- Background image -->

@@ -3,7 +3,16 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
+import { AuthorService } from '../../../core/services/author.service';
+import { ArtistService } from '../../../core/services/artist.service';
 import { MangaSumaryDto, MangaSortBy } from '../../../core/models/manga.interface';
+
+/**
+ * latest/popular = danh sách toàn site sắp theo tiêu chí; author/artist/tag =
+ * cùng giao diện đó nhưng lọc theo một đối tượng (link "xem thêm" ở trang
+ * /author/:id, /artist/:id, /tag/:id).
+ */
+type ListMode = 'latest' | 'popular' | 'author' | 'artist' | 'tag';
 
 @Component({
   selector: 'app-manga-list-page',
@@ -25,15 +34,22 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
 
   titleKey = '';
   icon = '';
-  mode: 'latest' | 'popular' = 'latest';
+  mode: ListMode = 'latest';
+  /** Tên đối tượng đang lọc (author/artist/tag) — hiện cạnh tiêu đề. Rỗng ở latest/popular. */
+  subject = '';
+  /** Link quay lại trang đối tượng; null ở latest/popular. */
+  backLink: any[] | null = null;
 
+  private entityId = '';
   private destroy$ = new Subject<void>();
 
   constructor(
     private mangaService: MangaService,
     private route: ActivatedRoute,
     private router: Router,
-    private prefs: UserPreferencesService
+    private prefs: UserPreferencesService,
+    private authorService: AuthorService,
+    private artistService: ArtistService,
   ) {}
 
   ngOnInit(): void {
@@ -42,7 +58,41 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
     this.mode = this.route.snapshot.data['mode'] ?? 'latest';
     this.titleKey = this.route.snapshot.data['titleKey'] ?? 'HOME.LATEST_UPDATE';
     this.icon = this.route.snapshot.data['icon'] ?? 'fa-solid fa-clock-rotate-left';
+    this.entityId = this.route.snapshot.paramMap.get('id') ?? '';
+
+    if (this.isEntityMode) {
+      this.backLink = [`/${this.mode}`, this.entityId];
+      this.loadEntityName();
+    }
     this.loadPage();
+  }
+
+  /** true khi trang đang lọc theo một tác giả / hoạ sĩ / thể loại. */
+  get isEntityMode(): boolean {
+    return this.mode === 'author' || this.mode === 'artist' || this.mode === 'tag';
+  }
+
+  /**
+   * Chức năng: Lấy tên tác giả / hoạ sĩ / thể loại để hiện cạnh tiêu đề trang.
+   * Yêu cầu: `entityId` + `mode` đã xác định (chỉ gọi ở chế độ lọc theo đối tượng).
+   * Kết quả trả về: không (gán `subject`).
+   * Exception: không ném — lỗi API thì để trống, tiêu đề vẫn hiển thị bình thường.
+   */
+  private loadEntityName(): void {
+    if (this.mode === 'tag') {
+      this.mangaService.getTagInfo(this.entityId).pipe(takeUntil(this.destroy$))
+        .subscribe({ next: info => this.subject = info?.name ?? '', error: () => {} });
+      return;
+    }
+    const svc = this.mode === 'author' ? this.authorService : this.artistService;
+    svc.filter({ id: this.entityId, pageSize: 1 }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res: any) => {
+        const raw = res?.value ?? res;
+        const item = (raw?.data ?? (Array.isArray(raw) ? raw : []))[0] ?? null;
+        this.subject = item?.name ?? '';
+      },
+      error: () => {},
+    });
   }
 
   ngOnDestroy(): void {
@@ -53,7 +103,13 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
   loadPage(): void {
     this.isLoading = true;
     const sortBy = this.mode === 'popular' ? MangaSortBy.ViewCount : MangaSortBy.LastUpdate;
-    const api$ = this.mangaService.getSortedPaginated(this.currentPage, this.pageSize, sortBy, this.sortDescending);
+    const filters = this.mode === 'author' ? { authorId: this.entityId }
+      : this.mode === 'artist' ? { artistId: this.entityId }
+      : this.mode === 'tag' ? { tagIds: [this.entityId] }
+      : undefined;
+    const api$ = this.mangaService.getSortedPaginated(
+      this.currentPage, this.pageSize, sortBy, this.sortDescending, filters,
+    );
     api$.pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {

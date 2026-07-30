@@ -17,6 +17,39 @@ export interface ChapterPayload {
   chapterId?: string;
 }
 
+/** Mirror enum `DisplayMode` của backend — quyết định truyện có hiện với người đọc không. */
+export enum DisplayMode {
+  Hidden = 'Hidden',
+  Visible = 'Visible',
+  Disabled = 'Disabled',
+}
+
+/**
+ * Tham số của `GET manga/admin/filter` — mirror `AdminFilterMangaQuery`.
+ * Field nào bỏ trống thì không gửi lên, để backend hiểu là "không lọc theo tiêu
+ * chí này" (gửi chuỗi rỗng sẽ bị bind thành giá trị thật và lọc sai).
+ */
+export interface AdminMangaFilter {
+  pageNo?: number;
+  pageSize?: number;
+  name?: string | null;
+  mangaId?: string | null;
+  tagIds?: string[] | null;
+  authorId?: string | null;
+  artistId?: string | null;
+  level?: string | number | null;
+  status?: string | number | null;
+  displayMode?: DisplayMode | string | null;
+  type?: string | number | null;
+  countries?: string | number | null;
+  userId?: string | null;
+  date?: string | null;
+  timeZone?: string | null;
+  sortBy?: string | null;
+  reverseSort?: boolean;
+  isDeleted?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminMangaService {
   private readonly base = environment.mangaApi;
@@ -32,29 +65,115 @@ export class AdminMangaService {
     return `${this.imgBase}/image?filepath=${path}`;
   }
 
+  /**
+   * Chức năng: Liệt kê thuần truyện cho trang quản trị, KHÔNG có tham số sắp xếp
+   *   / lọc. Danh sách chính không dùng hàm này nữa (nó cần sắp theo lần cập nhật
+   *   gần nhất, mà chỉ `admin/filter` mới nhận `SortBy`) — giữ lại cho các chỗ
+   *   chỉ cần đếm hoặc lấy nhanh một trang.
+   * Yêu cầu: `page` 1-based, `pageSize` > 0; tài khoản phải có policy Admin.
+   * Kết quả trả về: Observable emit response thô (`{ value: PagedResult<AdminMangaDto> }`).
+   * Exception: không bắt lỗi — 401/403 để interceptor xử lý.
+   */
   getAll(page = 1, pageSize = 20): Observable<any> {
     const params = new HttpParams().set('PageNo', page).set('PageSize', pageSize);
-    return this.http.get(`${this.base}/get-all-pagination`, { params });
+    return this.http.get(`${this.base}/admin/get-all-pagination`, { params });
   }
 
+  /**
+   * Chức năng: Lọc/tìm truyện cho trang quản trị (`AdminFilterMangaQuery`).
+   *   `AdminMangaDto` trả về đã gồm cả description / tags / authors / artists nên
+   *   endpoint này thay luôn cho `manga/detail` cũ.
+   * Yêu cầu: `f` — các tiêu chí; field null/undefined/'' được BỎ QUA, không gửi
+   *   lên (gửi rỗng thì model binder bind thành giá trị thật và lọc sai).
+   *   `tagIds` là mảng, backend nhận chuỗi nối bằng dấu phẩy.
+   * Kết quả trả về: Observable emit response thô (`{ value: PagedResult<AdminMangaDto> }`).
+   * Exception: không bắt lỗi — caller tự xử lý.
+   */
+  filter(f: AdminMangaFilter): Observable<any> {
+    let params = new HttpParams()
+      .set('PageNo', f.pageNo ?? 1)
+      .set('PageSize', f.pageSize ?? 20);
+
+    const set = (key: string, value: unknown) => {
+      if (value === null || value === undefined || value === '') return;
+      params = params.set(key, String(value));
+    };
+
+    set('Name', f.name);
+    set('MangaId', f.mangaId);
+    set('TagIds', f.tagIds?.length ? f.tagIds.join(',') : null);
+    set('AuthorId', f.authorId);
+    set('ArtistId', f.artistId);
+    set('Level', f.level);
+    set('Status', f.status);
+    set('DisplayMode', f.displayMode);
+    set('Type', f.type);
+    set('Countries', f.countries);
+    set('UserId', f.userId);
+    set('Date', f.date);
+    set('TimeZone', f.timeZone);
+    set('SortBy', f.sortBy);
+    // Hai cờ bool: luôn gửi để lần lọc sau ghi đè được lần trước.
+    params = params.set('ReverseSort', f.reverseSort ?? true);
+    params = params.set('IsDeleted', f.isDeleted ?? false);
+
+    return this.http.get(`${this.base}/admin/filter`, { params });
+  }
+
+  /**
+   * Chức năng: Lấy chi tiết một truyện — dùng chính `admin/filter` lọc theo
+   *   `MangaId` vì `AdminMangaDto` đã đủ field, backend không còn `manga/detail`
+   *   cho phía admin.
+   * Yêu cầu: `id` — id truyện.
+   * Kết quả trả về: Observable emit đúng một `AdminMangaDto`, hoặc null nếu không
+   *   tìm thấy.
+   * Exception: không bắt lỗi — caller tự xử lý.
+   */
   getDetail(id: string): Observable<any> {
-    return this.http.get(`${this.base}/detail`, { params: { Id: id } });
+    return this.filter({ mangaId: id, pageNo: 1, pageSize: 1 }).pipe(
+      map((res: any) => {
+        const d = res?.value ?? res;
+        return (d?.data ?? d?.items ?? [])[0] ?? null;
+      }),
+    );
   }
 
   create(formData: FormData): Observable<any> {
     return this.http.post(`${this.base}/create`, formData);
   }
 
+  /**
+   * Chức năng: Cập nhật truyện. Route là `manga/update` với `Id` NẰM TRONG form
+   *   (`UpdateMangaCommand`), không phải `/update/{id}` — backend không có route
+   *   nào nhận id trên path.
+   * Yêu cầu: `id` — id truyện; `formData` — các field muốn đổi (multipart, vì
+   *   backend nhận `[FromForm]`). Hàm tự thêm `Id` nếu form chưa có.
+   * Kết quả trả về: Observable emit response `UpdateMangaResponseDto`.
+   * Exception: không bắt lỗi — caller tự xử lý.
+   */
   update(id: string, formData: FormData): Observable<any> {
-    return this.http.put(`${this.base}/update/${id}`, formData);
+    if (!formData.has('Id')) formData.append('Id', id);
+    return this.http.put(`${this.base}/update`, formData);
   }
 
   delete(id: string): Observable<any> {
     return this.http.delete(`${this.base}/delete/${id}`);
   }
 
-  updateStatus(id: string, status: string): Observable<any> {
-    return this.http.put(`${this.base}/update-status`, { id, status });
+  /**
+   * Chức năng: Đổi chế độ hiển thị của một truyện (ẩn / hiện / khoá) — dùng chung
+   *   endpoint `manga/update`, chỉ gửi đúng field cần đổi.
+   * Yêu cầu: `manga` — dòng đang thao tác, cần có `id`; `mode` — chế độ đích.
+   *   Chỉ gửi đúng 2 field: các field khác của `UpdateMangaCommand` đều nullable
+   *   nên bỏ trống là "không đổi".
+   * Kết quả trả về: Observable emit response của `manga/update`.
+   * Exception: không bắt lỗi — caller tự xử lý.
+   */
+  updateDisplayMode(manga: { id: string }, mode: DisplayMode): Observable<any> {
+    const fd = new FormData();
+    fd.append('Id', manga.id);
+    fd.append('DisplayMode', mode);
+    return this.http.put(`${this.base}/update`, fd);
   }
 
   getAllAuthors(pageSize = 200): Observable<any> {
