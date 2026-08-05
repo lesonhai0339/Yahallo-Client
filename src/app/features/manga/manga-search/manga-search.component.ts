@@ -623,7 +623,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   private applyResult(r: { data: Manga[]; totalPages: number; totalCount: number }): void {
     this.results = r.data;
     this.totalPages = r.totalPages;
-    this.totalCount = r.totalCount || r.totalPages * this.pageSize;
+    // KHÔNG suy ra từ `totalPages * pageSize`: đó là con số bịa, và với `||` thì
+    // `totalCount = 0` hợp lệ (đối tượng chưa có truyện nào) cũng bị coi là
+    // thiếu dữ liệu rồi hiện thành đúng một trang đầy — "(20)" dù chẳng có gì.
+    // Thiếu thật thì lấy số mục đang cầm trên tay, ít nhất nó đúng.
+    this.totalCount = r.totalCount || this.results.length;
     this.hasSearched = true;
   }
 

@@ -23,7 +23,10 @@ export interface TagDto{
 
 /** Mirrors backend MangaSortBy enum (filter-manga) */
 export enum MangaSortBy {
+    CreateDate = 'CreateDate',
     LastUpdate = 'LastUpdate',
+    /** Backend viết là `Deletedate` (chữ d thường) — gửi sai tên là bind hỏng. */
+    DeleteDate = 'Deletedate',
     ViewCount = 'ViewCount',
     Rating = 'Rating',
     CommentCount = 'CommentCount',
@@ -45,6 +48,8 @@ export interface TopMangaDto {
 }
 
 export interface HomepageDto {
+    /** 6 truyện mới thêm gần đây — server trả sẵn, không phải gọi API riêng. */
+    newManga: MangaSumaryDto[];
     lastUpdate: MangaSumaryDto[];
     popular: MangaSumaryDto[];
     tags: TagDto[];

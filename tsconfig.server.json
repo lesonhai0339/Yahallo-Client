@@ -1,0 +1,17 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/server",
+    /* `server.ts` nam o goc project, ngoai `rootDir: ./src` cua tsconfig goc —
+       noi rong ra thu muc goc, neu khong TS bao TS6059. */
+    "rootDir": ".",
+    "types": [
+      "node"
+    ]
+  },
+  "files": [
+    "src/main.server.ts",
+    "server.ts"
+  ]
+}

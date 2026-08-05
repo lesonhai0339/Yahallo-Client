@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Optional, Inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
@@ -11,6 +11,7 @@ import { ChapterSortBy } from '../../../core/models/chapter.interface';
 import { DownloadService } from '../../../core/services/download.service';
 import { chapterName, chapterNumber } from '../../../core/utils/chapter-label';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
+import { RESPONSE_CONTEXT, ResponseContext } from '../../../core/tokens/response-context';
 
 @Component({
   selector: 'app-manga-detail',
@@ -27,12 +28,12 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   selectedRating = 0;
   hoverRating = 0;
   hasRated = false;
+  notFound = false;
   existingRating!: UserRating;
   showReratePanel = false;
   synopsisExpanded = false;
   sameAuthorManga: Manga[] = [];
   sameArtistManga: Manga[] = [];
-
   // Download range picker (download-all)
   showDownloadPanel = false;
   readonly MAX_RANGE = 10;
@@ -134,6 +135,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     private seo: SeoService,
     private download: DownloadService,
     private readingProgress: ReadingProgressService,
+    @Optional() @Inject(RESPONSE_CONTEXT) private responseContext: ResponseContext | null,
   ) {}
 
   // ── Download ─────────────────────────────────────────────────────────────────
@@ -217,12 +219,19 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.loadRelatedManga();
         this.loadInteraction();
       },
-      error: () => {
-        this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(m => {
-          this.manga = m as any;
-          this.isLoading = false;
-          this.loadStats();
-        });
+      error: (err) => {
+        this.isLoading = false;
+
+          if (err.status === 404) {
+            if (this.responseContext?.status === 200) this.responseContext.status = 404;
+            this.notFound = true;
+            return;                 
+          }
+
+         this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
+            next: m => { this.manga = m as any; this.loadStats(); },
+            error: () => { this.notFound = true; },
+          });
       }
     });
   }

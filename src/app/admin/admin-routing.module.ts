@@ -9,7 +9,10 @@ import { MangaListComponent } from './pages/manga-list/manga-list.component';
 import { MangaFormComponent } from './pages/manga-form/manga-form.component';
 import { ChapterListComponent } from './pages/chapter-list/chapter-list.component';
 import { MangaAnalyticsComponent } from './pages/manga-analytics/manga-analytics.component';
+import { MangaInfoComponent } from './pages/manga-info/manga-info.component';
+import { TaxonomyInfoComponent } from './pages/taxonomy-info/taxonomy-info.component';
 import { UserListComponent } from './pages/user-list/user-list.component';
+import { UserProfileComponent } from './pages/user-profile/user-profile.component';
 import { UserAnalyticsComponent } from './pages/user-analytics/user-analytics.component';
 import { TopicListComponent } from './pages/topic-list/topic-list.component';
 import { TaxonomyListComponent } from './pages/taxonomy-list/taxonomy-list.component';
@@ -54,6 +57,34 @@ const routes: Routes = [
         data: { permission: Permission.ViewAnalytics }
       },
       {
+        // Thong tin mot truyen. Phai dung TRUOC 'manga' va sau cac route
+        // 'manga/create' | 'manga/edit/:id' de khong nuot mat chung.
+        path: 'manga/:id/info',
+        component: MangaInfoComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageManga }
+      },
+      // Thong tin the loai / tac gia / hoa si + truyen lien quan. Ba route
+      // dung chung TaxonomyInfoComponent, phan biet qua `data.kind`.
+      {
+        path: 'tags/:id',
+        component: TaxonomyInfoComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageManga, kind: 'tag' }
+      },
+      {
+        path: 'authors/:id',
+        component: TaxonomyInfoComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageManga, kind: 'author' }
+      },
+      {
+        path: 'artists/:id',
+        component: TaxonomyInfoComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageManga, kind: 'artist' }
+      },
+      {
         path: 'manga',
         component: MangaListComponent,
         canActivate: [PermissionGuard],
@@ -62,6 +93,13 @@ const routes: Routes = [
       {
         path: 'users/:id/analytics',
         component: UserAnalyticsComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageUsers }
+      },
+      {
+        // Ho so mot nguoi dung + truyen ho da dang. Phai dung SAU 'users/:id/analytics'.
+        path: 'users/:id',
+        component: UserProfileComponent,
         canActivate: [PermissionGuard],
         data: { permission: Permission.ManageUsers }
       },

@@ -42,7 +42,9 @@ export interface AdminMangaFilter {
   displayMode?: DisplayMode | string | null;
   type?: string | number | null;
   countries?: string | number | null;
-  userId?: string | null;
+  /** Lọc theo chủ sở hữu. Tham số gửi lên là `UserId` (KHÔNG phải `OwnerId`)
+   *  — gửi sai tên thì backend bỏ qua và trả về TOÀN BỘ truyện, im lặng. */
+  ownerId?: string | null;
   date?: string | null;
   timeZone?: string | null;
   sortBy?: string | null;
@@ -109,7 +111,7 @@ export class AdminMangaService {
     set('DisplayMode', f.displayMode);
     set('Type', f.type);
     set('Countries', f.countries);
-    set('UserId', f.userId);
+    set('UserId', f.ownerId);
     set('Date', f.date);
     set('TimeZone', f.timeZone);
     set('SortBy', f.sortBy);
@@ -222,12 +224,36 @@ export class AdminMangaService {
     return this.http.delete(`${this.tagBase}/delete/${id}`);
   }
 
-  getChapters(mangaId: string, page = 1, pageSize = 50): Observable<any> {
-    const params = new HttpParams()
+  /**
+   * Chức năng: Danh sách chương cho khu quản trị — dùng `chapter/admin/filter`
+   *   (AdminFilterChapterQuery → AdminChapterDto) thay vì `filter-chapter` công
+   *   khai, vì bản admin trả thêm `userId`, `deleteDate` và nhận `IsDeleted` để
+   *   xem chương đã xoá.
+   * Yêu cầu: `mangaId` **bắt buộc** — backend chặn, vì thiếu nó thì câu truy vấn
+   *   chạy không điều kiện và trả về chương của toàn bộ site. `page` đếm từ 1.
+   * Kết quả trả về: Observable phát nguyên response phân trang.
+   * Exception: không bắt — để tầng gọi xử lý.
+   */
+  getChapters(mangaId: string, page = 1, pageSize = 50, opts?: {
+    index?: number | null;
+    mangaName?: string | null;
+    sortBy?: string | null;
+    reverseSort?: boolean;
+    isDeleted?: boolean;
+  }): Observable<any> {
+    let params = new HttpParams()
       .set('MangaId', mangaId)
       .set('PageNo', page)
       .set('PageSize', pageSize);
-    return this.http.get(`${this.chapterBase}/filter-chapter`, { params });
+
+    if (opts?.index != null) params = params.set('Index', opts.index);
+    if (opts?.mangaName) params = params.set('MangaName', opts.mangaName);
+    if (opts?.sortBy) params = params.set('SortBy', opts.sortBy);
+    // Luôn gửi để lần lọc sau ghi đè được lần trước.
+    params = params.set('ReverseSort', opts?.reverseSort ?? false);
+    params = params.set('IsDeleted', opts?.isDeleted ?? false);
+
+    return this.http.get(`${this.chapterBase}/admin/filter`, { params });
   }
 
   /**

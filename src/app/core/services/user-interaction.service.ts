@@ -71,7 +71,9 @@ export class UserInteractionService {
           id: f.mangaId,
           displayName: f.mangaName,
           mangaThumbnail: f.avatar,
-          lastChapterUpdate: f.lastUpdate,
+          // Backend đã bỏ `lastUpdate` khỏi DTO admin và tách thành create/update.
+          // Nhận cả ba tên để endpoint công khai đổi theo lúc nào cũng không vỡ.
+          lastChapterUpdate: f.lastUpdate ?? f.updateDate ?? f.createDate,
         }));
         return { items, totalCount: d?.totalCount ?? items.length };
       })

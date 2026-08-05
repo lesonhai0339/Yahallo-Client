@@ -48,6 +48,18 @@
     <button class="btn btn-clear" *ngIf="hasAnyActive" (click)="clearAll()" title="Bỏ tất cả bộ lọc">
       <span class="material-icons">close</span> Bỏ tất cả
     </button>
+
+    <!-- Đổi cách xem: lưới nhiều cột / danh sách một hàng mỗi truyện -->
+    <div class="view-toggle">
+      <button class="view-toggle__btn" [class.active]="viewMode === 'grid'"
+        (click)="setViewMode('grid')" title="Dạng lưới">
+        <span class="material-icons">grid_view</span>
+      </button>
+      <button class="view-toggle__btn" [class.active]="viewMode === 'list'"
+        (click)="setViewMode('list')" title="Dạng danh sách">
+        <span class="material-icons">view_list</span>
+      </button>
+    </div>
   </div>
 
   <!-- Panel lọc (mirror AdminFilterMangaQuery) -->
@@ -106,8 +118,8 @@
       </label>
 
       <label class="filter-field">
-        <span>Người đăng (id)</span>
-        <input [(ngModel)]="draft.userId" placeholder="UserId" />
+        <span>Chủ sở hữu (id)</span>
+        <input [(ngModel)]="draft.ownerId" placeholder="OwnerId" />
       </label>
 
       <label class="filter-check">
@@ -123,161 +135,69 @@
     </div>
   </div>
 
-  <!-- Table (desktop) -->
-  <div class="table-wrapper desktop-only">
+  <!-- Lưới thẻ — dùng cho MỌI khổ màn hình. Trước đây là mat-table cho desktop
+       + danh sách thẻ riêng cho mobile; giữ hai bản song song thì mỗi lần đổi
+       thông tin phải sửa hai nơi và rất dễ lệch nhau. -->
+  <div class="mlist" [class.loading]="loading">
+
     <div *ngIf="loading" class="table-loading">
-      <app-table-skeleton leading="cover" [rows]="7" [cols]="2"></app-table-skeleton>
+      <app-table-skeleton variant="card" leading="cover" [rows]="6" [cols]="2"></app-table-skeleton>
     </div>
 
-    <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
+    <div class="mgrid" [class.mgrid--list]="viewMode === 'list'" *ngIf="!loading">
+      <article class="mtile" *ngFor="let m of items"
+        [class.mtile--selected]="selectedManga?.id === m.id"
+        (click)="selectManga(m)">
 
-      <!-- Thumbnail -->
-      <ng-container matColumnDef="thumbnail">
-        <th mat-header-cell *matHeaderCellDef>Ảnh</th>
-        <td mat-cell *matCellDef="let m">
-          <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="thumb" />
-          <div *ngIf="!m.thumbnail" class="thumb-placeholder">?</div>
-        </td>
-      </ng-container>
-
-      <!-- Name -->
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tên truyện</th>
-        <td mat-cell *matCellDef="let m">
-          <div class="manga-name">{{ m.name }}</div>
-          <div class="manga-id">ID: {{ m.id | slice:0:8 }}...</div>
-        </td>
-      </ng-container>
-
-      <!-- Type -->
-      <ng-container matColumnDef="type">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Loại</th>
-        <td mat-cell *matCellDef="let m">
-          <span class="type-badge">{{ getTypeLabel(m.type) }}</span>
-        </td>
-      </ng-container>
-
-      <!-- Status -->
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Trạng thái</th>
-        <td mat-cell *matCellDef="let m">
-          <div class="status-cell">
-            <span class="status-badge" [ngClass]="getStatusClass(m.status)">{{ getStatusLabel(m.status) }}</span>
-            <!-- Ẩn/hiện là `displayMode`, tách khỏi `status` (tình trạng ra chương). -->
-            <span class="status-badge status-badge--hidden" *ngIf="isHidden(m)">Đã ẩn</span>
+        <div class="mtile__main">
+          <div class="mtile__cover">
+            <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" loading="lazy" />
+            <div *ngIf="!m.thumbnail" class="mtile__cover--ph">?</div>
+            <span class="mtile__flag" *ngIf="isHidden(m)">Đã ẩn</span>
           </div>
-        </td>
-      </ng-container>
 
-      <!-- Chapters -->
-      <ng-container matColumnDef="totalChapters">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Chương</th>
-        <td mat-cell *matCellDef="let m">{{ m.totalChapters ?? 0 }}</td>
-      </ng-container>
+          <div class="mtile__body">
+            <h3 class="mtile__name" [title]="m.name">{{ m.name }}</h3>
 
-      <!-- Views -->
-      <ng-container matColumnDef="totalViews">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Lượt xem</th>
-        <td mat-cell *matCellDef="let m">{{ m.totalViews ?? 0 | number }}</td>
-      </ng-container>
+            <div class="mtile__badges">
+              <span class="type-badge">{{ getTypeLabel(m.type) }}</span>
+              <span class="status-badge" [ngClass]="getStatusClass(m.status)">{{ getStatusLabel(m.status) }}</span>
+            </div>
 
-      <!-- Date -->
-      <ng-container matColumnDef="updateDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cập nhật</th>
-        <td mat-cell *matCellDef="let m">
-          {{ m.updateDate ? (m.updateDate | date:'dd/MM/yy') : '—' }}
-        </td>
-      </ng-container>
+            <!-- Bấm một thể loại thì lọc tại chỗ, không rời trang -->
+            <div class="mtile__tags" *ngIf="m.tags?.length">
+              <button type="button" class="tag-chip" *ngFor="let t of m.tags"
+                (click)="goTag($event, t)" [title]="'Xem thể loại ' + t.name">{{ t.name }}</button>
+            </div>
 
-      <!-- Actions -->
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Thao tác</th>
-        <td mat-cell *matCellDef="let m">
-          <div class="action-btns" (click)="$event.stopPropagation()">
-            <button
-              *ngIf="perm.canEditManga(m)"
-              class="action-btn action-btn--edit"
-              (click)="goEdit(m)"
-              title="Chỉnh sửa">
-              <span class="material-icons">edit</span>
-            </button>
-            <button
-              *ngIf="perm.canEditManga(m)"
-              class="action-btn action-btn--chapter"
-              (click)="goChapters(m)"
-              title="Quản lý chương">
-              <span class="material-icons">format_list_numbered</span>
-            </button>
-            <button
-              *ngIf="perm.canEditManga(m)"
-              class="action-btn action-btn--analytics"
-              (click)="goAnalytics(m)"
-              title="Thống kê">
-              <span class="material-icons">bar_chart</span>
-            </button>
-            <button
-              *ngIf="perm.canEditManga(m)"
-              class="action-btn"
-              [class.action-btn--hide]="!isHidden(m)"
-              [class.action-btn--show]="isHidden(m)"
-              (click)="toggleVisibility(m)"
-              [title]="isHidden(m) ? 'Hiện truyện' : 'Ẩn truyện'">
-              <span class="material-icons">{{ isHidden(m) ? 'visibility' : 'visibility_off' }}</span>
-            </button>
-            <button
-              *ngIf="perm.canDeleteSpecificManga(m)"
-              class="action-btn action-btn--delete"
-              (click)="deleteManga(m)"
-              title="Xóa">
-              <span class="material-icons">delete</span>
-            </button>
+            <div class="mtile__meta">
+              <span title="Số chương"><span class="material-icons">format_list_numbered</span>{{ m.totalChapters ?? 0 }}</span>
+              <span title="Lượt xem"><span class="material-icons">visibility</span>{{ m.totalViews ?? 0 | number }}</span>
+              <span title="Bình luận"><span class="material-icons">chat_bubble_outline</span>{{ m.totalComments ?? 0 | number }}</span>
+            </div>
+
+            <div class="mtile__dates">
+              <span>Tạo {{ m.createDate ? (m.createDate | date:'dd/MM/yy') : '—' }}</span>
+              <span>Cập nhật {{ m.updateDate ? (m.updateDate | date:'dd/MM/yy') : '—' }}</span>
+              <span *ngIf="criteria.isDeleted">Xoá {{ m.deleteDate ? (m.deleteDate | date:'dd/MM/yy') : '—' }}</span>
+            </div>
+
+            <div class="mtile__owner">
+              <span class="material-icons">person</span>
+              <button *ngIf="m.ownerId; else noOwner" type="button" class="owner-link"
+                (click)="goOwner($event, m)" [title]="'Xem thông tin ' + (m.ownerName || m.ownerId)">
+                {{ m.ownerName || 'Không tên' }}
+              </button>
+              <ng-template #noOwner><span class="owner-none">—</span></ng-template>
+            </div>
           </div>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-          (click)="selectManga(row)"
-          [class.row-selected]="selectedManga?.id === row.id"
-          class="clickable-row"></tr>
-
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
-          Không tìm thấy truyện nào
-        </td>
-      </tr>
-    </table>
-  </div>
-
-  <!-- Cards (mobile) -->
-  <div class="mcard-list mobile-only">
-    <div *ngIf="loading" class="table-loading">
-      <app-table-skeleton variant="card" leading="cover" [rows]="5" [cols]="2"></app-table-skeleton>
-    </div>
-
-    <div class="mcard" *ngFor="let m of dataSource.filteredData" [class.mcard--open]="expandedId === m.id">
-      <div class="mcard__head" (click)="toggleExpand(m)">
-        <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="mcard__thumb" />
-        <div *ngIf="!m.thumbnail" class="mcard__thumb mcard__thumb--ph">?</div>
-        <div class="mcard__title">
-          <div class="mcard__name">{{ m.name }}</div>
-          <div class="mcard__sub">{{ m.updateDate ? (m.updateDate | date:'dd/MM/yy') : '—' }}</div>
         </div>
-        <button class="mcard__toggle" type="button" (click)="$event.stopPropagation(); toggleExpand(m)" title="Thao tác">
-          <span class="material-icons">{{ expandedId === m.id ? 'expand_less' : 'expand_more' }}</span>
-        </button>
-      </div>
 
-      <div class="mcard__details" *ngIf="expandedId === m.id">
-        <div class="mcard__info">
-          <div class="mcard__row"><span class="mcard__k">Loại</span><span class="mcard__v">{{ getTypeLabel(m.type) }}</span></div>
-          <div class="mcard__row"><span class="mcard__k">Trạng thái</span><span class="mcard__v">{{ getStatusLabel(m.status) }}</span></div>
-          <div class="mcard__row"><span class="mcard__k">Hiển thị</span><span class="mcard__v">{{ getDisplayModeLabel(m) }}</span></div>
-          <div class="mcard__row"><span class="mcard__k">Chương</span><span class="mcard__v">{{ m.totalChapters ?? 0 }}</span></div>
-          <div class="mcard__row"><span class="mcard__k">Lượt xem</span><span class="mcard__v">{{ m.totalViews ?? 0 | number }}</span></div>
-          <div class="mcard__row"><span class="mcard__k">ID</span><span class="mcard__v">{{ m.id }}</span></div>
-        </div>
-        <div class="mcard__actions">
+        <!-- stopPropagation: bấm nút thao tác không được kéo theo chọn thẻ -->
+        <div class="mtile__actions" (click)="$event.stopPropagation()">
+          <button class="action-btn action-btn--info" (click)="goInfo(m)" title="Xem chi tiết">
+            <span class="material-icons">info</span>
+          </button>
           <button *ngIf="perm.canEditManga(m)" class="action-btn action-btn--edit" (click)="goEdit(m)" title="Chỉnh sửa">
             <span class="material-icons">edit</span>
           </button>
@@ -292,24 +212,40 @@
             (click)="toggleVisibility(m)" [title]="isHidden(m) ? 'Hiện truyện' : 'Ẩn truyện'">
             <span class="material-icons">{{ isHidden(m) ? 'visibility' : 'visibility_off' }}</span>
           </button>
-          <button *ngIf="perm.canDeleteSpecificManga(m)" class="action-btn action-btn--delete" (click)="deleteManga(m)" title="Xóa">
+          <button *ngIf="perm.canDeleteSpecificManga(m)" class="action-btn action-btn--delete" (click)="deleteManga(m)" title="Xoá">
             <span class="material-icons">delete</span>
           </button>
         </div>
-      </div>
+      </article>
     </div>
 
-    <div class="mcard-empty" *ngIf="!loading && dataSource.filteredData.length === 0">Không tìm thấy truyện nào</div>
+    <div class="mgrid-empty" *ngIf="!loading && items.length === 0">Không tìm thấy truyện nào</div>
   </div>
 
-  <!-- Pagination -->
-  <mat-paginator
-    [length]="totalCount"
-    [pageSize]="pageSize"
-    [pageSizeOptions]="[10, 20, 50]"
-    (page)="onPageChange($event)"
-    showFirstLastButtons>
-  </mat-paginator>
+  <!-- Phân trang tự viết (đã bỏ mat-paginator) -->
+  <div class="pager" *ngIf="!loading && totalCount > 0">
+    <div class="pager__size">
+      <span>Mỗi trang</span>
+      <button *ngFor="let s of [10, 20, 50]" class="pager__sizebtn"
+        [class.active]="pageSize === s" (click)="setPageSize(s)">{{ s }}</button>
+    </div>
+
+    <div class="pager__nav">
+      <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(0)" title="Trang đầu">
+        <span class="material-icons">first_page</span>
+      </button>
+      <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(pageIndex - 1)" title="Trang trước">
+        <span class="material-icons">chevron_left</span>
+      </button>
+      <span class="pager__info">Trang {{ pageIndex + 1 }} / {{ totalPages }} · {{ totalCount | number }} truyện</span>
+      <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(pageIndex + 1)" title="Trang sau">
+        <span class="material-icons">chevron_right</span>
+      </button>
+      <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(totalPages - 1)" title="Trang cuối">
+        <span class="material-icons">last_page</span>
+      </button>
+    </div>
+  </div>
 
   </div><!-- /page-main -->
 

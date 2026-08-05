@@ -159,15 +159,27 @@ export class PermissionService {
     return this.hasPermission(Permission.ViewOwnMangaOnly) && !this.isAdmin && !this.isModerator;
   }
 
+  /**
+   * Chức năng: Kiểm tra truyện có thuộc về người đang đăng nhập không.
+   * Yêu cầu: `manga` — item bất kỳ. API admin trả chủ sở hữu ở `owner.id`, các
+   *   endpoint cũ trả `userId` ở cấp gốc — chấp nhận cả hai.
+   * Kết quả trả về: true nếu trùng id người đang đăng nhập.
+   * Exception: không ném — thiếu dữ liệu thì trả false.
+   */
+  private ownsManga(manga: any): boolean {
+    const owner = manga?.owner?.id ?? manga?.userId;
+    return !!owner && owner === this.auth.currentUser?.id;
+  }
+
   canEditManga(manga: any): boolean {
     if (this.isAdmin || this.isModerator) return true;
-    if (this.isTrans && manga?.userId === this.auth.currentUser?.id) return true;
+    if (this.isTrans && this.ownsManga(manga)) return true;
     return false;
   }
 
   canDeleteSpecificManga(manga: any): boolean {
     if (this.isAdmin) return true;
-    if (this.isTrans && manga?.userId === this.auth.currentUser?.id) return true;
+    if (this.isTrans && this.ownsManga(manga)) return true;
     return false;
   }
 

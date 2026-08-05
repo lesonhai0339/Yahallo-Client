@@ -3,3 +3,7 @@ dist/
 .angular/
 .env
 *.env.local
+
+# Cert dev cua ASP.NET, export ra de Node tin cay khi chay SSR local.
+# Sinh lai duoc bang `npm run dev:ssr` — khong commit.
+.certs/

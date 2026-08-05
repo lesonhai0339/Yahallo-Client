@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { ToastrService } from 'ngx-toastr';
@@ -45,6 +46,7 @@ export class TaxonomyListComponent implements OnInit, OnDestroy {
 
   constructor(
     private taxonomy: TaxonomyService,
+    private router: Router,
     private dialog: MatDialog,
     private toastr: ToastrService,
     private auth: AuthService,
@@ -67,6 +69,21 @@ export class TaxonomyListComponent implements OnInit, OnDestroy {
   /** Admin can manage directly; others (mod/trans) submit requests. */
   get canManage(): boolean {
     return this.perm.hasPermission(Permission.ManageTaxonomy);
+  }
+
+  /**
+   * Chức năng: Mở trang thông tin của mục vừa bấm — thể loại / tác giả / hoạ sĩ
+   *   đều có trang riêng kèm danh sách truyện liên quan.
+   * Yêu cầu: `item.id` hợp lệ; `activeType` quyết định đi tới route nào.
+   * Kết quả trả về: không (điều hướng).
+   * Exception: không ném — thiếu id thì bỏ qua.
+   */
+  goInfo(item: any): void {
+    if (!item?.id) return;
+    const seg = this.activeType === 'author' ? 'authors'
+      : this.activeType === 'artist' ? 'artists'
+      : 'tags';
+    this.router.navigate(['/admin', seg, item.id]);
   }
 
   selectTab(type: TaxonomyType): void {

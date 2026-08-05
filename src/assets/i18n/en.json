@@ -21,10 +21,10 @@
     "READ_OFFLINE": "Read offline"
   },
   "HOME": {
+    "NEW_MANGA": "New manga",
     "TRENDING": "Trending",
     "LATEST_UPDATE": "Latest Updates",
     "POPULAR": "Popular",
-    "RECOMMENDED": "Recommended",
     "SEE_MORE": "See more",
     "COLLAPSE": "Collapse",
     "CATEGORIES": "Categories",
@@ -347,7 +347,13 @@
     "SERVER_DOWN": "Server is not responding",
     "SERVER_DOWN_DESC": "Unable to connect to the server. Please check your internet connection or try again later.",
     "RETRY": "Retry",
-    "BACK_HOME": "Back to Home"
+    "BACK_HOME": "Back to Home",
+    "NOT_FOUND": "Page not found",
+    "NOT_FOUND_DESC": "The address you requested does not exist or has been removed. Check the URL or head back home.",
+    "MANGA_NOT_FOUND": "Manga not found",
+    "MANGA_NOT_FOUND_DESC": "This manga does not exist or has been removed. Try searching for another one.",
+    "CHAPTER_NOT_FOUND": "Chapter not found",
+    "CHAPTER_NOT_FOUND_DESC": "This chapter does not exist, has been removed, or has no pages uploaded yet."
   },
   "SETTINGS": {
     "TITLE": "Settings",

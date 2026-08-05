@@ -2,7 +2,13 @@ import { Directive, ElementRef, HostListener, Input } from '@angular/core';
 
 @Directive({ selector: 'img[appImageFallback]' })
 export class ImageFallbackDirective {
-  @Input() appImageFallback = '/assets/placeholder-manga.jpg';
+  /**
+   * Phải trỏ tới file CÓ THẬT trong `src/assets`. Trước đây mặc định là
+   * `/assets/placeholder-manga.jpg` — file không tồn tại — nên ảnh lỗi đổi sang
+   * fallback rồi fallback cũng 404, guard bên dưới chặn lại và người dùng nhìn
+   * thấy icon ảnh vỡ. Đổi asset thì nhớ kiểm tra lại dòng này.
+   */
+  @Input() appImageFallback = '/assets/sorry.jpg';
 
   constructor(private el: ElementRef<HTMLImageElement>) {}
 

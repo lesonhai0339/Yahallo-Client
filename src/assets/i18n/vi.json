@@ -21,10 +21,10 @@
     "READ_OFFLINE": "Đọc offline"
   },
   "HOME": {
+    "NEW_MANGA": "Truyện mới",
     "TRENDING": "Đang thịnh hành",
     "LATEST_UPDATE": "Mới cập nhật",
     "POPULAR": "Phổ biến",
-    "RECOMMENDED": "Đề xuất",
     "SEE_MORE": "Xem thêm",
     "COLLAPSE": "Thu gọn",
     "CATEGORIES": "Thể loại",
@@ -347,7 +347,13 @@
     "SERVER_DOWN": "Máy chủ không phản hồi",
     "SERVER_DOWN_DESC": "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.",
     "RETRY": "Thử lại",
-    "BACK_HOME": "Về trang chủ"
+    "BACK_HOME": "Về trang chủ",
+    "NOT_FOUND": "Không tìm thấy trang",
+    "NOT_FOUND_DESC": "Địa chỉ bạn truy cập không tồn tại hoặc đã bị gỡ. Kiểm tra lại đường dẫn hoặc quay về trang chủ.",
+    "MANGA_NOT_FOUND": "Không tìm thấy truyện",
+    "MANGA_NOT_FOUND_DESC": "Truyện này không tồn tại hoặc đã bị gỡ. Bạn thử tìm truyện khác xem sao.",
+    "CHAPTER_NOT_FOUND": "Không tìm thấy chương",
+    "CHAPTER_NOT_FOUND_DESC": "Chương này không tồn tại, đã bị gỡ, hoặc chưa có ảnh nào được đăng."
   },
   "SETTINGS": {
     "TITLE": "Cấu hình",

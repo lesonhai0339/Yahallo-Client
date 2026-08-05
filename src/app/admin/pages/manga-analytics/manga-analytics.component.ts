@@ -112,8 +112,10 @@ export class MangaAnalyticsComponent implements OnInit {
     this.detailPanel = { visible: false, loading: false, chartKey: '', label: '', date: '', detail: null };
   }
 
+  /** Quay về trang thông tin của truyện này, không phải danh sách. */
   goBack(): void {
-    this.router.navigate(['/admin/manga']);
+    if (this.mangaId) this.router.navigate(['/admin/manga', this.mangaId, 'info']);
+    else this.router.navigate(['/admin/manga']);
   }
 
   getChartJsType(type: ChartType): 'line' | 'bar' {
@@ -183,7 +185,8 @@ export class MangaAnalyticsComponent implements OnInit {
     this.mangaService.getDetail(this.mangaId).subscribe({
       next: (res: any) => {
         const body = res?.value ?? res;
-        this.mangaName = body?.name ?? 'Unknown';
+        // getDetail() trả DỮ LIỆU THÔ: tên nằm ở `displayName`, không phải `name`.
+        this.mangaName = body?.displayName ?? body?.name ?? 'Unknown';
       },
       error: () => { this.mangaName = 'Unknown'; }
     });

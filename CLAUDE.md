@@ -238,8 +238,18 @@ route), không phải số dòng — quy ước ghi ở mục 3.2.
 | Chức năng | File | Neo trong file |
 |-----------|------|----------------|
 | Danh sách truyện (endpoint riêng của admin) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.ts` | `getAll()` → `manga/admin/get-all-pagination`<br>`loadData()`, `hasActiveFilter` |
-| Lọc / tìm / sắp xếp truyện (server-side) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html,scss}` | `AdminMangaFilter`, `filter()` → `manga/admin/filter`, `getDetail()`<br>`criteria`/`draft`, `applyFilters()`, `resetFilters()`, `setSort()`, `.filter-panel`, `.sort-chips` |
+| Lọc truyện theo chủ sở hữu | `admin/services/admin-manga.service.ts` | `AdminMangaFilter.ownerId` → gửi lên là **`UserId`**, KHÔNG phải `OwnerId` — sai tên thì backend bỏ qua và trả về toàn bộ truyện, không báo lỗi |
+| Lọc / tìm / sắp xếp truyện (server-side) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html,scss}` | `AdminMangaFilter`, `filter()` → `manga/admin/filter`, `getDetail()`<br>`criteria`/`draft`, `applyFilters()`, `resetFilters()`, `setSort()`, `syncColumns()`, `.filter-panel`, `.sort-chips` |
 | Ẩn / hiện truyện (`DisplayMode`, tách khỏi `status`) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html}` | `DisplayMode`, `updateDisplayMode()` → `manga/update`<br>`isHidden()`, `toggleVisibility()`, `getDisplayModeLabel()` |
+| Danh sách truyện dạng thẻ, đổi được lưới / danh sách (bỏ `mat-table`) | `admin/pages/manga-list/manga-list.component.{ts,html,scss}` | `items` (mảng thường, thay `MatTableDataSource`), `goPage()`/`setPageSize()`/`totalPages` (thay `mat-paginator`), `goInfo()`, `viewMode`/`setViewMode()`, `filterByTag()`<br>`.mgrid` / `.mgrid--list`, `.mtile__main` (bìa + info) và `.mtile__actions` (hàng nút dưới, `border-top` ngăn cách), `.view-toggle`, `.pager`<br>nhận `?tagIds=` từ query param lúc `ngOnInit` (bấm tag ở `manga-info` dẫn sang) |
+| Trang thông tin một truyện (không phải form sửa) | `admin/pages/manga-info/manga-info.component.{ts,html,scss}`<br>`admin/admin-routing.module.ts` | `load()` (qua `AdminMangaService.getDetail`), `loadStats()` (qua `/manga/status`), `goBack()` dùng `Location.back()` để giữ trang + bộ lọc<br>route `manga/:id/info` — phải đứng TRƯỚC `manga`<br>`getDetail()` trả DỮ LIỆU THÔ (`displayName`/`mangaThumbnail`/`totalView`/`owner{}`/`mode`) — phải quy đổi tên field, khác `manga-list` đã map sẵn<br>số bình luận lấy từ `totalComment` của payload admin, KHÔNG phải `/manga/status` |
+| Quay lại từ form sửa / danh sách chương / thống kê → về `manga-info` | `admin/pages/manga-form/manga-form.component.ts`<br>`admin/pages/chapter-list/chapter-list.component.ts`<br>`admin/pages/manga-analytics/manga-analytics.component.ts` | `backToOrigin()` — lưu xong hoặc huỷ đều về `manga/:id/info`, tạo mới thì về info của truyện vừa tạo<br>`goBack()` ở hai trang còn lại; không có id mới về danh sách |
+| Danh sách người dùng dạng thẻ (bỏ `mat-table`) | `admin/pages/user-list/user-list.component.{ts,html,scss}`<br>`admin/services/admin.service.ts` | `items`/`visibleUsers` (lọc tại chỗ), `viewMode`, `goPage()`/`setPageSize()`, `goProfile()` (nút "Truyện đã tạo" đã bỏ — vào hồ sơ là thấy)<br>`getAllUsers()` → **`user/admin/get-all-pagination`** (AdminUserDto: `roles`/`status`/`level`; bản công khai không có)<br>`.ugrid` / `.ugrid--list`, `.utile__actions` (cao cố định, neo đáy), `.role-chip` |
+| Lưới truyện trong trang chi tiết (user / tag): 8 cột, đổi lưới-danh sách, nhảy trang | `admin/pages/user-profile/user-profile.component.{ts,html,scss}`<br>`admin/pages/tag-info/tag-info.component.{ts,html,scss}` | `pageSize = 16` = 2 hàng × 8 cột; `.manga-grid` CỐ ĐỊNH số cột (không `auto-fill`) nên mới lấp đúng 2 hàng<br>`viewMode`/`setViewMode()`, `.manga-grid--list`<br>`jumpTo`/`jumpToPage()` — ô nhập là `type="text"` + `inputmode="numeric"` (không dùng `number` vì có nút tăng/giảm); người dùng đếm từ 1, nội bộ từ 0 |
+| Trang thông tin thể loại / tác giả / hoạ sĩ + truyện liên quan | `admin/pages/taxonomy-info/taxonomy-info.component.{ts,html,scss}`<br>`admin/pages/taxonomy-list/taxonomy-list.component.{ts,html,scss}`<br>`admin/admin-routing.module.ts` | `TaxonomyInfoComponent` — MỘT component cho cả 3 loại, phân biệt qua `route.data.kind`<br>`loadEntity()` (tag → `getTagInfo`; author/artist → `filter({id})` rồi lấy phần tử đầu, nhận cả `depscription` viết sai của backend)<br>`loadMangas()` đổi tham số theo kind: `tagIds` / `authorId` / `artistId`<br>route `tags/:id`, `authors/:id`, `artists/:id`<br>`taxonomy-list.goInfo()` + `.tax-name-link`; chip thể loại ở `manga-list`/`manga-info` cũng dẫn vào đây |
+| Hồ sơ người dùng + truyện đã đăng | `admin/pages/user-profile/user-profile.component.{ts,html,scss}`<br>`admin/admin-routing.module.ts` | `loadUser()`, `loadMangas()` (lọc `ownerId`), `goManga()`<br>route `users/:id` (phải đứng TRƯỚC `users`) |
+| Danh sách chương (endpoint riêng của admin) | `admin/services/admin-manga.service.ts`<br>`admin/pages/chapter-list/chapter-list.component.ts` | `getChapters()` → **`chapter/admin/filter`** (AdminFilterChapterQuery: `Index`/`MangaName`/`SortBy`/`ReverseSort`/`IsDeleted`)<br>`MangaId` **bắt buộc** — thiếu thì backend chặn (không có nó là query toàn site)<br>`loadChapters()` chuẩn hoá `subIndex ?? 0` — server trả `null` cho chương thường |
+| Người theo dõi + bình luận của một truyện (khối xổ tại chỗ) | `admin/services/admin-interaction.service.ts`<br>`admin/pages/manga-info/manga-info.component.{ts,html,scss}` | `getFollows()` → `follow-manga/admin/filter`; `getComments()` → `comment/admin/filter`<br>`toggleFollows()`/`toggleComments()` — nạp LƯỜI, chỉ gọi API ở lần mở đầu tiên<br>`.drawer`, `.ilist`; bình luận có chương thì hiện chip chương<br>`AdminFollowDto`: avatar ở `userAvatar`, `initials()` chỉ là dự phòng; đã bỏ `lastUpdate`, nay là `createDate`/`updateDate`/`deleteDate` |
 | Tạo / sửa truyện | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-form/manga-form.component.ts` | `create()`, `update()` (Id nằm TRONG form, route `manga/update`)<br>`buildFormData()` |
 
 ### Trang tác giả / hoạ sĩ / thể loại
@@ -251,3 +261,194 @@ route), không phải số dòng — quy ước ghi ở mục 3.2.
 | Khối info + danh sách truyện (dùng chung với search) | `shared/components/entity-detail/entity-detail.component.{ts,html,scss}` | `@Input splitHeight` / `moreLink` / `showViewToggle`, `:host(.entity-detail--split)`, `.person-hero`, `.person-works` |
 | Chuyển lưới / danh sách + skeleton theo chế độ | `shared/components/entity-detail/entity-detail.component.{ts,html,scss}` | `viewMode`, `setViewMode()`, `buildRows()`, `skeletonItems`, `.manga-list`, `.row-skeletons` |
 | Trang "xem thêm" — danh sách đầy đủ theo đối tượng | `app-routing.module.ts`<br>`features/manga/manga-list-page/manga-list-page.component.ts`<br>`core/services/manga.service.ts` | route `author\|artist\|tag/:id/manga`<br>`ListMode`, `isEntityMode`, `loadEntityName()`, `backLink`<br>`getSortedPaginated(..., filters)` |
+
+### Trang chủ
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| Dải "Truyện mới" (đầu trang, 6 mục, cuộn ngang) | `features/home/new-manga-strip/new-manga-strip.component.{ts,html,scss}`<br>`features/home/home.component.{ts,html}`<br>`core/models/manga.interface.ts` | `NewMangaStripComponent` — `@Input mangas`/`loading`, `.new-strip__rail` (một hàng, cuộn ngang), markup RIÊNG không dùng `.manga-card`<br>đặt NGOÀI `.main-layout` để chiếm trọn chiều ngang; `newManga` lấy từ `homepage.newManga`, **không** gọi API riêng<br>`HomepageDto.newManga`; i18n `HOME.NEW_MANGA`; đã bỏ hẳn khối gợi ý (`HOME.RECOMMENDED`, `getRecommendedForUser`) |
+| Nút chương trên thẻ truyện — ẩn khi chưa có chương | `shared/components/manga-sumary-card/manga-sumary-card.component.{ts,html}` | getter `latestChapterIndex` (trả `null`, KHÔNG phải `0`, khi chưa có chương) → `*ngIf` ẩn nút thay vì hiện "Chương N/A" |
+
+### Trang đọc truyện
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| Chương không tồn tại → trang 404 + mã HTTP 404 | `features/manga/manga-reader/manga-reader.component.{ts,html}` | `notFound`, `markNotFound()` — ghi `RESPONSE_CONTEXT`<br>`loadImages()` bắt `error` 404 **và** `imgs` rỗng; `loadChapters()` phải kiểm ở nhánh `next` vì `filter-chapter` trả 200 + mảng rỗng<br>`<app-error-page>` thay cả cột đọc; ẩn viewer/bottombar/skeleton |
+| Kẹp số trang trong URL vào khoảng ảnh thật | `features/manga/manga-reader/manga-reader.component.ts` | `clampInitialPage()` — gọi SAU khi ảnh về (trước đó chưa biết chương có bao nhiêu ảnh); dùng `location.replaceState` để không thêm mục vào lịch sử<br>`ngOnInit` chặn sẵn giá trị âm / không phải số |
+| Tên truyện cho `<title>` trang đọc | `core/services/manga.service.ts`<br>`core/models/interfaces.ts`<br>`features/manga/manga-reader/manga-reader.component.ts` | `getChapters()` map thêm `mangaName` (API `filter-chapter` trả sẵn)<br>`Chapter.mangaName?`<br>`loadChapters()` — route KHÔNG có param `:name`, lấy tên từ chapter |
+
+### SSR (chỉ có ở bản Refactor)
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| SSR cho trang public, bỏ qua `/admin` | `server.ts`<br>`src/main.server.ts`<br>`src/app/app.module.server.ts` | `app()`, nhánh `server.get('/admin*')`<br>import `./server-shims`<br>`AppServerModule` |
+| Shim API trình duyệt phía Node | `src/server-shims.ts` | `emptyStorage` — `localStorage`/`sessionStorage` rỗng, KHÔNG lưu gì |
+| Guard API trình duyệt để SSR không bị ngắt giữa chừng | `core/services/theme.service.ts`<br>`shared/components/manga-sumary-card/…component.ts`<br>`features/home/home.component.ts`<br>`shared/components/pagination/…component.ts` | `isBrowser` → `apply()`, `applyFont()`, `applyBackground()`<br>`ngAfterViewInit()` — `requestAnimationFrame`/`ResizeObserver`<br>`ngOnInit()` — `window.innerWidth`<br>`isPlatformBrowser` trong constructor + `onResize()` |
+| Hydration + TransferState | `src/app/app.module.ts` | `provideClientHydration()` |
+| Trang lỗi dùng chung + trả đúng mã HTTP (404 / 503) | `features/error/error-page.component.ts`<br>`core/tokens/response-context.ts`<br>`app-routing.module.ts`<br>`server.ts` | `ErrorPageComponent` — nội dung theo thứ tự `@Input()` → `route.data` → mặc định, chốt trong `ngOnInit()`; `@Input showRetry` để tắt nút "Thử lại" khi lỗi 404<br>Nhúng được vào trang khác: `<app-error-page code="404" …>` (giữ nguyên URL, không điều hướng)<br>`RESPONSE_CONTEXT` — object chia sẻ tham chiếu, tạo mới MỖI request<br>route `server-error` (503) và `**` (404, dùng `component:` chứ KHÔNG `redirectTo`)<br>`res.status(responseContext.status)` |
+| Lệnh build/chạy | `package.json` | `build:ssr`, `serve:ssr`, `dev:ssr`, `prerender` |
+| Chạy SSR local qua HTTPS + cert dev (dev-only) | `scripts/with-dev-cert.js`<br>`angular.json`<br>`DEV-ONLY.md` | `ensureCert()`, `NODE_EXTRA_CA_CERTS`<br>`serve-ssr` → `options.ssl`/`sslCert`/`sslKey`/`port: 4200`<br>hướng dẫn gỡ trước khi lên production |
+
+> Chi tiết quyết định và việc còn tồn: `sessions_chat/ssr-public-pages_20260731_1800.md`
+
+---
+
+## 9. Script chẩn đoán (PowerShell / shell) — tra nhanh
+
+Các lệnh đã dùng thật để gỡ lỗi trong project này. Chép lại để lần sau khỏi mò.
+**Không phải file trong repo** — dán thẳng vào terminal khi cần.
+
+> Quy ước: PowerShell là shell chính trên máy dev. Vài lệnh dưới đây là `curl` /
+> `node -e` vì chúng chẩn đoán TLS và HTTP, PowerShell không tiện bằng.
+
+### 9.1 Chứng chỉ (cert)
+
+| Việc | Lệnh | Dùng khi |
+|---|---|---|
+| Xem cert dev còn hạn / đã trust chưa | `dotnet dev-certs https --check --trust` | Nghi cert hết hạn hoặc chưa cài |
+| Tìm cert nằm ở store nào | xem 9.1.a | Cần biết Windows lưu cert ở đâu |
+| Export **chỉ phần public** ra PEM | xem 9.1.b | Làm `NODE_EXTRA_CA_CERTS`, không đụng private key |
+| Export **cả cặp** PEM + KEY | `dotnet dev-certs https --export-path .certs\aspnet-dev-cert.pem --format PEM --no-password` | Cần `sslCert`+`sslKey` cho dev server HTTPS |
+
+**9.1.a — Cert `CN=localhost` nằm ở store nào**
+
+Chức năng: quét 4 store hay dùng, in ra store nào có cert và có kèm private key
+không. `My` = bản Kestrel dùng để phục vụ TLS (có key); `Root` = bản đánh dấu
+tin cậy (không key). Thiếu ở `Root` thì trình duyệt sẽ báo cert không hợp lệ.
+
+```powershell
+$tp = 'FA68EE2B722E69FBC328ECF64C29BA96A8CE7E06'   # đổi thumbprint nếu cert được tạo lại
+foreach ($s in @('Cert:\CurrentUser\My','Cert:\CurrentUser\Root','Cert:\LocalMachine\My','Cert:\LocalMachine\Root')) {
+    $c = Get-ChildItem $s -ErrorAction SilentlyContinue | Where-Object { $_.Thumbprint -eq $tp }
+    if ($c) { "{0,-28} FOUND  HasPrivateKey={1}  NotAfter={2}" -f $s, $c.HasPrivateKey, $c.NotAfter }
+    else    { "{0,-28} -" -f $s }
+}
+```
+
+**9.1.b — Export phần public ra PEM (an toàn hơn `dotnet dev-certs`)**
+
+Chức năng: ghi ra file PEM chỉ chứa cert công khai. Khác với
+`dotnet dev-certs ... --no-password` vốn xuất kèm file `.key` chứa private key —
+dùng cách này khi chỉ cần *tin cậy* cert, không cần *phục vụ* TLS.
+
+```powershell
+$c = Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Subject -eq 'CN=localhost' } | Select-Object -First 1
+$pem = "-----BEGIN CERTIFICATE-----`n" +
+       [Convert]::ToBase64String($c.RawData, 'InsertLineBreaks') +
+       "`n-----END CERTIFICATE-----"
+$pem | Out-File .certs\aspnet-dev-cert.pem -Encoding ascii
+```
+
+### 9.2 Cổng và tiến trình
+
+**9.2.a — Ai đang giữ cổng 4200/4201**
+
+Chức năng: tìm PID đang LISTENING trên dải cổng dev, rồi in ra dòng lệnh đầy đủ
+và thời điểm khởi động của từng tiến trình. Dùng khi `dev:ssr` tự nhảy sang cổng
+khác (dấu hiệu có tiến trình cũ còn sống) — chạy sai cổng là CORS chặn sạch.
+
+```powershell
+Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in 4200,4201,4000 } |
+    Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {
+        $p = Get-CimInstance Win32_Process -Filter "ProcessId = $_"
+        "PID $($p.ProcessId) | start $($p.CreationDate)"
+        "  $($p.CommandLine)"
+    }
+```
+
+Tắt tiến trình cũ: `Stop-Process -Id <PID> -Force`
+
+### 9.3 Mạng — TLS, CORS, API
+
+**9.3.a — Node có tin cert của một host không**
+
+Chức năng: bắt tay TLS rồi in cả chuỗi chứng chỉ (leaf → trung gian → root) và
+kết quả `authorized`. Phân biệt được "API chết" với "Node không tin cert" — hai
+lỗi trông giống nhau ở tầng ứng dụng nhưng cách chữa khác hẳn.
+
+```powershell
+node -e "const t=require('tls');const s=t.connect({host:'api.yahallo.online',port:443,servername:'api.yahallo.online'},()=>{let c=s.getPeerCertificate(true),d=0,seen=new Set();while(c&&!seen.has(c.fingerprint)){seen.add(c.fingerprint);console.log('depth '+d+': '+(c.subject.CN||'?')+'  <- '+(c.issuer.CN||'?'));c=c.issuerCertificate;d++;}console.log('authorized:',s.authorized);s.end();});s.on('error',e=>console.log('ERR',e.message));"
+```
+
+Đổi `host`/`port` thành `localhost` / `7181` để soi API local.
+
+**9.3.b — Kiểm tra `NODE_EXTRA_CA_CERTS` có ăn không**
+
+Chức năng: gọi thử API bằng chính cơ chế `fetch` mà Angular SSR dùng. Ra HTTP 200
+là Node đã tin cert; ra `DEPTH_ZERO_SELF_SIGNED_CERT` là chưa.
+
+```powershell
+$env:NODE_EXTRA_CA_CERTS = "$PWD\.certs\aspnet-dev-cert.pem"
+node -e "fetch('https://localhost:7181/hc').then(r=>console.log('HTTP',r.status)).catch(e=>console.log('LOI',(e.cause&&e.cause.code)||e.message))"
+```
+
+**9.3.c — Origin nào được CORS cho phép**
+
+Chức năng: gửi thử header `Origin` rồi xem API có trả `Access-Control-Allow-Origin`
+không. Không có header = trình duyệt sẽ chặn, dù `curl` vẫn nhận được body.
+Nhớ: origin gồm **cả scheme**, `http://` và `https://` là hai origin khác nhau.
+
+```powershell
+foreach ($o in @('https://localhost:4200','http://localhost:4200','https://localhost:4201')) {
+    $h = curl.exe -s -i https://localhost:7181/hc -H "Origin: $o" --max-time 10 |
+         Select-String -Pattern 'access-control-allow-origin'
+    "{0,-26} {1}" -f $o, $(if ($h) { $h.Line.Trim() } else { '(bi chan)' })
+}
+```
+
+### 9.4 Đo chất lượng SSR
+
+**9.4.a — Route nào thực sự SSR ra dữ liệu**
+
+Chức năng: tải HTML thô của từng route rồi đếm nội dung **bên trong `<app-root>`**
+— số thẻ truyện, số khối skeleton, có phải trang `server-error` không. Phân biệt
+"SSR ra dữ liệu thật" với "SSR ra khung loading" và "SSR ra trang lỗi".
+
+```powershell
+$routes = '/', '/latest', '/popular', '/top-manga'
+foreach ($r in $routes) {
+    $html = curl.exe -s "https://localhost:4200$r" --max-time 120
+    $inner = [regex]::Match($html, '(?s)<app-root[^>]*>(.*?)</app-root>').Groups[1].Value
+    $body  = ($inner -split '</app-header>')[-1]
+    $cards = [regex]::Matches($body, 'app-manga-sumary-card').Count / 2
+    $skel  = [regex]::Matches($body, 'skeleton').Count
+    $state = if ($inner -match 'app-server-error') { 'TRANG 503' }
+             elseif ($cards -gt 0) { 'CO DU LIEU' } elseif ($skel -gt 0) { 'CHI SKELETON' } else { 'khong ro' }
+    "{0,-14} {1,7} ky tu | the:{2,3} | skeleton:{3,4} | {4}" -f $r, $inner.Length, $cards, $skel, $state
+}
+```
+
+**9.4.b — Ba cái bẫy khi kiểm tra SSR bằng trình duyệt**
+
+Cả ba đều dẫn tới kết luận "SSR không chạy" trong khi nó chạy bình thường.
+
+| Bẫy | Vì sao sai | Làm đúng |
+|---|---|---|
+| Xem tab **Elements** của DevTools | Elements hiển thị DOM *sau khi hydrate*, không phải HTML server gửi | Ctrl+U (View Source) hoặc `curl` |
+| Chuyển trang trong SPA rồi xem tab **Doc** / Ctrl+U | Angular Router đổi URL bằng `pushState`, **không** tải tài liệu mới → tab Doc mãi chỉ có tài liệu của lần tải đầu | Gõ thẳng URL vào thanh địa chỉ + Enter, hoặc **F5** tại route đó |
+| Chạy sai cổng | 4201 không nằm trong CORS whitelist → hydrate xong là đổ về `server-error`, che mất HTML đã SSR đúng | Bảo đảm dev server ở **4200** (xem 9.2.a) |
+
+Bẫy thứ hai hay gặp nhất: SSR chỉ áp dụng cho **lần tải tài liệu đầu tiên** của
+một URL. Điều hướng nội bộ sau đó là việc của client — đúng như thiết kế, và
+cũng đúng cách Googlebot truy cập (nó vào thẳng URL, không bấm link trong SPA).
+
+**9.4.c — Đếm thẻ KHÔNG đủ, phải đếm thẻ ĐƯỢC GÁN INPUT**
+
+Một lỗi ném ra giữa lúc Angular render danh sách sẽ **ngắt phần còn lại**: các
+component phía sau vẫn có mặt trong HTML nhưng ở dạng vỏ rỗng — không `src`,
+không `href`, chữ rỗng. Đếm `<app-manga-sumary-card>` sẽ ra đủ 20 và tưởng là
+xong, trong khi thực tế chỉ 2 thẻ có dữ liệu.
+
+Dấu hiệu nhận biết trong HTML: thẻ có dữ liệu mang `ng-reflect-manga="[object Object]"`,
+thẻ rỗng thì **không có thuộc tính đó**; các thẻ rỗng dài **bằng nhau từng ký tự**
+và chung một `ngh="N"`.
+
+```powershell
+$html = curl.exe -s https://localhost:4200/latest --max-time 120
+$total = [regex]::Matches($html, '<app-manga-sumary-card').Count
+$bound = [regex]::Matches($html, 'ng-reflect-manga').Count
+"the: $bound / $total co du lieu"
+```
+
+Lệch nhau = có exception đang cắt ngang render. Tìm trong log server dòng
+`ERROR ReferenceError:` kèm tên component, rồi guard bằng `isPlatformBrowser`.

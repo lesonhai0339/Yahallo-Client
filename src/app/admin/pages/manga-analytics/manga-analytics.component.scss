@@ -1,4 +1,6 @@
-.analytics-page { max-width: 1200px; }
+// `max-width` mà không có `margin: 0 auto` thì khối bị dính sát mép trái
+// trên màn rộng — phải có cả hai mới căn giữa được.
+.analytics-page { max-width: 1200px; margin: 0 auto; }
 
 .page-header {
   display: flex; align-items: center; justify-content: space-between;

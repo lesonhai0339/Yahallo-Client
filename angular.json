@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/yahallo-client-refactor",
+            "outputPath": "dist/yahallo-client-refactor/browser",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -73,13 +73,79 @@
           },
           "configurations": {
             "production": {
-              "browserTarget": "yahallo-client-refactor:build:production"
+              "buildTarget": "yahallo-client-refactor:build:production"
             },
             "development": {
-              "browserTarget": "yahallo-client-refactor:build:development"
+              "buildTarget": "yahallo-client-refactor:build:development"
             }
           },
           "defaultConfiguration": "development"
+        },
+        "server": {
+          "builder": "@angular-devkit/build-angular:server",
+          "options": {
+            "outputPath": "dist/yahallo-client-refactor/server",
+            "main": "server.ts",
+            "tsConfig": "tsconfig.server.json"
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "media",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ]
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false,
+              "vendorChunk": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve-ssr": {
+          "builder": "@angular-devkit/build-angular:ssr-dev-server",
+          "options": {
+            "port": 4200,
+            "ssl": true,
+            "sslCert": ".certs/aspnet-dev-cert.pem",
+            "sslKey": ".certs/aspnet-dev-cert.key"
+          },
+          "configurations": {
+            "development": {
+              "browserTarget": "yahallo-client-refactor:build:development",
+              "serverTarget": "yahallo-client-refactor:server:development"
+            },
+            "production": {
+              "browserTarget": "yahallo-client-refactor:build:production",
+              "serverTarget": "yahallo-client-refactor:server:production"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "prerender": {
+          "builder": "@angular-devkit/build-angular:prerender",
+          "options": {
+            "routes": [
+              "/"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "yahallo-client-refactor:build:production",
+              "serverTarget": "yahallo-client-refactor:server:production"
+            },
+            "development": {
+              "browserTarget": "yahallo-client-refactor:build:development",
+              "serverTarget": "yahallo-client-refactor:server:development"
+            }
+          },
+          "defaultConfiguration": "production"
         }
       }
     }

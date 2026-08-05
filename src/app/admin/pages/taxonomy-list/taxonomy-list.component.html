@@ -51,7 +51,10 @@
     </thead>
     <tbody>
       <tr *ngFor="let item of items">
-        <td class="tax-table__name">{{ item.name }}</td>
+        <td class="tax-table__name">
+          <button type="button" class="tax-name-link" (click)="goInfo(item)"
+            [title]="'Xem thông tin ' + item.name">{{ item.name }}</button>
+        </td>
         <td *ngIf="activeType === 'tag'" class="tax-table__muted">{{ item.description || '—' }}</td>
         <ng-container *ngIf="activeType !== 'tag'">
           <td class="tax-table__muted">{{ item.depscription || '—' }}</td>

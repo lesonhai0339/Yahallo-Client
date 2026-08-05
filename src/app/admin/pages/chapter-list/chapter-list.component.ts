@@ -84,7 +84,11 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
         const d = res?.value ?? res;
         const items = d?.data ?? d?.items ?? (Array.isArray(d) ? d : []);
         this.totalCount = d?.totalCount ?? items.length;
-        this.dataSource.data = items.sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0));
+        // Chương phụ: 10.5 → `index: 10`, `subIndex: 5`. Server trả `null` cho
+        // chương thường nên phải `?? 0` (bản công khai cũng xử lý y hệt).
+        this.dataSource.data = items
+          .map((c: any) => ({ ...c, subIndex: c.subIndex ?? 0 }))
+          .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0));
         this.loading = false;
       },
       error: () => { this.loading = false; }
@@ -153,7 +157,15 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
     return n.toString();
   }
 
+  /**
+   * Chức năng: Quay về trang thông tin của chính truyện này, không phải danh
+   *   sách — người dùng vào đây từ `manga-info` nên quay lại phải về đúng chỗ đó.
+   * Yêu cầu: `mangaId` đã lấy từ route.
+   * Kết quả trả về: không (điều hướng).
+   * Exception: không ném — thiếu id thì về danh sách.
+   */
   goBack(): void {
-    this.router.navigate(['/admin/manga']);
+    if (this.mangaId) this.router.navigate(['/admin/manga', this.mangaId, 'info']);
+    else this.router.navigate(['/admin/manga']);
   }
 }

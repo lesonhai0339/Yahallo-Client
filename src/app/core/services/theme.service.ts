@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject } from 'rxjs';
 import { AuthService } from './auth.service';
 import { dropLegacyKey, scopedKey } from '../utils/user-storage';
@@ -186,7 +187,20 @@ export class ThemeService {
    */
   private bgTouchedByUser = false;
 
-  constructor(private auth: AuthService) {
+  /**
+   * Theme được vẽ bằng cách ghi trực tiếp lên `document`, thứ không tồn tại khi
+   * render ở server. Mọi hàm ghi DOM phải thoát sớm theo cờ này — ném lỗi trong
+   * `apply()` sẽ giết luôn phần còn lại của `AppComponent.ngOnInit`, kéo theo
+   * `masterData.load()` không chạy và trang chủ SSR ra rỗng.
+   */
+  private readonly isBrowser: boolean;
+
+  constructor(
+    private auth: AuthService,
+    @Inject(PLATFORM_ID) platformId: Object,
+  ) {
+    this.isBrowser = isPlatformBrowser(platformId);
+
     // Dọn key global của bản cũ (dùng chung cho mọi tài khoản).
     [STORAGE_KEY, FX_KEY, BG_KEY, BG_OPACITY_KEY, BG_BLUR_KEY, BG_COVER_KEY,
       FONT_FAMILY_KEY, FONT_SIZE_KEY, FONT_WEIGHT_KEY, FONT_COLOR_KEY]
@@ -217,6 +231,7 @@ export class ThemeService {
 
   /** Apply theme + background image + fonts to the document (call on bootstrap). */
   apply(): void {
+    if (!this.isBrowser) return;
     document.documentElement.setAttribute('data-theme', this.currentTheme);
     this.applyBackground();
     this.applyFont();
@@ -410,6 +425,7 @@ export class ThemeService {
   }
 
   private applyFont(): void {
+    if (!this.isBrowser) return;
     const root = document.documentElement;
     const family = this.fontFamilySubject.value;
     const color = this.fontColorSubject.value;
@@ -423,6 +439,7 @@ export class ThemeService {
   }
 
   private applyBackground(): void {
+    if (!this.isBrowser) return;
     const url = this.bgSubject.value;
     const root = document.documentElement;
     root.style.setProperty('--app-bg-overlay', String(this.opacitySubject.value));

@@ -109,8 +109,18 @@
     </div>
   </div>
 
+  <!-- Chương không tồn tại / không có ảnh — thay cả cột đọc bằng trang lỗi.
+       Không có nhánh này thì `isLoading` kẹt true và reader treo ở skeleton. -->
+  <app-error-page *ngIf="notFound"
+    code="404"
+    titleKey="ERROR.CHAPTER_NOT_FOUND"
+    descKey="ERROR.CHAPTER_NOT_FOUND_DESC"
+    icon="fa-solid fa-book-open"
+    [showRetry]="false">
+  </app-error-page>
+
   <!-- Reader Viewer -->
-  <app-reader-viewer *ngIf="!isLoading"
+  <app-reader-viewer *ngIf="!isLoading && !notFound"
     [images]="images"
     [initialPage]="initialPage"
     [direction]="settings.direction"
@@ -121,12 +131,12 @@
   </app-reader-viewer>
 
   <!-- Skeleton loading — phác thảo các trang ảnh trong cột đọc -->
-  <div class="reader-loading" *ngIf="isLoading">
+  <div class="reader-loading" *ngIf="isLoading && !notFound">
     <span class="skeleton reader-skel__page" *ngFor="let p of [1,2,3]"></span>
   </div>
 
   <!-- Bottom Bar — floating left on desktop, full-width on mobile -->
-  <div class="reader-bottombar" [class.visible]="isBottombarVisible">
+  <div class="reader-bottombar" [class.visible]="isBottombarVisible" *ngIf="!notFound">
 
     <!-- Chapter list dropdown -->
     <div class="chapter-list-overlay" *ngIf="isChapterListOpen" (click)="closeChapterList()"></div>
@@ -170,7 +180,7 @@
   </div>
 
   <!-- Chapter Comments -->
-  <div class="reader-comments" *ngIf="!isLoading && settings.mode !== 'focus'">
+  <div class="reader-comments" *ngIf="!isLoading && !notFound && settings.mode !== 'focus'">
     <div class="container">
       <app-comment-section [mangaId]="mangaId" [chapterId]="chapterId"></app-comment-section>
     </div>

@@ -1,4 +1,15 @@
-<div class="detail-page" *ngIf="!isLoading && manga"
+<div *ngIf="notFound" >
+  <app-error-page *ngIf="notFound"
+      code="404"
+      titleKey="ERROR.MANGA_NOT_FOUND"
+      descKey="ERROR.MANGA_NOT_FOUND_DESC"
+      icon="fa-solid fa-book-open"
+      [showRetry]="false">
+  </app-error-page>
+</div>
+
+<div *ngIf="!notFound">
+  <div class="detail-page" *ngIf="!isLoading && manga"
      [style.backgroundImage]="'url('+manga.mangaThumbnail+')'">
 
   <!-- Hero Banner -->
@@ -326,4 +337,6 @@
       <span class="skeleton ds-row" *ngFor="let r of [1,2,3,4,5,6]"></span>
     </div>
   </div>
+</div>
+
 </div>

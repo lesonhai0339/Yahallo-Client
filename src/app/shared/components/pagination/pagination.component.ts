@@ -1,7 +1,8 @@
 import {
   Component, EventEmitter, Input, Output, OnDestroy, HostListener,
-  ViewChild, ElementRef,
+  ViewChild, ElementRef, Inject, PLATFORM_ID,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 
@@ -28,14 +29,19 @@ export class PaginationComponent implements OnDestroy {
 
   @ViewChild('jumpInput') jumpInputRef?: ElementRef<HTMLInputElement>;
 
-  isMobile = window.innerWidth <= 768;
+  /**
+   * Server-side render không có `window`. Mặc định desktop rồi để `onResize()`
+   * và constructor chỉnh lại ở phía client sau khi hydrate.
+   */
+  isMobile = false;
   jumping = false;
   jumpValue = '';
 
   private jump$ = new Subject<string>();
   private destroy$ = new Subject<void>();
 
-  constructor() {
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+    if (isPlatformBrowser(this.platformId)) this.isMobile = window.innerWidth <= 768;
     // Commit the typed page 350ms after the user stops typing.
     this.jump$.pipe(debounceTime(350), takeUntil(this.destroy$))
       .subscribe(v => this.commitJump(v));
@@ -43,6 +49,7 @@ export class PaginationComponent implements OnDestroy {
 
   @HostListener('window:resize')
   onResize(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     this.isMobile = window.innerWidth <= 768;
   }
 

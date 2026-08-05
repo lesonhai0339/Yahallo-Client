@@ -183,7 +183,7 @@ export class MangaFormComponent implements OnInit {
           });
         }
         this.toastr.success(this.isEdit ? 'Cập nhật thành công' : 'Tạo truyện thành công');
-        this.router.navigate(['/admin/manga']);
+        this.backToOrigin(newId);
       },
       error: () => {
         this.toastr.error('Có lỗi xảy ra');
@@ -193,6 +193,20 @@ export class MangaFormComponent implements OnInit {
   }
 
   cancel(): void {
-    this.router.navigate(['/admin/manga']);
+    this.backToOrigin();
+  }
+
+  /**
+   * Chức năng: Rời form về đúng nơi hợp lý — sửa truyện thì về trang thông tin
+   *   của chính truyện đó, tạo mới thì về trang thông tin của truyện vừa tạo,
+   *   không có id nào thì về danh sách.
+   * Yêu cầu: `id` là id truyện vừa tạo (chỉ truyền khi lưu xong).
+   * Kết quả trả về: không (điều hướng).
+   * Exception: không ném.
+   */
+  private backToOrigin(id?: string | null): void {
+    const target = id ?? this.mangaId;
+    if (target) this.router.navigate(['/admin/manga', target, 'info']);
+    else this.router.navigate(['/admin/manga']);
   }
 }

@@ -13,7 +13,7 @@ import { NotificationsComponent } from './features/user/notifications/notificati
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
 import { AuthGuard } from './core/guards/auth.guard';
-import { ServerErrorComponent } from './features/error/server-error.component';
+import { ErrorPageComponent } from './features/error/error-page.component';
 import { OfflineReaderComponent } from './features/offline-reader/offline-reader.component';
 import { PersonDetailComponent } from './features/person/person-detail/person-detail.component';
 
@@ -25,6 +25,9 @@ const routes: Routes = [
   { path: 'search/advanced', component: MangaSearchComponent },
   { path: 'the-loai/:id', component: MangaSearchComponent },
   { path: 'latest', component: MangaListPageComponent, data: { mode: 'latest', titleKey: 'HOME.LATEST_UPDATE', icon: 'fa-solid fa-clock-rotate-left' } },
+  // 'new' sắp theo CreateDate (mới thêm vào site), khác 'latest' sắp theo
+  // LastUpdate (mới ra chương). Dùng chung MangaListPageComponent.
+  { path: 'new', component: MangaListPageComponent, data: { mode: 'new', titleKey: 'HOME.NEW_MANGA', icon: 'fa-solid fa-certificate' } },
   { path: 'popular', component: MangaListPageComponent, data: { mode: 'popular', titleKey: 'HOME.POPULAR', icon: 'fa-solid fa-chart-line' } },
   { path: 'top-manga', component: TopMangaComponent },
   { path: 'top-manga/:criterion', component: TopMangaComponent },
@@ -48,8 +51,23 @@ const routes: Routes = [
     path: 'admin',
     loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)
   },
-  { path: 'server-error', component: ServerErrorComponent },
-  { path: '**', redirectTo: '' }
+  // `status` được ErrorPageComponent báo ngược cho Express khi render ở server:
+  // 503 để Google hiểu "API đang chết, quay lại sau" thay vì index trang lỗi,
+  // 404 để URL sai không còn trả 200 kèm trang chủ (soft 404).
+  {
+    path: 'server-error', component: ErrorPageComponent,
+    data: {
+      code: '503', titleKey: 'ERROR.SERVER_DOWN', descKey: 'ERROR.SERVER_DOWN_DESC',
+      icon: 'fa-solid fa-server', status: 503,
+    },
+  },
+  {
+    path: '**', component: ErrorPageComponent,
+    data: {
+      code: '404', titleKey: 'ERROR.NOT_FOUND', descKey: 'ERROR.NOT_FOUND_DESC',
+      icon: 'fa-solid fa-compass', status: 404,
+    },
+  }
 ];
 
 @NgModule({
