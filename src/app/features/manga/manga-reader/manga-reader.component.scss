@@ -370,6 +370,13 @@
 .setting-options {
   display: flex;
   gap: 8px;
+
+  // 4 lựa chọn (kiểu vừa khung) nhét một hàng thì chữ vỡ — cho xuống 2 hàng.
+  &--wrap {
+    flex-wrap: wrap;
+
+    .option-btn { flex: 1 1 calc(50% - 4px); }
+  }
 }
 
 .option-btn {
@@ -451,4 +458,70 @@
   &--ghost:hover { color: var(--text-primary); border-color: var(--text-muted); }
   &--primary { background: var(--accent-primary); border-color: transparent; color: #fff; }
   &--primary:hover { filter: brightness(1.06); }
+}
+
+// ── Bảng phím tắt (phím `?`) ────────────────────────────────────────────────
+.shortcut-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 20px;
+}
+
+.shortcut-dialog {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 22px 20px;
+
+  h3 { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0 0 14px; }
+}
+
+.shortcut-list {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+
+    & + li { border-top: 1px solid var(--border-color); }
+    span { margin-left: auto; text-align: right; }
+  }
+
+  kbd {
+    min-width: 30px;
+    padding: 3px 7px;
+    border: 1px solid var(--border-color);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-align: center;
+  }
+}
+
+// Nút bottombar đang bật (vd tự cuộn đang chạy)
+.bb-btn--on {
+  color: var(--accent-primary) !important;
+  background: rgba(233, 69, 96, 0.12);
+}
+
+@media (max-width: 480px) {
+  .shortcut-dialog { padding: 18px 14px; }
+  .shortcut-list li { font-size: 0.8rem; }
 }

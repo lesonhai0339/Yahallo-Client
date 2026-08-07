@@ -17,9 +17,8 @@
 
   <!-- ── Feedback tab ───────────────────────────────────────────────────────── -->
   <div class="tab-content" *ngIf="activeTab === 'feedback'">
-    <div class="loading-row" *ngIf="loadingFeedback">
-      <div class="spinner-sm"></div> Đang tải...
-    </div>
+    <app-table-skeleton *ngIf="loadingFeedback"
+      variant="card" [rows]="3" [cols]="3" [showActions]="false"></app-table-skeleton>
 
     <div class="empty-msg" *ngIf="!loadingFeedback && feedbacks.length === 0">
       <span class="material-icons">inbox</span>
@@ -50,9 +49,8 @@
 
   <!-- ── Conversation tab ───────────────────────────────────────────────────── -->
   <div class="tab-content" *ngIf="activeTab === 'conversation'">
-    <div class="loading-row" *ngIf="loadingMessages">
-      <div class="spinner-sm"></div> Đang tải...
-    </div>
+    <app-table-skeleton *ngIf="loadingMessages"
+      variant="card" [rows]="4" [cols]="2" [showActions]="false"></app-table-skeleton>
 
     <!-- Message list -->
     <div class="chat-list" *ngIf="!loadingMessages">

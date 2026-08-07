@@ -59,6 +59,58 @@
       </div>
 
       <div class="setting-group">
+        <label class="setting-label">{{ 'READER.FIT_MODE' | translate }}</label>
+        <div class="setting-options setting-options--wrap">
+          <button class="option-btn" [class.active]="pendingSettings.fitMode === 'width'"
+            (click)="pendingSettings.fitMode = 'width'">
+            <i class="fa-solid fa-arrows-left-right me-1"></i>{{ 'READER.FIT_WIDTH' | translate }}
+          </button>
+          <button class="option-btn" [class.active]="pendingSettings.fitMode === 'height'"
+            (click)="pendingSettings.fitMode = 'height'">
+            <i class="fa-solid fa-arrows-up-down me-1"></i>{{ 'READER.FIT_HEIGHT' | translate }}
+          </button>
+          <button class="option-btn" [class.active]="pendingSettings.fitMode === 'both'"
+            (click)="pendingSettings.fitMode = 'both'">
+            <i class="fa-solid fa-compress me-1"></i>{{ 'READER.FIT_BOTH' | translate }}
+          </button>
+          <button class="option-btn" [class.active]="pendingSettings.fitMode === 'original'"
+            (click)="pendingSettings.fitMode = 'original'">
+            <i class="fa-solid fa-magnifying-glass me-1"></i>{{ 'READER.FIT_ORIGINAL' | translate }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Trang đôi chỉ có nghĩa khi lật ngang -->
+      <div class="setting-group" *ngIf="pendingSettings.direction === 'horizontal'">
+        <label class="setting-label">{{ 'READER.DOUBLE_PAGE' | translate }}</label>
+        <div class="setting-options">
+          <button class="option-btn" [class.active]="!pendingSettings.doublePage"
+            (click)="pendingSettings.doublePage = false">
+            <i class="fa-solid fa-file me-1"></i>{{ 'READER.SINGLE_PAGE' | translate }}
+          </button>
+          <button class="option-btn" [class.active]="pendingSettings.doublePage"
+            (click)="pendingSettings.doublePage = true">
+            <i class="fa-solid fa-book-open me-1"></i>{{ 'READER.DOUBLE_PAGE' | translate }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Tốc độ tự cuộn chỉ dùng cho chế độ dọc -->
+      <div class="setting-group" *ngIf="pendingSettings.direction === 'vertical'">
+        <label class="setting-label">
+          {{ 'READER.AUTO_SCROLL_SPEED' | translate }}
+          <span class="setting-value">{{ pendingSettings.autoScrollSpeed }} px/s</span>
+        </label>
+        <input type="range" class="form-range" min="10" max="300" step="10"
+          [(ngModel)]="pendingSettings.autoScrollSpeed" [ngModelOptions]="{ standalone: true }">
+        <div class="range-labels">
+          <span>10</span>
+          <span>150</span>
+          <span>300</span>
+        </div>
+      </div>
+
+      <div class="setting-group">
         <label class="setting-label">{{ 'READER.MODE' | translate }}</label>
         <div class="setting-options">
           <button class="option-btn" [class.active]="pendingSettings.mode === 'normal'"
@@ -127,8 +179,29 @@
     [horizontalDir]="settings.horizontalDir"
     [imageSize]="settings.imageSize"
     [preloadCount]="settings.preloadCount"
+    [fitMode]="settings.fitMode"
+    [doublePage]="settings.doublePage"
     (pageChange)="onPageChange($event)">
   </app-reader-viewer>
+
+  <!-- Bảng phím tắt (phím `?`) -->
+  <div class="shortcut-overlay" *ngIf="isShortcutHelpOpen" (click)="isShortcutHelpOpen = false">
+    <div class="shortcut-dialog" (click)="$event.stopPropagation()">
+      <h3>{{ 'READER.SHORTCUTS' | translate }}</h3>
+      <ul class="shortcut-list">
+        <li><kbd>←</kbd> <kbd>→</kbd><span>{{ 'READER.SC_FLIP' | translate }}</span></li>
+        <li><kbd>N</kbd><span>{{ 'READER.NEXT_CHAPTER' | translate }}</span></li>
+        <li><kbd>P</kbd><span>{{ 'READER.PREV_CHAPTER' | translate }}</span></li>
+        <li><kbd>F</kbd><span>{{ 'READER.FULLSCREEN' | translate }}</span></li>
+        <li><kbd>Space</kbd><span>{{ 'READER.AUTO_SCROLL' | translate }}</span></li>
+        <li><kbd>?</kbd><span>{{ 'READER.SHORTCUTS' | translate }}</span></li>
+        <li><kbd>Esc</kbd><span>{{ 'READER.SC_CLOSE' | translate }}</span></li>
+      </ul>
+      <button class="resume-btn resume-btn--primary" (click)="isShortcutHelpOpen = false">
+        {{ 'COMMON.CLOSE' | translate }}
+      </button>
+    </div>
+  </div>
 
   <!-- Skeleton loading — phác thảo các trang ảnh trong cột đọc -->
   <div class="reader-loading" *ngIf="isLoading && !notFound">
@@ -166,6 +239,17 @@
         [title]="chapterFullName(currentChapter)">
         <i class="fa-solid fa-list me-1"></i>
         <span class="bb-chapter-label">{{ chapterName(currentChapter) }}</span>
+      </button>
+      <!-- Tự cuộn: chỉ hiện khi đọc dọc, vì cuộn ngang không có gì để cuộn. -->
+      <button class="bb-btn" *ngIf="settings.direction === 'vertical'"
+        [class.bb-btn--on]="isAutoScrolling"
+        (click)="toggleAutoScroll()"
+        [title]="'READER.AUTO_SCROLL' | translate">
+        <i class="fa-solid" [ngClass]="isAutoScrolling ? 'fa-pause' : 'fa-play'"></i>
+      </button>
+      <button class="bb-btn" (click)="toggleFullscreen()"
+        [title]="'READER.FULLSCREEN' | translate">
+        <i class="fa-solid" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
       </button>
       <button class="bb-btn" (click)="toggleSidebar()"
         [title]="'READER.SETTINGS' | translate">

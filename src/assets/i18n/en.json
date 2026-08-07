@@ -18,7 +18,8 @@
     "CLEAR": "Clear",
     "SWITCH_DARK": "Switch to dark mode",
     "SWITCH_LIGHT": "Switch to light mode",
-    "READ_OFFLINE": "Read offline"
+    "READ_OFFLINE": "Read offline",
+    "RANDOM": "Random"
   },
   "HOME": {
     "NEW_MANGA": "New manga",
@@ -79,7 +80,8 @@
     "TO": "To",
     "MAX": "max",
     "DOWNLOAD": "Download",
-    "DL_CANCEL": "Cancel"
+    "DL_CANCEL": "Cancel",
+    "SIMILAR": "Similar titles"
   },
   "READER": {
     "BACK": "Back",
@@ -98,7 +100,22 @@
     "APPLY": "Apply",
     "HORIZONTAL_DIR": "Horizontal direction",
     "RTL": "Right to Left",
-    "LTR": "Left to Right"
+    "LTR": "Left to Right",
+    "FIT_MODE": "Fit mode",
+    "FIT_WIDTH": "Fit width",
+    "FIT_HEIGHT": "Fit height",
+    "FIT_BOTH": "Fit both",
+    "FIT_ORIGINAL": "Original size",
+    "DOUBLE_PAGE": "Double page",
+    "SINGLE_PAGE": "Single page",
+    "AUTO_SCROLL": "Auto scroll",
+    "AUTO_SCROLL_SPEED": "Auto scroll speed",
+    "FULLSCREEN": "Fullscreen",
+    "SHORTCUTS": "Keyboard shortcuts",
+    "SC_FLIP": "Flip page",
+    "SC_CLOSE": "Close / stop",
+    "IMAGE_FAILED": "This image failed to load",
+    "RETRY": "Retry"
   },
   "SEARCH": {
     "TITLE": "Advanced Search",
@@ -152,7 +169,11 @@
     "FILTER_AUTHOR_PLACEHOLDER": "Filter authors...",
     "FILTER_ARTIST_PLACEHOLDER": "Filter artists...",
     "FILTER_CATEGORY_PLACEHOLDER": "Filter categories...",
-    "FILTER_NO_MATCH": "No match"
+    "FILTER_NO_MATCH": "No match",
+    "FILTER_STATUS": "Status",
+    "FILTER_TYPE": "Format",
+    "FILTER_COUNTRY": "Origin",
+    "ALL": "All"
   },
   "PERSON": {
     "AUTHOR": "Author",
@@ -305,7 +326,8 @@
     "ERROR": "An error occurred",
     "UNKNOWN": "Unknown",
     "EXPLORE": "Discover more manga",
-    "BACK_HOME": "Home"
+    "BACK_HOME": "Home",
+    "CLOSE": "Close"
   },
   "LANG": {
     "LABEL": "Language",

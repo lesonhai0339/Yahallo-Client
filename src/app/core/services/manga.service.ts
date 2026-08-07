@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Chapter, Manga, MangaDetailDto, MangaStatsDto, MangaPagination, PagedResult } from '../models/interfaces';
 import { ChapterImage, ChapterSortBy } from '../models/chapter.interface';
@@ -624,6 +624,29 @@ export class MangaService {
           : (raw?.totalPages ?? raw?.pageCount ?? (items.length ? 1 : 0));
         return { data: items, totalPages, totalCount };
       })
+    );
+  }
+
+  /**
+   * Chức năng: lấy id một truyện ngẫu nhiên. `filter-manga` không có chế độ
+   * random nên phải 2 nhịp: nhịp đầu xin 1 bản ghi chỉ để biết `totalCount`,
+   * nhịp sau nhảy tới một trang ngẫu nhiên với `pageSize = 1`.
+   * Yêu cầu: không.
+   * Kết quả trả về: Observable emit id truyện rồi complete; emit `null` khi kho
+   * truyện rỗng hoặc API lỗi.
+   * Exception: không ném — mọi lỗi quy về `null` để nơi gọi chỉ cần báo toast.
+   */
+  getRandomMangaId(): Observable<string | null> {
+    return this.filterPaginated({ pageNo: 1, pageSize: 1 }).pipe(
+      switchMap(first => {
+        const total = first.totalCount ?? 0;
+        if (!total) return of(null);
+        const page = Math.floor(Math.random() * total) + 1;
+        return this.filterPaginated({ pageNo: page, pageSize: 1 }).pipe(
+          map(r => r.data?.[0]?.id ?? null)
+        );
+      }),
+      catchError(() => of(null))
     );
   }
 

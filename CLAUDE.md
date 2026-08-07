@@ -148,6 +148,7 @@ Quy ước ghi:
 | `/services/fail-uploads` | POST | Đánh dấu upload thất bại |
 | `/manga/link-series` | POST | Liên kết các bộ truyện cùng series |
 | `/manga/filter-manga` | GET | Cần thêm params `authorName`, `artistName` |
+| Báo cáo bình luận | POST | Chưa có endpoint. Nút "Báo cáo" ở `manga-info` (`reportComment()`) mới chỉ hiện toast |
 
 ---
 
@@ -233,6 +234,16 @@ route), không phải số dòng — quy ước ghi ở mục 3.2.
 | Chọn hiệu ứng trong Settings | `features/user/settings/settings.component.{ts,html,scss}` | `selectTransition()`, `.fx-section`, `.fx-card`; i18n `SETTINGS.FX_*` |
 | Đồng bộ settings với server (gồm `Transition`) | `core/services/user-settings.service.ts` | `TRANSITION_NAMES`/`TRANSITION_VALUES`, `applyDto()`, `saveWith()` |
 
+### Admin — khung xương (skeleton) & responsive
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| Bộ skeleton dùng chung của admin — 4 component, phủ mọi trang `/admin/*` | `admin/shared/table-skeleton/`<br>`admin/shared/detail-card-skeleton/`<br>`admin/shared/interaction-skeleton/`<br>`admin/shared/analytics-skeleton/`<br>`admin/shared/form-skeleton/` | `TableSkeletonComponent` (`variant` table/card, `leading` none/cover/avatar) — danh sách, bảng, panel chi tiết<br>`DetailCardSkeletonComponent` (`variant` cover/avatar) — thẻ chi tiết cột phải<br>`InteractionSkeletonComponent` (`variant` follow/comment) — khối follow/comment ở `manga-info`<br>`AnalyticsSkeletonComponent` (`statRows`/`stats`/`charts`/`chartCols`/`bars`) — trang thống kê + biểu đồ dashboard<br>`FormSkeletonComponent` (`sections`/`fields`) — form 2 cột `manga-form`<br>Tất cả dùng class `.skeleton` toàn cục ở `styles.scss`, mỗi component tự có `@media` riêng |
+| Bảng chương ẩn sau `*ngIf` lúc hiện skeleton → phải nối lại `MatSort` | `admin/pages/chapter-list/chapter-list.component.ts` | setter `@ViewChild(MatSort) set sortRef()` — `ngAfterViewInit` chạy khi bảng chưa render nên gán `dataSource.sort` ở đó là mất sort; `mat-paginator` nằm ngoài `*ngIf` nên vẫn gán trong `ngAfterViewInit` |
+| Biểu đồ dashboard có cờ loading riêng khỏi thẻ thống kê | `admin/pages/dashboard/dashboard.component.{ts,html}` | `chartsLoading` — bật lại mỗi lần `loadCharts()` (đổi range cũng nạp lại) |
+| Thẻ thông tin truyện ở cột phải trang chương nạp riêng | `admin/pages/chapter-list/chapter-list.component.{ts,html}` | `mangaLoading` — trước đây `*ngIf="manga"` nên cột phải trống trơn lúc chờ |
+| Responsive cho 2 trang admin chưa có breakpoint | `admin/pages/topic-list/topic-list.component.scss`<br>`admin/pages/taxonomy-requests/taxonomy-requests.component.scss` | `topic-list`: 1024px bỏ lưới 2 cột + bỏ `sticky` của `.page-detail`; 768px `.category-bar` cuộn ngang<br>`taxonomy-requests`: 768px `.req-card` xếp dọc, `.r-btn` trải hết chiều ngang |
+
 ### Admin — quản lý truyện
 
 | Chức năng | File | Neo trong file |
@@ -249,7 +260,7 @@ route), không phải số dòng — quy ước ghi ở mục 3.2.
 | Trang thông tin thể loại / tác giả / hoạ sĩ + truyện liên quan | `admin/pages/taxonomy-info/taxonomy-info.component.{ts,html,scss}`<br>`admin/pages/taxonomy-list/taxonomy-list.component.{ts,html,scss}`<br>`admin/admin-routing.module.ts` | `TaxonomyInfoComponent` — MỘT component cho cả 3 loại, phân biệt qua `route.data.kind`<br>`loadEntity()` (tag → `getTagInfo`; author/artist → `filter({id})` rồi lấy phần tử đầu, nhận cả `depscription` viết sai của backend)<br>`loadMangas()` đổi tham số theo kind: `tagIds` / `authorId` / `artistId`<br>route `tags/:id`, `authors/:id`, `artists/:id`<br>`taxonomy-list.goInfo()` + `.tax-name-link`; chip thể loại ở `manga-list`/`manga-info` cũng dẫn vào đây |
 | Hồ sơ người dùng + truyện đã đăng | `admin/pages/user-profile/user-profile.component.{ts,html,scss}`<br>`admin/admin-routing.module.ts` | `loadUser()`, `loadMangas()` (lọc `ownerId`), `goManga()`<br>route `users/:id` (phải đứng TRƯỚC `users`) |
 | Danh sách chương (endpoint riêng của admin) | `admin/services/admin-manga.service.ts`<br>`admin/pages/chapter-list/chapter-list.component.ts` | `getChapters()` → **`chapter/admin/filter`** (AdminFilterChapterQuery: `Index`/`MangaName`/`SortBy`/`ReverseSort`/`IsDeleted`)<br>`MangaId` **bắt buộc** — thiếu thì backend chặn (không có nó là query toàn site)<br>`loadChapters()` chuẩn hoá `subIndex ?? 0` — server trả `null` cho chương thường |
-| Người theo dõi + bình luận của một truyện (khối xổ tại chỗ) | `admin/services/admin-interaction.service.ts`<br>`admin/pages/manga-info/manga-info.component.{ts,html,scss}` | `getFollows()` → `follow-manga/admin/filter`; `getComments()` → `comment/admin/filter`<br>`toggleFollows()`/`toggleComments()` — nạp LƯỜI, chỉ gọi API ở lần mở đầu tiên<br>`.drawer`, `.ilist`; bình luận có chương thì hiện chip chương<br>`AdminFollowDto`: avatar ở `userAvatar`, `initials()` chỉ là dự phòng; đã bỏ `lastUpdate`, nay là `createDate`/`updateDate`/`deleteDate` |
+| Người theo dõi + bình luận của một truyện (khối xổ tại chỗ) | `admin/services/admin-interaction.service.ts`<br>`admin/pages/manga-info/manga-info.component.{ts,html,scss}` | `getFollows()` → `follow-manga/admin/filter`; `getComments()` → `comment/admin/filter`<br>`toggleFollows()`/`toggleComments()` — nạp LƯỜI, chỉ gọi API ở lần mở đầu tiên<br>`.drawer`, `.ilist`; bình luận có chương thì hiện chip chương<br>`InteractionSkeletonComponent` (`variant` follow/comment); chiều cao cố định: `.ilist__row` có `min-height`, `fillerRows()` chèn dòng trống cho đủ `pageSize`, nội dung bình luận cắt 2 dòng<br>`followFilter`/`commentFilter` — lọc theo user/chương/khoảng ngày/thứ tự/đã xoá; `mangaId` LUÔN ghim theo truyện đang mở, không cho đổi<br>`AdminFollowDto`: avatar ở `userAvatar`, `initials()` chỉ là dự phòng; đã bỏ `lastUpdate`, nay là `createDate`/`updateDate`/`deleteDate` |
 | Tạo / sửa truyện | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-form/manga-form.component.ts` | `create()`, `update()` (Id nằm TRONG form, route `manga/update`)<br>`buildFormData()` |
 
 ### Trang tác giả / hoạ sĩ / thể loại

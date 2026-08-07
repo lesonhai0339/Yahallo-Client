@@ -367,7 +367,6 @@
     border-top: 1px solid var(--border-color);
   }
 
-  &__loading,
   &__empty {
     padding: 24px 0;
     text-align: center;
@@ -384,8 +383,11 @@
   }
 }
 
-// Danh sách người / bình luận dùng chung
+// Danh sách người / bình luận dùng chung.
+// `min-height` do component tính và gắn qua [style.min-height.px] — chốt theo
+// số mục của TRANG 1 nên không cố định cứng ở đây được.
 .ilist {
+
   list-style: none;
   margin: 0;
   padding: 0;
@@ -395,11 +397,19 @@
     align-items: center;
     gap: 12px;
     padding: 10px 0;
+    // PHẢI khớp `FOLLOW_ROW_H` / `COMMENT_ROW_H` bên component — chiều cao chừa
+    // sẵn cho cả khối được tính từ hai hằng đó.
+    min-height: 56px;
+    box-sizing: border-box;
 
     & + & { border-top: 1px solid var(--border-color); }
 
     // Bình luận có nội dung nhiều dòng nên căn theo đỉnh
-    &--comment { align-items: flex-start; }
+    &--comment {
+      align-items: flex-start;
+      min-height: 68px;
+    }
+
   }
 
   &__avatar {
@@ -472,6 +482,12 @@
     color: var(--text-primary);
     white-space: pre-line;
     word-break: break-word;
+    // Cắt còn 2 dòng: bình luận dài ngắn khác nhau thì mỗi dòng một chiều cao,
+    // cố định số dòng mới thật sự hết nhảy.
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   &__sub {
@@ -484,6 +500,22 @@
 
     span { display: inline-flex; align-items: center; gap: 4px; }
     .material-icons { font-size: 0.8rem !important; }
+  }
+
+  &__report {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 0.7rem;
+    cursor: pointer;
+
+    .material-icons { font-size: 0.8rem !important; }
+    &:hover { color: #ef4444; }
   }
 
   &__meta {
@@ -517,4 +549,68 @@
 @media (max-width: 600px) {
   .ilist__row { flex-wrap: wrap; }
   .ilist__meta { width: 100%; padding-left: 48px; }
+}
+
+
+// ── Bộ lọc trong khối xổ ─────────────────────────────────────────────────────
+.dfilter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+  }
+
+  &__input,
+  &__select {
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+
+    &:focus { outline: none; border-color: var(--accent-primary); }
+  }
+
+  &__check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding-bottom: 6px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    padding-bottom: 1px;
+  }
+
+  &__btn {
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    cursor: pointer;
+
+    &:hover { border-color: var(--accent-primary); }
+    &--primary { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+  }
 }

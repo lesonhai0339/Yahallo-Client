@@ -28,9 +28,18 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
   pageSize = 50;
   pageIndex = 0;
   loading = false;
+  /** Cột phải (thẻ thông tin truyện) nạp riêng, có skeleton riêng. */
+  mangaLoading = false;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+
+  /**
+   * Bảng bị `*ngIf` che trong lúc hiện skeleton nên `MatSort` chưa tồn tại ở
+   * `ngAfterViewInit` — phải nhận qua setter để nối lại đúng lúc bảng render.
+   */
+  @ViewChild(MatSort) set sortRef(sort: MatSort | undefined) {
+    if (sort) this.dataSource.sort = sort;
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -62,17 +71,19 @@ export class ChapterListComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
+    // `mat-paginator` nằm ngoài `*ngIf` nên luôn sẵn sàng ở đây; `sort` do setter lo.
     this.dataSource.paginator = this.paginator;
   }
 
   loadMangaDetail(): void {
     if (!this.mangaId) return;
+    this.mangaLoading = true;
     this.mangaService.getDetail(this.mangaId).subscribe({
       next: (res: any) => {
         this.manga = res?.value ?? res;
+        this.mangaLoading = false;
       },
-      error: () => {}
+      error: () => { this.mangaLoading = false; }
     });
   }
 

@@ -99,6 +99,7 @@
     <!-- Year filter (custom dropdown — scrollable, never overflows the screen).
          Chỉ đối tượng Manga: Tag/Author/Artist không lọc theo năm. -->
     <div class="filter-year-row" *ngIf="isMangaTarget">
+      <div class="filter-field">
       <label>{{ 'SEARCH.FILTER_YEAR' | translate }}</label>
       <div class="year-dd" [class.year-dd--open]="yearOpen">
         <button type="button" class="year-dd__trigger" (click)="yearOpen = !yearOpen">
@@ -113,6 +114,67 @@
           <button type="button" class="year-dd__item" *ngFor="let y of years"
                   [class.active]="selectedYear === y" (click)="selectYear(y)">{{ y }}</button>
         </div>
+      </div>
+
+      </div>
+
+      <!-- Trạng thái ra chương -->
+      <div class="filter-field">
+      <label>{{ 'SEARCH.FILTER_STATUS' | translate }}</label>
+      <div class="year-dd status-dd" [class.year-dd--open]="statusOpen">
+        <button type="button" class="year-dd__trigger" (click)="statusOpen = !statusOpen">
+          <span>{{ statusLabel ?? ('SEARCH.ALL' | translate) }}</span>
+          <span class="badge-x" *ngIf="selectedStatus !== null" role="button" tabindex="-1"
+                aria-label="clear" (click)="$event.stopPropagation(); clearStatus()"><i class="fa-solid fa-xmark"></i></span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="year-dd__panel" *ngIf="statusOpen">
+          <button type="button" class="year-dd__item" [class.active]="selectedStatus === null"
+                  (click)="selectStatus(null)">{{ 'SEARCH.ALL' | translate }}</button>
+          <button type="button" class="year-dd__item" *ngFor="let o of statusOptions"
+                  [class.active]="selectedStatus === o.value" (click)="selectStatus(o.value)">{{ o.label }}</button>
+        </div>
+      </div>
+
+      </div>
+
+      <!-- Hình thức phát hành -->
+      <div class="filter-field">
+      <label>{{ 'SEARCH.FILTER_TYPE' | translate }}</label>
+      <div class="year-dd type-dd" [class.year-dd--open]="typeOpen">
+        <button type="button" class="year-dd__trigger" (click)="typeOpen = !typeOpen">
+          <span>{{ typeLabel ?? ('SEARCH.ALL' | translate) }}</span>
+          <span class="badge-x" *ngIf="selectedType !== null" role="button" tabindex="-1"
+                aria-label="clear" (click)="$event.stopPropagation(); clearType()"><i class="fa-solid fa-xmark"></i></span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="year-dd__panel" *ngIf="typeOpen">
+          <button type="button" class="year-dd__item" [class.active]="selectedType === null"
+                  (click)="selectType(null)">{{ 'SEARCH.ALL' | translate }}</button>
+          <button type="button" class="year-dd__item" *ngFor="let o of typeOptions"
+                  [class.active]="selectedType === o.value" (click)="selectType(o.value)">{{ o.label }}</button>
+        </div>
+      </div>
+
+      </div>
+
+      <!-- Nước xuất xứ -->
+      <div class="filter-field">
+      <label>{{ 'SEARCH.FILTER_COUNTRY' | translate }}</label>
+      <div class="year-dd country-dd" [class.year-dd--open]="countryOpen">
+        <button type="button" class="year-dd__trigger" (click)="countryOpen = !countryOpen">
+          <span>{{ countryLabel ?? ('SEARCH.ALL' | translate) }}</span>
+          <span class="badge-x" *ngIf="selectedCountry !== null" role="button" tabindex="-1"
+                aria-label="clear" (click)="$event.stopPropagation(); clearCountry()"><i class="fa-solid fa-xmark"></i></span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="year-dd__panel" *ngIf="countryOpen">
+          <button type="button" class="year-dd__item" [class.active]="selectedCountry === null"
+                  (click)="selectCountry(null)">{{ 'SEARCH.ALL' | translate }}</button>
+          <button type="button" class="year-dd__item" *ngFor="let o of countryOptions"
+                  [class.active]="selectedCountry === o.value" (click)="selectCountry(o.value)">{{ o.label }}</button>
+        </div>
+      </div>
       </div>
     </div>
 

@@ -657,3 +657,14 @@
   }
   .ds-row { display: block; width: 100%; height: 44px; border-radius: var(--radius-sm); margin-bottom: 8px; }
 }
+
+// Khung xương cho khối "Truyện tương tự" — cao đúng bằng .side-manga-item
+// (ảnh 50px + padding 8px×2 + viền) để lúc dữ liệu về không nhảy layout.
+.side-manga-skel {
+  display: block;
+  width: 100%;
+  height: 68px;
+  border-radius: var(--radius-sm);
+
+  & + & { margin-top: 6px; }
+}

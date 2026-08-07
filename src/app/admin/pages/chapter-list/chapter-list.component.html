@@ -25,11 +25,9 @@
       </div>
 
       <div class="table-wrapper">
-        <div *ngIf="loading" class="table-loading">
-          <div class="spinner"></div><span>Đang tải...</span>
-        </div>
+        <app-table-skeleton *ngIf="loading" [rows]="8" [cols]="2"></app-table-skeleton>
 
-        <table mat-table [dataSource]="dataSource" matSort class="admin-table" [class.loading]="loading">
+        <table mat-table [dataSource]="dataSource" matSort class="admin-table" *ngIf="!loading">
 
           <ng-container matColumnDef="index">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Chương</th>
@@ -88,7 +86,13 @@
     </div>
 
     <!-- Column 2: manga info sidebar -->
-    <aside class="page-aside" *ngIf="manga">
+    <aside class="page-aside" *ngIf="mangaLoading">
+      <div class="manga-card">
+        <app-detail-card-skeleton variant="cover" [lines]="4"></app-detail-card-skeleton>
+      </div>
+    </aside>
+
+    <aside class="page-aside" *ngIf="!mangaLoading && manga">
       <div class="manga-card">
         <!-- Thumbnail -->
         <img class="manga-card__thumb"

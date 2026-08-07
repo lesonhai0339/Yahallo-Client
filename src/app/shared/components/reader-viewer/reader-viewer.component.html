@@ -1,16 +1,30 @@
-<div class="reader-content" [class.horizontal]="direction === 'horizontal'"
+<div class="reader-content"
+     [class.horizontal]="direction === 'horizontal'"
+     [class.fit-height]="fitMode === 'height'"
+     [class.fit-both]="fitMode === 'both'"
+     [class.fit-original]="fitMode === 'original'"
      (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
   <!-- Vertical mode -->
   <ng-container *ngIf="direction === 'vertical'">
     <div class="reader-page-wrapper" *ngFor="let img of images; let i = index"
          #pageRef [attr.data-page]="i"
          [style.max-width.%]="imageSize">
-      <img *ngIf="shouldLoad(i)"
-           [src]="img.cloudUrl"
+      <!-- Ảnh lỗi: hiện nút thử lại thay vì đổi sang ảnh "sorry" — trang truyện
+           hỏng thì người đọc cần tải lại đúng trang đó, không phải ảnh thay thế. -->
+      <div *ngIf="failed.has(i)" class="reader-img-error">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ 'READER.IMAGE_FAILED' | translate }}</span>
+        <button type="button" class="reader-retry-btn" (click)="retry(i)">
+          <i class="fa-solid fa-rotate-right me-1"></i>{{ 'READER.RETRY' | translate }}
+        </button>
+      </div>
+
+      <img *ngIf="shouldLoad(i) && !failed.has(i)"
+           [src]="srcFor(i)"
            [alt]="'Page ' + (i + 1)"
-           appImageFallback
+           (error)="onImgError(i)"
            class="reader-img">
-      <div *ngIf="!shouldLoad(i)" class="reader-img-placeholder"></div>
+      <div *ngIf="!shouldLoad(i) && !failed.has(i)" class="reader-img-placeholder"></div>
       <div class="page-indicator">{{ i + 1 }} / {{ images.length }}</div>
     </div>
   </ng-container>
@@ -20,25 +34,41 @@
     <div class="horizontal-viewer">
       <button class="horizontal-nav horizontal-nav--prev"
         (click)="goToPage(horizontalDir === 'rtl' ? 'next' : 'prev')"
-        [disabled]="horizontalDir === 'rtl' ? currentPage >= images.length - 1 : currentPage <= 0">
+        [disabled]="horizontalDir === 'rtl' ? !canGoNext : !canGoPrev">
         <i class="fa-solid fa-chevron-left"></i>
       </button>
 
       <div class="horizontal-page" #pageRef [attr.data-page]="currentPage"
+           [class.horizontal-page--double]="isDouble"
            [style.max-width.%]="imageSize">
-        <img *ngIf="images[currentPage]"
-             [src]="images[currentPage].cloudUrl"
-             [alt]="'Page ' + (currentPage + 1)"
-             appImageFallback
-             class="reader-img">
+        <!-- `pagePair` là 1 ảnh ở chế độ thường, 2 ảnh ở chế độ trang đôi và đã
+             xếp sẵn đúng thứ tự nhìn theo rtl/ltr. -->
+        <ng-container *ngFor="let p of pagePair">
+          <div class="horizontal-slot" *ngIf="failed.has(p)">
+            <div class="reader-img-error">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>{{ 'READER.IMAGE_FAILED' | translate }}</span>
+              <button type="button" class="reader-retry-btn" (click)="retry(p)">
+                <i class="fa-solid fa-rotate-right me-1"></i>{{ 'READER.RETRY' | translate }}
+              </button>
+            </div>
+          </div>
+
+          <img *ngIf="images[p] && !failed.has(p)"
+               [src]="srcFor(p)"
+               [alt]="'Page ' + (p + 1)"
+               (error)="onImgError(p)"
+               class="reader-img">
+        </ng-container>
+
         <div class="page-indicator page-indicator--visible">
-          {{ currentPage + 1 }} / {{ images.length }}
+          {{ pageLabel }} / {{ images.length }}
         </div>
       </div>
 
       <button class="horizontal-nav horizontal-nav--next"
         (click)="goToPage(horizontalDir === 'rtl' ? 'prev' : 'next')"
-        [disabled]="horizontalDir === 'rtl' ? currentPage <= 0 : currentPage >= images.length - 1">
+        [disabled]="horizontalDir === 'rtl' ? !canGoPrev : !canGoNext">
         <i class="fa-solid fa-chevron-right"></i>
       </button>
     </div>

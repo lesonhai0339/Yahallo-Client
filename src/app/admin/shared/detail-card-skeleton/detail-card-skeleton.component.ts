@@ -37,6 +37,12 @@ import { Component, Input } from '@angular/core';
     .dsk__lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
     .dsk__l1 { height: 9px; width: 40%; }
     .dsk__l2 { height: 12px; width: 75%; }
+
+    @media (max-width: 768px) {
+      .dsk__media { width: 96px; height: 144px; }
+      .dsk__media--round { width: 72px; height: 72px; }
+      .dsk__rows { margin-top: 14px; gap: 11px; }
+    }
   `],
 })
 export class DetailCardSkeletonComponent {

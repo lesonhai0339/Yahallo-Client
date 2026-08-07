@@ -24,6 +24,10 @@
       </div>
       <a class="nav-link" routerLink="/top-manga">{{ 'NAV.TOP_MANGA' | translate }}</a>
       <a class="nav-link" routerLink="/search/advanced">{{ 'NAV.ADVANCED_SEARCH' | translate }}</a>
+      <button type="button" class="nav-link nav-link--btn" (click)="goRandomManga()"
+              [disabled]="randomLoading">
+        <i class="fa-solid fa-shuffle me-1" [class.fa-spin]="randomLoading"></i>{{ 'NAV.RANDOM' | translate }}
+      </button>
     </nav>
 
     <!-- Actions -->
@@ -223,6 +227,9 @@
     </a>
     <a routerLink="/search/advanced" (click)="isMenuOpen=false">
       <i class="fa-solid fa-search me-2"></i>{{ 'NAV.ADVANCED_SEARCH' | translate }}
+    </a>
+    <a role="button" tabindex="0" (click)="isMenuOpen=false; goRandomManga()">
+      <i class="fa-solid fa-shuffle me-2" [class.fa-spin]="randomLoading"></i>{{ 'NAV.RANDOM' | translate }}
     </a>
     <hr>
     <div class="mobile-categories">

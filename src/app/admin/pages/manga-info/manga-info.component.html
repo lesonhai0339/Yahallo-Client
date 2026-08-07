@@ -137,13 +137,53 @@
       </button>
 
       <div class="drawer__body" *ngIf="followOpen">
-        <div class="drawer__loading" *ngIf="followLoading">Đang tải…</div>
+        <!-- Bộ lọc — KHÔNG có ô chọn truyện: luôn ghim theo truyện đang mở. -->
+        <form class="dfilter" (ngSubmit)="applyFollowFilter()">
+          <div class="dfilter__field">
+            <label>Người dùng (ID)</label>
+            <input type="text" class="dfilter__input" placeholder="Mọi người"
+              [(ngModel)]="followFilter.userId" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Từ ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="followFilter.from" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Đến ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="followFilter.to" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Thứ tự</label>
+            <select class="dfilter__select"
+              [(ngModel)]="followFilter.reverseSort" [ngModelOptions]="{ standalone: true }">
+              <option [ngValue]="true">Mới nhất trước</option>
+              <option [ngValue]="false">Cũ nhất trước</option>
+            </select>
+          </div>
+          <label class="dfilter__check">
+            <input type="checkbox" [(ngModel)]="followFilter.isDeleted" [ngModelOptions]="{ standalone: true }" />
+            Đã bỏ theo dõi
+          </label>
+
+          <div class="dfilter__actions">
+            <button type="button" class="dfilter__btn" (click)="resetFollowFilter()">Xoá lọc</button>
+            <button type="submit" class="dfilter__btn dfilter__btn--primary">Lọc</button>
+          </div>
+        </form>
+
+        <app-interaction-skeleton *ngIf="followLoading"
+          variant="follow" [rows]="followSkeletonRows"></app-interaction-skeleton>
 
         <div class="drawer__empty" *ngIf="!followLoading && !follows.length">
           Chưa có ai theo dõi truyện này
         </div>
 
-        <ul class="ilist" *ngIf="!followLoading && follows.length">
+        <!-- Chiều cao chốt theo TRANG 1 (xem `reserveHeight`): trang cuối thiếu mục
+             thì phần dưới để TRỐNG, không chèn dòng giả (chèn thì kéo theo đường kẻ). -->
+        <ul class="ilist" [style.min-height.px]="followMinHeight"
+          *ngIf="!followLoading && follows.length">
           <li class="ilist__row" *ngFor="let f of follows">
             <img *ngIf="f.userAvatar" [src]="f.userAvatar" [alt]="f.userName" class="ilist__avatar" loading="lazy" />
             <div *ngIf="!f.userAvatar" class="ilist__avatar ilist__avatar--ph">{{ initials(f.userName) }}</div>
@@ -162,12 +202,13 @@
           </li>
         </ul>
 
-        <div class="drawer__pager" *ngIf="!followLoading && followPages > 1">
-          <button class="pager__btn" [disabled]="followPage === 0" (click)="loadFollows(followPage - 1)">
+        <!-- Không ẩn khi đang tải: ẩn đi là mất một dòng, layout lại nhảy. -->
+        <div class="drawer__pager" *ngIf="followPages > 1">
+          <button class="pager__btn" [disabled]="followPage === 0 || followLoading" (click)="loadFollows(followPage - 1)">
             <span class="material-icons">chevron_left</span>
           </button>
           <span class="pager__info">Trang {{ followPage + 1 }} / {{ followPages }}</span>
-          <button class="pager__btn" [disabled]="followPage + 1 >= followPages" (click)="loadFollows(followPage + 1)">
+          <button class="pager__btn" [disabled]="followPage + 1 >= followPages || followLoading" (click)="loadFollows(followPage + 1)">
             <span class="material-icons">chevron_right</span>
           </button>
         </div>
@@ -184,13 +225,55 @@
       </button>
 
       <div class="drawer__body" *ngIf="commentOpen">
-        <div class="drawer__loading" *ngIf="commentLoading">Đang tải…</div>
+        <form class="dfilter" (ngSubmit)="applyCommentFilter()">
+          <div class="dfilter__field">
+            <label>Người dùng (ID)</label>
+            <input type="text" class="dfilter__input" placeholder="Mọi người"
+              [(ngModel)]="commentFilter.userId" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Chương (ID)</label>
+            <input type="text" class="dfilter__input" placeholder="Mọi chương"
+              [(ngModel)]="commentFilter.chapterId" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Từ ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="commentFilter.from" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Đến ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="commentFilter.to" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Thứ tự</label>
+            <select class="dfilter__select"
+              [(ngModel)]="commentFilter.reverseSort" [ngModelOptions]="{ standalone: true }">
+              <option [ngValue]="true">Mới nhất trước</option>
+              <option [ngValue]="false">Cũ nhất trước</option>
+            </select>
+          </div>
+          <label class="dfilter__check">
+            <input type="checkbox" [(ngModel)]="commentFilter.isDeleted" [ngModelOptions]="{ standalone: true }" />
+            Đã xoá
+          </label>
+
+          <div class="dfilter__actions">
+            <button type="button" class="dfilter__btn" (click)="resetCommentFilter()">Xoá lọc</button>
+            <button type="submit" class="dfilter__btn dfilter__btn--primary">Lọc</button>
+          </div>
+        </form>
+
+        <app-interaction-skeleton *ngIf="commentLoading"
+          variant="comment" [rows]="commentSkeletonRows"></app-interaction-skeleton>
 
         <div class="drawer__empty" *ngIf="!commentLoading && !comments.length">
           Chưa có bình luận nào
         </div>
 
-        <ul class="ilist" *ngIf="!commentLoading && comments.length">
+        <ul class="ilist" [style.min-height.px]="commentMinHeight"
+          *ngIf="!commentLoading && comments.length">
           <li class="ilist__row ilist__row--comment" *ngFor="let c of comments">
             <img *ngIf="c.avatar" [src]="c.avatar" [alt]="c.displayName" class="ilist__avatar" loading="lazy" />
             <div *ngIf="!c.avatar" class="ilist__avatar ilist__avatar--ph">{{ initials(c.displayName) }}</div>
@@ -215,17 +298,23 @@
                 <span>{{ (c.dateTime || c.createDate) ? ((c.dateTime || c.createDate) | date:'HH:mm dd/MM/yyyy') : '—' }}</span>
                 <span *ngIf="c.replyCount"><span class="material-icons">reply</span>{{ c.replyCount }}</span>
                 <span *ngIf="c.like"><span class="material-icons">thumb_up</span>{{ c.like }}</span>
+
+                <!-- Chưa có API báo cáo — nút để sẵn, bấm chỉ hiện thông báo. -->
+                <button type="button" class="ilist__report" (click)="reportComment(c)"
+                  title="Báo cáo bình luận">
+                  <span class="material-icons">flag</span>Báo cáo
+                </button>
               </div>
             </div>
           </li>
         </ul>
 
-        <div class="drawer__pager" *ngIf="!commentLoading && commentPages > 1">
-          <button class="pager__btn" [disabled]="commentPage === 0" (click)="loadComments(commentPage - 1)">
+        <div class="drawer__pager" *ngIf="commentPages > 1">
+          <button class="pager__btn" [disabled]="commentPage === 0 || commentLoading" (click)="loadComments(commentPage - 1)">
             <span class="material-icons">chevron_left</span>
           </button>
           <span class="pager__info">Trang {{ commentPage + 1 }} / {{ commentPages }}</span>
-          <button class="pager__btn" [disabled]="commentPage + 1 >= commentPages" (click)="loadComments(commentPage + 1)">
+          <button class="pager__btn" [disabled]="commentPage + 1 >= commentPages || commentLoading" (click)="loadComments(commentPage + 1)">
             <span class="material-icons">chevron_right</span>
           </button>
         </div>

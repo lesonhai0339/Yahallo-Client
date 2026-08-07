@@ -864,3 +864,14 @@ img.lang-flag {
     }
   }
 }
+
+// Nút "Ngẫu nhiên" ở nav — là <button> chứ không phải <a> (không có URL đích
+// cố định), nên phải gỡ nền/viền mặc định để trông giống các nav-link còn lại.
+.nav-link--btn {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.6; cursor: default; }
+}

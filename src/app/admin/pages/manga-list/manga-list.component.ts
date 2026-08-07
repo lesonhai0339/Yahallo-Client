@@ -5,6 +5,7 @@ import { ToastrService } from 'ngx-toastr';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { AdminMangaService, AdminMangaFilter, DisplayMode } from '../../services/admin-manga.service';
 import { MangaSortBy } from '../../../core/models/manga.interface';
+import { MANGA_LEVEL_OPTIONS } from '../../../core/models/manga-enums';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/services/permission.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -63,12 +64,12 @@ export class MangaListComponent implements OnInit, OnDestroy {
     { value: '3', label: 'Dojinshi' },
     { value: '4', label: 'Series' },
   ];
-  readonly levelOptions = [
-    { value: '0', label: 'Mọi độ tuổi' },
-    { value: '1', label: '13+' },
-    { value: '2', label: '16+' },
-    { value: '3', label: '18+' },
-  ];
+  // `MangaLevel` là BẬC TRUY CẬP (Normal..Master), không phải phân loại độ tuổi
+  // — nhãn "13+/16+/18+" trước đây là sai, và giá trị '0' không có trong enum.
+  // Giữ kiểu chuỗi vì bộ lọc này gửi thẳng lên query param.
+  readonly levelOptions = MANGA_LEVEL_OPTIONS.map(
+    o => ({ value: String(o.value), label: o.label })
+  );
   readonly displayModeOptions = [
     { value: DisplayMode.Visible,  label: 'Đang hiện' },
     { value: DisplayMode.Hidden,   label: 'Đã ẩn' },

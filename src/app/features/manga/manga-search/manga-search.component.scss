@@ -451,14 +451,27 @@
 }
 
 // ── Simple category chips ────────────────────────────────────────────────────
+// 4 bộ lọc dropdown (năm / trạng thái / hình thức / xuất xứ). Xếp lưới 2 cột
+// cho đỡ tốn chiều dọc; cột trái vốn đã hẹp nên không để 4 cột.
 .filter-year-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-bottom: 12px;
   min-width: 0;
 
   label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .filter-year-row { grid-template-columns: 1fr; gap: 8px; }
 }
 
 .year-dd {

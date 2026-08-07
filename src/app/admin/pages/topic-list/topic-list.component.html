@@ -34,9 +34,8 @@
       </div>
 
       <!-- Loading -->
-      <div *ngIf="loading" class="loading-state">
-        <div class="spinner"></div><span>Đang tải...</span>
-      </div>
+      <app-table-skeleton *ngIf="loading"
+        variant="card" leading="avatar" [rows]="5" [cols]="3"></app-table-skeleton>
 
       <!-- Empty -->
       <div *ngIf="!loading && filteredTopics.length === 0" class="empty-state">
@@ -156,9 +155,8 @@
 
         <!-- Replies -->
         <div class="replies-list">
-          <div *ngIf="loadingReplies" class="loading-state loading-state--sm">
-            <div class="spinner"></div><span>Đang tải...</span>
-          </div>
+          <app-table-skeleton *ngIf="loadingReplies"
+            leading="avatar" [rows]="3" [cols]="2" [showActions]="false"></app-table-skeleton>
 
           <div *ngIf="!loadingReplies && replies.length === 0" class="empty-replies">
             Chưa có phản hồi nào

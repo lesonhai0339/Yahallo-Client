@@ -35,10 +35,73 @@
   margin: 0 auto;
 }
 
+// ── Fit mode ────────────────────────────────────────────────────────────────
+// Mặc định (không class) là "vừa chiều rộng" — hành vi cũ, giữ nguyên.
+// Ba class dưới đây do `fitMode` gắn lên `.reader-content`, áp cho cả hai chiều
+// đọc. `100vh` chứ không phải `100%` vì khung dọc cao theo nội dung, lấy % sẽ
+// ra 0 và ảnh biến mất.
+.reader-content.fit-height .reader-img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100vh;
+}
+
+.reader-content.fit-both .reader-img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100vh;
+  object-fit: contain;
+}
+
+// Cỡ gốc: không ép gì cả, ảnh rộng hơn khung thì cuộn ngang trong khung.
+.reader-content.fit-original {
+  overflow-x: auto;
+
+  .reader-img {
+    width: auto;
+    max-width: none;
+    height: auto;
+  }
+}
+
 .reader-img-placeholder {
   width: 100%;
   min-height: 600px;
   background: rgba(255,255,255,0.02);
+}
+
+// ── Ảnh lỗi + thử lại ───────────────────────────────────────────────────────
+.reader-img-error {
+  width: 100%;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  color: var(--text-muted, #9aa);
+  font-size: 0.88rem;
+  text-align: center;
+
+  i { font-size: 1.6rem; color: #e0a13a; }
+}
+
+.reader-retry-btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent-primary, #e94560);
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { filter: brightness(1.1); }
 }
 
 .page-indicator {
@@ -87,6 +150,34 @@
     max-width: 100%;
     object-fit: contain;
   }
+
+  // Trang đôi: hai ảnh sát nhau, mỗi ảnh chiếm tối đa nửa khung để cặp trang
+  // luôn nằm gọn trong màn hình.
+  &--double {
+    gap: 2px;
+
+    .reader-img { max-width: 50%; }
+    .horizontal-slot { flex: 1; max-width: 50%; }
+  }
+}
+
+.horizontal-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Trang đôi trên màn hẹp không đọc nổi — xếp dọc lại cho đỡ bé.
+@media (max-width: 768px) {
+  .horizontal-page--double {
+    flex-direction: column;
+    gap: 4px;
+
+    .reader-img { max-width: 100%; max-height: 50vh; }
+    .horizontal-slot { max-width: 100%; }
+  }
+
+  .reader-img-error { min-height: 200px; }
 }
 
 // Off-screen image cache for adjacent pages — fetched but never shown.

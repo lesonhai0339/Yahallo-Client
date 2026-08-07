@@ -34,6 +34,8 @@ interface DetailPanel {
 })
 export class DashboardComponent implements OnInit {
   loading = true;
+  /** Biểu đồ nạp riêng khỏi thẻ thống kê (và nạp lại mỗi lần đổi range). */
+  chartsLoading = true;
   stats = { manga: 0, users: 0, tags: 0, chapters: 0 };
   visibleLinks: QuickLink[] = [];
   selectedRange: TimeRange = 'daily';
@@ -135,11 +137,16 @@ export class DashboardComponent implements OnInit {
   }
 
   private loadCharts(): void {
-    this.analyticsService.getDashboardAnalytics(this.selectedRange).subscribe(data => {
-      this.regData = data.registrations;
-      this.mangaData = data.newManga;
-      this.rebuildRegChart();
-      this.rebuildMangaChart();
+    this.chartsLoading = true;
+    this.analyticsService.getDashboardAnalytics(this.selectedRange).subscribe({
+      next: data => {
+        this.regData = data.registrations;
+        this.mangaData = data.newManga;
+        this.rebuildRegChart();
+        this.rebuildMangaChart();
+        this.chartsLoading = false;
+      },
+      error: () => { this.chartsLoading = false; }
     });
   }
 

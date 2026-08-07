@@ -18,7 +18,8 @@
     "CLEAR": "Xóa",
     "SWITCH_DARK": "Chuyển giao diện tối",
     "SWITCH_LIGHT": "Chuyển giao diện sáng",
-    "READ_OFFLINE": "Đọc offline"
+    "READ_OFFLINE": "Đọc offline",
+    "RANDOM": "Ngẫu nhiên"
   },
   "HOME": {
     "NEW_MANGA": "Truyện mới",
@@ -79,7 +80,8 @@
     "TO": "Đến",
     "MAX": "tối đa",
     "DOWNLOAD": "Tải",
-    "DL_CANCEL": "Hủy"
+    "DL_CANCEL": "Hủy",
+    "SIMILAR": "Truyện tương tự"
   },
   "READER": {
     "BACK": "Quay lại",
@@ -98,7 +100,22 @@
     "APPLY": "Áp dụng",
     "HORIZONTAL_DIR": "Chiều đọc ngang",
     "RTL": "Phải sang trái",
-    "LTR": "Trái sang phải"
+    "LTR": "Trái sang phải",
+    "FIT_MODE": "Kiểu vừa khung",
+    "FIT_WIDTH": "Vừa rộng",
+    "FIT_HEIGHT": "Vừa cao",
+    "FIT_BOTH": "Vừa cả hai",
+    "FIT_ORIGINAL": "Cỡ gốc",
+    "DOUBLE_PAGE": "Trang đôi",
+    "SINGLE_PAGE": "Trang đơn",
+    "AUTO_SCROLL": "Tự cuộn",
+    "AUTO_SCROLL_SPEED": "Tốc độ tự cuộn",
+    "FULLSCREEN": "Toàn màn hình",
+    "SHORTCUTS": "Phím tắt",
+    "SC_FLIP": "Lật trang",
+    "SC_CLOSE": "Đóng / dừng",
+    "IMAGE_FAILED": "Không tải được ảnh này",
+    "RETRY": "Thử lại"
   },
   "SEARCH": {
     "TITLE": "Tìm kiếm nâng cao",
@@ -152,7 +169,11 @@
     "FILTER_AUTHOR_PLACEHOLDER": "Lọc tác giả...",
     "FILTER_ARTIST_PLACEHOLDER": "Lọc họa sĩ...",
     "FILTER_CATEGORY_PLACEHOLDER": "Lọc thể loại...",
-    "FILTER_NO_MATCH": "Không tìm thấy"
+    "FILTER_NO_MATCH": "Không tìm thấy",
+    "FILTER_STATUS": "Trạng thái",
+    "FILTER_TYPE": "Hình thức",
+    "FILTER_COUNTRY": "Xuất xứ",
+    "ALL": "Tất cả"
   },
   "PERSON": {
     "AUTHOR": "Tác giả",
@@ -305,7 +326,8 @@
     "ERROR": "Có lỗi xảy ra",
     "UNKNOWN": "Không xác định",
     "EXPLORE": "Khám phá thêm truyện",
-    "BACK_HOME": "Trang chủ"
+    "BACK_HOME": "Trang chủ",
+    "CLOSE": "Đóng"
   },
   "LANG": {
     "LABEL": "Ngôn ngữ",

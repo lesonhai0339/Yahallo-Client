@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
+import { ToastrService } from 'ngx-toastr';
 import { Subject, takeUntil } from 'rxjs';
 import { AdminMangaService, DisplayMode } from '../../services/admin-manga.service';
 import { MangaService } from '../../../core/services/manga.service';
@@ -53,6 +54,31 @@ export class MangaInfoComponent implements OnInit, OnDestroy {
 
   readonly interactionPageSize = 10;
 
+  /**
+   * Chiều cao một dòng — PHẢI khớp `min-height` của `.ilist__row` trong SCSS.
+   * Sửa bên đó thì sửa cả ở đây, không có cách nào để CSS báo ngược lại TS.
+   */
+  private readonly FOLLOW_ROW_H = 56;
+  private readonly COMMENT_ROW_H = 68;
+
+  /**
+   * Chiều cao chừa sẵn cho danh sách, CHỐT theo trang 1. Mở khối luôn tải trang
+   * 1 nên số mục của nó là mốc hợp lý nhất: đủ một trang thì chừa một trang, chỉ
+   * có 3 mục thì chừa 3 dòng — không để trống hoác. Các trang sau (thường là
+   * trang cuối, ít mục hơn) giữ nguyên chiều cao này nên không nhảy.
+   * `0` = chưa tải lần nào, chưa chừa gì cả.
+   */
+  followMinHeight = 0;
+  commentMinHeight = 0;
+
+  /**
+   * Bộ lọc của hai khối. `mangaId` KHÔNG nằm ở đây — nó luôn bị ghim theo truyện
+   * đang mở, người dùng không được đổi. Ngày để dạng chuỗi `yyyy-MM-dd` của
+   * `input[type=date]`, gửi lên nguyên vậy (backend nhận DateTimeOffset).
+   */
+  followFilter = { userId: '', from: '', to: '', reverseSort: true, isDeleted: false };
+  commentFilter = { userId: '', chapterId: '', from: '', to: '', reverseSort: true, isDeleted: false };
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -63,6 +89,7 @@ export class MangaInfoComponent implements OnInit, OnDestroy {
     private mangaService: MangaService,
     public perm: PermissionService,
     private interaction: AdminInteractionService,
+    private toastr: ToastrService,
   ) {}
 
   ngOnInit(): void {
@@ -171,18 +198,30 @@ export class MangaInfoComponent implements OnInit, OnDestroy {
     this.followLoading = true;
     this.followPage = page;
     this.interaction.getFollows({
-      mangaId: this.mangaId,
+      mangaId: this.mangaId,          // luôn ghim theo truyện đang mở
+      userId: this.followFilter.userId,
+      from: this.followFilter.from,
+      to: this.followFilter.to,
+      reverseSort: this.followFilter.reverseSort,
+      isDeleted: this.followFilter.isDeleted,
       pageNo: page + 1,
       pageSize: this.interactionPageSize,
-      reverseSort: true,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.follows = r.data;
         this.followTotal = r.totalCount;
+        // Chỉ chốt MỘT lần, ở trang đầu tiên.
+        if (!this.followLoaded) {
+          this.followMinHeight = this.reserveHeight(r.data.length, this.FOLLOW_ROW_H);
+        }
         this.followLoading = false;
         this.followLoaded = true;
       },
-      error: () => { this.follows = []; this.followLoading = false; this.followLoaded = true; },
+      error: () => {
+        this.follows = [];
+        this.followLoading = false;
+        this.followLoaded = true;
+      },
     });
   }
 
@@ -191,19 +230,74 @@ export class MangaInfoComponent implements OnInit, OnDestroy {
     this.commentLoading = true;
     this.commentPage = page;
     this.interaction.getComments({
-      mangaId: this.mangaId,
+      mangaId: this.mangaId,          // luôn ghim theo truyện đang mở
+      userId: this.commentFilter.userId,
+      chapterId: this.commentFilter.chapterId,
+      from: this.commentFilter.from,
+      to: this.commentFilter.to,
+      reverseSort: this.commentFilter.reverseSort,
+      isDeleted: this.commentFilter.isDeleted,
       pageNo: page + 1,
       pageSize: this.interactionPageSize,
-      reverseSort: true,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.comments = r.data;
         this.commentTotal = r.totalCount;
+        if (!this.commentLoaded) {
+          this.commentMinHeight = this.reserveHeight(r.data.length, this.COMMENT_ROW_H);
+        }
         this.commentLoading = false;
         this.commentLoaded = true;
       },
-      error: () => { this.comments = []; this.commentLoading = false; this.commentLoaded = true; },
+      error: () => {
+        this.comments = [];
+        this.commentLoading = false;
+        this.commentLoaded = true;
+      },
     });
+  }
+
+  /**
+   * Chức năng: Chiều cao cần chừa cho `count` dòng, tính cả đường kẻ giữa các dòng.
+   * Yêu cầu: `rowH` khớp `min-height` của dòng trong SCSS.
+   * Kết quả trả về: số pixel; 0 khi không có mục nào (để ô "chưa có gì" tự lo).
+   * Exception: không ném.
+   */
+  private reserveHeight(count: number, rowH: number): number {
+    if (count <= 0) return 0;
+    return count * rowH + (count - 1);   // +1px đường kẻ giữa mỗi cặp dòng
+  }
+
+  /** Số dòng khung xương — bằng số dòng đã chốt, chưa chốt thì một trang đầy. */
+  get followSkeletonRows(): number {
+    return this.followMinHeight ? Math.round(this.followMinHeight / (this.FOLLOW_ROW_H + 1)) : this.interactionPageSize;
+  }
+
+  get commentSkeletonRows(): number {
+    return this.commentMinHeight ? Math.round(this.commentMinHeight / (this.COMMENT_ROW_H + 1)) : this.interactionPageSize;
+  }
+
+  /**
+   * Chức năng: Áp bộ lọc — luôn quay về trang 1 vì số trang đổi theo bộ lọc,
+   *   đứng ở trang 7 rồi lọc còn 2 trang thì sẽ ra danh sách rỗng.
+   * Yêu cầu: không.
+   * Kết quả trả về: không (tải lại từ trang đầu).
+   * Exception: không ném.
+   */
+  // Đổi bộ lọc thì số mục có thể khác hẳn → bỏ mốc cũ để chốt lại theo trang 1 mới.
+  applyFollowFilter(): void { this.followLoaded = false; this.loadFollows(0); }
+  applyCommentFilter(): void { this.commentLoaded = false; this.loadComments(0); }
+
+  resetFollowFilter(): void {
+    this.followFilter = { userId: '', from: '', to: '', reverseSort: true, isDeleted: false };
+    this.followLoaded = false;
+    this.loadFollows(0);
+  }
+
+  resetCommentFilter(): void {
+    this.commentFilter = { userId: '', chapterId: '', from: '', to: '', reverseSort: true, isDeleted: false };
+    this.commentLoaded = false;
+    this.loadComments(0);
   }
 
   get followPages(): number {
@@ -212,6 +306,21 @@ export class MangaInfoComponent implements OnInit, OnDestroy {
 
   get commentPages(): number {
     return Math.ceil(this.commentTotal / this.interactionPageSize) || 1;
+  }
+
+  /**
+   * Chức năng: Báo cáo một bình luận.
+   * Yêu cầu: `c.id` hợp lệ.
+   * Kết quả trả về: không.
+   * Exception: không ném.
+   *
+   * TODO: chưa có endpoint báo cáo bình luận ở backend (xem mục 4 của CLAUDE.md).
+   * Nút để sẵn cho đúng luồng thao tác; khi có API thì thay phần thân bằng lời
+   * gọi thật, không phải sửa template.
+   */
+  reportComment(c: AdminComment): void {
+    if (!c?.id) return;
+    this.toastr.info('Chức năng báo cáo bình luận chưa có API', 'Chưa khả dụng');
   }
 
   goUser(userId?: string | null): void {

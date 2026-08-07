@@ -34,6 +34,9 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   synopsisExpanded = false;
   sameAuthorManga: Manga[] = [];
   sameArtistManga: Manga[] = [];
+  /** Truyện tương tự — xếp theo số thể loại trùng với truyện đang xem. */
+  similarManga: Manga[] = [];
+  similarLoading = false;
   // Download range picker (download-all)
   showDownloadPanel = false;
   readonly MAX_RANGE = 10;
@@ -360,6 +363,45 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
           this.sameArtistManga = (r.data || []).filter(m => m.id !== this.mangaId).slice(0, 4);
         });
     }
+
+    this.loadSimilarManga();
+  }
+
+  /**
+   * Chức năng: gợi ý truyện tương tự dựa trên thể loại trùng nhau. Lấy rộng theo
+   * vài tag đầu rồi xếp hạng tại client theo SỐ tag trùng — làm vậy vì
+   * `filter-manga` không có tham số "độ liên quan", và ghép AND hết tag thì
+   * thường ra rỗng.
+   * Yêu cầu: `this.manga` đã tải xong và có ít nhất 1 thể loại.
+   * Kết quả trả về: không (gán `similarManga`, tối đa 6 truyện, bỏ chính nó).
+   * Exception: không ném — lỗi API để danh sách rỗng, khối này tự ẩn.
+   */
+  loadSimilarManga(): void {
+    const tagIds = (this.manga?.tags ?? [])
+      .map((t: any) => t.id)
+      .filter(Boolean)
+      .slice(0, 3);
+    if (!tagIds.length) return;
+
+    const own = new Set<string>((this.manga?.tags ?? []).map((t: any) => t.id));
+    this.similarLoading = true;
+    this.mangaService.filterPaginated({ tagIds, pageSize: 24 })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: r => {
+          this.similarManga = (r.data || [])
+            .filter(m => m.id !== this.mangaId)
+            .map(m => ({
+              manga: m,
+              score: (m.tags ?? []).filter((t: any) => own.has(t.id)).length,
+            }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map(x => x.manga);
+          this.similarLoading = false;
+        },
+        error: () => { this.similarLoading = false; }
+      });
   }
 
   /**
