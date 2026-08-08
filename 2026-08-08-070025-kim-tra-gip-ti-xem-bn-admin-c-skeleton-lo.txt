@@ -1,0 +1,2990 @@
+ ▐▛███▜▌   Claude Code v2.1.222
+▝▜█████▛▘  Opus 5 · Claude Pro
+  ▘▘ ▝▝    D:\Coding\repos\YAHALLO\Yahallo-Client-Refactor
+
+
+> Kiểm tra giúp tôi xem bên /admin/* có skeleton load hết chưa, nếu chưa có thì 
+  thêm vào                                                                      
+
+● I'll look at the project structure first to understand the setup.
+
+  Read 2 files, listed 2 directories, ran 4 shell commands (ctrl+o to expand)
+  ⎿  Loaded ..\..\CLAUDE.md
+
+● Now let me check each page that lacks a skeleton to see how it currently
+  renders loading state.
+
+  Read 5 files, ran 5 shell commands (ctrl+o to expand)
+
+● Now the analytics pages, topic-list, and manga-form:
+
+  Read 6 files, ran 1 shell command (ctrl+o to expand)
+
+● Audit done. Here's the state, then I'll fill the gaps.
+
+● Write(src\app\admin\shared\analytics-skeleton\analytics-skeleton.component.ts)
+  ⎿  Wrote 116 lines to src\app\admin\shared\analytics-skeleton\analytics-s
+     keleton.component.ts
+       1 import { Component, Input } from '@angular/core';
+       3 /**
+       4  * Skeleton placeholder cho các trang thống kê (`manga-analytics
+         `, `user-analytics`,
+         ner tròn.
+       6  *
+         t → các thẻ biểu đồ,
+       8  * nên nội dung thật đổ vào không làm nhảy layout.
+       9  *
+          gian + theo range).
+     … +129 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(src\app\admin\shared\form-skeleton\form-skeleton.component.ts)
+  ⎿  Wrote 68 lines to
+     src\app\admin\shared\form-skeleton\form-skeleton.component.ts
+       1 import { Component, Input } from '@angular/core';
+       2 
+       4  * Skeleton placeholder cho form 2 cột ở admin (`manga-form`) tr
+         ong lúc nạp dữ liệu
+       5  * bản ghi cần sửa — thay cho dòng chữ "Đang tải dữ liệu...".
+       7  * Dựng lại đúng lưới `240px 1fr` của `.form-layout`: cột trái l
+         à ô ảnh bìa,
+       8  * cột phải là các khối `.form-section` với vài trường giả mỗi k
+       9  * Dùng class `.skeleton` toàn cục (shimmer) ở styles.scss.
+      10  */
+     … +71 lines (ctrl+o to expand)
+
+● Now register both in AdminModule:
+
+● Update(src\app\admin\admin.module.ts)
+  ⎿  Added 2 lines
+      57  import { TaxonomyFormDialogComponent } from './shared/taxonomy-
+          form-dialog/taxonomy-form-dialog.component';
+      58  import { DetailCardSkeletonComponent } from './shared/detail-ca
+          rd-skeleton/detail-card-skeleton.component';
+      59  import { TableSkeletonComponent } from './shared/table-skeleton
+          /table-skeleton.component';
+      60 +import { AnalyticsSkeletonComponent } from './shared/analytics-
+         +skeleton/analytics-skeleton.component';                        
+      61 +import { FormSkeletonComponent } from './shared/form-skeleton/f
+         +orm-skeleton.component';                                       
+      62  // ⚠️ MODULE MỚI THÊM (comment-moderation / trash-bin / role-lis
+          t)
+      63  // → xem docs/ADMIN_MODULES_ADDED.md để remove chính xác.
+      64  import { CommentModerationComponent } from './pages/comment-mod
+          eration/comment-moderation.component';
+
+● Update(src\app\admin\admin.module.ts)  ⎿  Added 2 lines
+      92      AdminLayoutComponent,
+      93      DetailCardSkeletonComponent,
+      94      TableSkeletonComponent,
+      95 +    AnalyticsSkeletonComponent,                                
+      96 +    FormSkeletonComponent,                                     
+      97      DashboardComponent,
+      98      MangaListComponent,
+      99      MangaFormComponent,
+
+● Now chapter-list — table skeleton + sidebar skeleton:
+
+● Update(src\app\admin\pages\chapter-list\chapter-list.component.html)
+  ⎿  Added 2 lines, removed 4 lines
+      25        </div>
+      26  
+      27        <div class="table-wrapper">
+      28 -        <div *ngIf="loading" class="table-loading">            
+      29 -          <div class="spinner"></div><span>Đang tải...</span>  
+      30 -        </div>                                                 
+      28 +        <app-table-skeleton *ngIf="loading" [rows]="8" [cols]="
+         +2"></app-table-skeleton>                                       
+      29  
+      32 -        <table mat-table [dataSource]="dataSource" matSort clas
+         -s="admin-table" [class.loading]="loading">                     
+      30 +        <table mat-table [dataSource]="dataSource" matSort clas
+         +s="admin-table" *ngIf="!loading">                              
+      31  
+      32            <ng-container matColumnDef="index">
+      33              <th mat-header-cell *matHeaderCellDef mat-sort-head
+          er>Chương</th>
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src\app\admin\pages\chapter-list\chapter-list.component.ts)
+  ⎿  Added 8 lines, removed 1 line
+      30    loading = false;
+      31  
+      32    @ViewChild(MatPaginator) paginator!: MatPaginator;
+      33 -  @ViewChild(MatSort) sort!: MatSort;                          
+      33  
+      34 +  /**                                                          
+      35 +   * Bảng bị `*ngIf` che trong lúc hiện skeleton nên `MatSort` 
+         +chưa tồn tại ở                                                 
+      36 +   * `ngAfterViewInit` — phải nhận qua setter để nối lại đúng l
+         +úc bảng render.                                                
+      37 +   */                                                          
+      38 +  @ViewChild(MatSort) set sortRef(sort: MatSort | undefined) { 
+      39 +    if (sort) this.dataSource.sort = sort;                     
+      40 +  }                                                            
+      41 +                                                               
+      42    constructor(
+      43      private route: ActivatedRoute,
+      44      private router: Router,
+
+● Update(src\app\admin\pages\chapter-list\chapter-list.component.ts)
+  ⎿  Added 1 line, removed 1 line
+      69    }
+      70  
+      71    ngAfterViewInit(): void {
+      72 -    this.dataSource.sort = this.sort;                          
+      72 +    // `mat-paginator` nằm ngoài `*ngIf` nên luôn sẵn sàng ở đâ
+         +y; `sort` do setter lo.                                        
+      73      this.dataSource.paginator = this.paginator;
+      74    }
+      75  
+
+● Now the chapter-list sidebar, which had no loading state at all:
+
+● Update(src\app\admin\pages\chapter-list\chapter-list.component.html)
+  ⎿  Added 7 lines, removed 1 line
+      86      </div>
+      87  
+      88      <!-- Column 2: manga info sidebar -->
+      89 -    <aside class="page-aside" *ngIf="manga">                   
+      89 +    <aside class="page-aside" *ngIf="mangaLoading">            
+      90        <div class="manga-card">
+      91 +        <app-detail-card-skeleton variant="cover" [lines]="4"><
+         +/app-detail-card-skeleton>                                     
+      92 +      </div>                                                   
+      93 +    </aside>                                                   
+      94 +                                                               
+      95 +    <aside class="page-aside" *ngIf="!mangaLoading && manga">  
+      96 +      <div class="manga-card">                                 
+      97          <!-- Thumbnail -->
+      98          <img class="manga-card__thumb"
+      99               [src]="getThumbnailUrl(manga.mangaThumbnail)"
+
+● Update(src\app\admin\pages\chapter-list\chapter-list.component.ts)
+  ⎿  Added 2 lines
+      28    pageSize = 50;
+      29    pageIndex = 0;
+      30    loading = false;
+      31 +  /** Cột phải (thẻ thông tin truyện) nạp riêng, có skeleton ri
+         +êng. */                                                        
+      32 +  mangaLoading = false;                                        
+      33  
+      34    @ViewChild(MatPaginator) paginator!: MatPaginator;
+      35  
+
+● Update(src\app\admin\pages\chapter-list\chapter-list.component.ts)
+  ⎿  Added 3 lines, removed 1 line
+      77  
+      78    loadMangaDetail(): void {
+      79      if (!this.mangaId) return;
+      80 +    this.mangaLoading = true;                                  
+      81      this.mangaService.getDetail(this.mangaId).subscribe({
+      82        next: (res: any) => {
+      83          this.manga = res?.value ?? res;
+      84 +        this.mangaLoading = false;                             
+      85        },
+      84 -      error: () => {}                                          
+      86 +      error: () => { this.mangaLoading = false; }              
+      87      });
+      88    }
+      89  
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src\app\admin\pages\chapter-list\chapter-list.component.scss)
+  ⎿  Removed 5 lines
+      63    margin-bottom: 8px;
+      64  }
+      65  
+      66 -.table-loading { position: absolute; inset: 0; display: flex; a
+         -lign-items: center; justify-content: center; gap: 12px; backgro
+         -und: rgba(15,15,26,0.6); z-index: 5; color: var(--text-secondar
+         -y); font-size: 0.9rem; }                                       
+      67 -.spinner { width: 24px; height: 24px; border: 2px solid var(--b
+         -order-light); border-top-color: var(--accent-primary); border-r
+         -adius: 50%; animation: spin 0.8s linear infinite; }            
+      68 -@keyframes spin { to { transform: rotate(360deg); } }          
+      69 -                                                               
+      66  .admin-table {
+      67    width: 100%;
+      68    background: transparent !important;
+      73 -  &.loading { opacity: 0.4; pointer-events: none; }            
+      69    th.mat-header-cell { background: var(--bg-secondary) !importa
+          nt; color: var(--text-muted) !important; font-size: 0.78rem; fo
+          nt-weight: 600; text-transform: uppercase; letter-spacing: 0.04
+          em; border-bottom: 1px solid var(--border-color) !important; pa
+          dding: 12px 14px; }
+      70    td.mat-cell { color: var(--text-primary) !important; font-siz
+          e: 0.88rem; border-bottom: 1px solid var(--border-color) !impor
+          tant; padding: 10px 14px; vertical-align: middle; }
+      71    tr.mat-row:hover td.mat-cell { background: var(--overlay-ligh
+          t) !important; }
+
+● Now taxonomy-list:
+
+● Update(src\app\admin\pages\taxonomy-list\taxonomy-list.component.html)
+  ⎿  Added 10 lines, removed 3 lines
+      26      <input [(ngModel)]="search" (ngModelChange)="onSearchChange
+          ()" placeholder="Tìm theo tên..." />
+      27    </div>
+      28  
+      29 -  <div class="tax-loading" *ngIf="isLoading">                  
+      30 -    <mat-progress-spinner mode="indeterminate" diameter="36"></
+         -mat-progress-spinner>                                          
+      31 -  </div>                                                       
+      29 +  <!-- Skeleton: bảng ở desktop, thẻ ở mobile — khớp 2 kiểu hiể
+         +n thị bên dưới. -->                                            
+      30 +  <ng-container *ngIf="isLoading">                             
+      31 +    <div class="desktop-only">                                 
+      32 +      <app-table-skeleton [rows]="pageSize > 10 ? 10 : pageSize
+         +"                                                              
+      33 +        [cols]="activeType === 'tag' ? 2 : 3" [showActions]="ca
+         +nManage"></app-table-skeleton>                                 
+      34 +    </div>                                                     
+      35 +    <div class="mobile-only">                                  
+      36 +      <app-table-skeleton variant="card" [rows]="6" [cols]="2" 
+         +[showActions]="false"></app-table-skeleton>                    
+      37 +    </div>                                                     
+      38 +  </ng-container>                                              
+      39  
+      40    <div class="tax-empty" *ngIf="!isLoading && items.length === 
+          0">
+      41      <span class="material-icons">inbox</span>
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\admin\pages\taxonomy-list\taxonomy-list.component.scss)
+  ⎿  Added 1 line, removed 1 line
+      76    }
+      77  }
+      78  
+      79 -.tax-loading, .tax-empty {                                     
+      79 +.tax-empty {                                                   
+      80    display: flex;
+      81    flex-direction: column;
+      82    align-items: center;
+
+● Now topic-list — list and replies:
+
+● Update(src\app\admin\pages\topic-list\topic-list.component.html)
+  ⎿  Added 2 lines, removed 3 lines
+      34        </div>
+      35  
+      36        <!-- Loading -->
+      37 -      <div *ngIf="loading" class="loading-state">              
+      38 -        <div class="spinner"></div><span>Đang tải...</span>    
+      39 -      </div>                                                   
+      37 +      <app-table-skeleton *ngIf="loading"                      
+      38 +        variant="card" leading="avatar" [rows]="5" [cols]="3"><
+         +/app-table-skeleton>                                           
+      39  
+      40        <!-- Empty -->
+      41        <div *ngIf="!loading && filteredTopics.length === 0" clas
+          s="empty-state">
+
+● Update(src\app\admin\pages\topic-list\topic-list.component.html)
+  ⎿  Added 2 lines, removed 3 lines
+      155  
+      156          <!-- Replies -->
+      157          <div class="replies-list">
+      158 -          <div *ngIf="loadingReplies" class="loading-state loa
+          -ding-state--sm">                                              
+      159 -            <div class="spinner"></div><span>Đang tải...</span
+          ->                                                             
+      160 -          </div>                                              
+      158 +          <app-table-skeleton *ngIf="loadingReplies"          
+      159 +            leading="avatar" [rows]="3" [cols]="2" [showAction
+          +s]="false"></app-table-skeleton>                              
+      160  
+      161            <div *ngIf="!loadingReplies && replies.length === 0"
+            class="empty-replies">
+      162              Chưa có phản hồi nào
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+> À nhớ add responsive vào tất cả giao diện đấy. Tôi còn thiếu chức năng nào    
+  nữa  cho 1 manga website tương tự các site manga như mangadex, mangabato,...  
+  có thể tham                                                                   
+    khảo trên internet và cho tôi list gợi ý trước                              
+
+● Update(src\app\admin\pages\topic-list\topic-list.component.scss)
+  ⎿  Added 1 line, removed 15 lines
+       85    &__search-input { width: 100%; padding: 8px 12px 8px 36px; b
+           ackground: var(--bg-secondary); border: 1px solid var(--border
+           -color); border-radius: var(--radius-sm); color: var(--text-pr
+           imary); font-size: 0.88rem; &:focus { outline: none; border-co
+           lor: var(--accent-primary); } &::placeholder { color: var(--te
+           xt-muted); } }
+       86  }
+       87  
+       88 -// ── Loading / Empty ────────────────────────────────────────
+          -─────────────────                                             
+       89 -.loading-state {                                              
+       90 -  display: flex;                                              
+       91 -  align-items: center;                                        
+       92 -  justify-content: center;                                    
+       93 -  gap: 10px;                                                  
+       94 -  padding: 40px;                                              
+       95 -  color: var(--text-muted);                                   
+       96 -  font-size: 0.88rem;                                         
+       88 +// ── Empty ──────────────────────────────────────────────────
+          +─────────────────                                             
+       89  
+       98 -  &--sm { padding: 20px; font-size: 0.82rem; }                
+       99 -}                                                             
+      100 -                                                              
+      101 -.spinner { width: 22px; height: 22px; border: 2px solid var(--
+          -border-light); border-top-color: var(--accent-primary); border
+          --radius: 50%; animation: spin 0.8s linear infinite; }         
+      102 -@keyframes spin { to { transform: rotate(360deg); } }         
+      103 -                                                              
+       90  .empty-state {
+       91    display: flex;
+       92    flex-direction: column;
+● Now manga-form:
+
+● Update(src\app\admin\pages\manga-form\manga-form.component.html)
+  ⎿  Added 1 line, removed 1 line
+       9      </div>
+      10    </div>
+      11  
+      12 -  <div *ngIf="loading" class="form-loading">Đang tải dữ liệu...
+         -</div>                                                         
+      12 +  <app-form-skeleton *ngIf="loading" [sections]="4" [fields]="3
+         +"></app-form-skeleton>                                         
+      13  
+      14    <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading"
+          >
+      15      <div class="form-layout">
+
+● Update(src\app\admin\pages\manga-form\manga-form.component.scss)
+  ⎿  Removed 6 lines
+      28    .material-icons { font-size: 1.1rem !important; }
+      29  }
+      30  
+      31 -.form-loading {                                                
+      32 -  text-align: center;                                          
+      33 -  padding: 60px;                                               
+      34 -  color: var(--text-muted);                                    
+      35 -}                                                              
+      36 -                                                               
+      31  .form-layout {
+      32    display: grid;
+      33    grid-template-columns: 240px 1fr;
+
+● Now the two analytics pages and dashboard detail panels:
+
+● Update(src\app\admin\pages\manga-analytics\manga-analytics.component.html)
+  ⎿  Added 2 lines, removed 4 lines
+      13    </div>
+      14  
+      15    <!-- Loading -->
+      16 -  <div *ngIf="loading" class="loading-state">                  
+      17 -    <div class="spinner"></div>                                
+      18 -    <span>Đang tải dữ liệu...</span>                           
+      19 -  </div>                                                       
+      16 +  <app-analytics-skeleton *ngIf="loading"                      
+      17 +    [statRows]="2" [stats]="4" [charts]="2" [chartCols]="1"></a
+         +pp-analytics-skeleton>                                         
+      18  
+      19    <ng-container *ngIf="!loading && analytics">
+      20      <!-- Block 1: toàn thời gian -->
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src\app\admin\pages\manga-analytics\manga-analytics.component.html)
+  ⎿  Added 2 lines, removed 4 lines
+      129        </div>
+      130  
+      131        <div class="detail-panel__body">
+      132 -        <div *ngIf="detailPanel.loading" class="detail-loading
+          -">                                                            
+      133 -          <div class="spinner"></div>                         
+      134 -          <span>Đang tải...</span>                            
+      135 -        </div>                                                
+      132 +        <app-table-skeleton *ngIf="detailPanel.loading"       
+      133 +          leading="avatar" [rows]="5" [cols]="2" [showActions]
+          +="false"></app-table-skeleton>                                
+      134  
+      135          <ng-container *ngIf="!detailPanel.loading && detailPan
+           el.detail">
+      136            <div class="detail-panel__count">
+
+● Update(src\app\admin\pages\user-analytics\user-analytics.component.html)
+  ⎿  Added 2 lines, removed 3 lines
+      12      </div>
+      13    </div>
+      14  
+      15 -  <div *ngIf="loading" class="loading-state">                  
+      16 -    <div class="spinner"></div><span>Đang tải dữ liệu...</span>
+      17 -  </div>                                                       
+      15 +  <app-analytics-skeleton *ngIf="loading"                      
+      16 +    [statRows]="2" [stats]="4" [charts]="3" [chartCols]="1"></a
+         +pp-analytics-skeleton>                                         
+      17  
+      18    <ng-container *ngIf="!loading && analytics">
+      19      <!-- Block 1: toàn thời gian -->
+
+● Update(src\app\admin\pages\user-analytics\user-analytics.component.html)
+  ⎿  Added 2 lines, removed 3 lines
+      102          </button>
+      103        </div>
+      104        <div class="detail-panel__body">
+      105 -        <div *ngIf="detailPanel.loading" class="detail-loading
+          -">                                                            
+      106 -          <div class="spinner"></div><span>Đang tải...</span> 
+      107 -        </div>                                                
+      105 +        <app-table-skeleton *ngIf="detailPanel.loading"       
+      106 +          leading="avatar" [rows]="5" [cols]="2" [showActions]
+          +="false"></app-table-skeleton>                                
+      107          <ng-container *ngIf="!detailPanel.loading && detailPan
+           el.detail">
+      108            <div class="detail-panel__count">{{ detailPanel.deta
+           il.total }} mục</div>
+      109            <div class="detail-list">
+
+● Update(src\app\admin\pages\dashboard\dashboard.component.html)
+  ⎿  Added 2 lines, removed 3 lines
+      109          </button>
+      110        </div>
+      111        <div class="detail-panel__body">
+      112 -        <div *ngIf="detailPanel.loading" class="detail-loading
+          -">                                                            
+      113 -          <div class="spinner"></div><span>Đang tải...</span> 
+      114 -        </div>                                                
+      112 +        <app-table-skeleton *ngIf="detailPanel.loading"       
+      113 +          leading="avatar" [rows]="5" [cols]="2" [showActions]
+          +="false"></app-table-skeleton>                                
+      114          <ng-container *ngIf="!detailPanel.loading && detailPan
+           el.detail">
+      115            <div class="detail-panel__count">{{ detailPanel.deta
+           il.total }} mục</div>
+      116            <div class="detail-list">
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Adding a dedicated loading flag for the dashboard charts so they get a
+  skeleton too:
+
+● Update(src\app\admin\pages\dashboard\dashboard.component.ts)
+  ⎿  Added 10 lines, removed 5 lines
+      135    }
+      136  
+      137    private loadCharts(): void {
+      138 -    this.analyticsService.getDashboardAnalytics(this.selectedR
+          -ange).subscribe(data => {                                     
+      139 -      this.regData = data.registrations;                      
+      140 -      this.mangaData = data.newManga;                         
+      141 -      this.rebuildRegChart();                                 
+      142 -      this.rebuildMangaChart();                               
+      138 +    this.chartsLoading = true;                                
+      139 +    this.analyticsService.getDashboardAnalytics(this.selectedR
+          +ange).subscribe({                                             
+      140 +      next: data => {                                         
+      141 +        this.regData = data.registrations;                    
+      142 +        this.mangaData = data.newManga;                       
+      143 +        this.rebuildRegChart();                               
+      144 +        this.rebuildMangaChart();                             
+      145 +        this.chartsLoading = false;                           
+      146 +      },                                                      
+      147 +      error: () => { this.chartsLoading = false; }            
+      148      });
+      149    }
+      150  
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src\app\admin\pages\dashboard\dashboard.component.ts)
+  ⎿  Added 2 lines
+      34  })
+      35  export class DashboardComponent implements OnInit {
+      36    loading = true;
+      37 +  /** Biểu đồ nạp riêng khỏi thẻ thống kê (và nạp lại mỗi lần đ
+         +ổi range). */                                                  
+      38 +  chartsLoading = true;                                        
+      39    stats = { manga: 0, users: 0, tags: 0, chapters: 0 };
+      40    visibleLinks: QuickLink[] = [];
+      41    selectedRange: TimeRange = 'daily';
+
+● Update(src\app\admin\pages\dashboard\dashboard.component.html)
+  ⎿  Added 4 lines, removed 1 line
+      52        </div>
+      53      </div>
+      54  
+      55 -    <div class="charts-grid">                                  
+      55 +    <app-analytics-skeleton *ngIf="chartsLoading"              
+      56 +      [statRows]="0" [charts]="perm.canManageUsers() ? 2 : 1" [
+         +chartCols]="2"></app-analytics-skeleton>                       
+      57 +                                                               
+      58 +    <div class="charts-grid" *ngIf="!chartsLoading">           
+      59        <!-- Registration chart -->
+      60        <div class="chart-card" *ngIf="perm.canManageUsers()">
+      61          <div class="chart-card__header">
+
+  Read 1 file, ran 4 shell commands (ctrl+o to expand)
+
+● Update(src\app\admin\shared\user-messages-dialog\user-messages-dialog.componen
+        t.html)
+  ⎿  Added 2 lines, removed 3 lines
+      17  
+      18    <!-- ── Feedback tab ────────────────────────────────────────
+          ───────────────── -->
+      19    <div class="tab-content" *ngIf="activeTab === 'feedback'">
+      20 -    <div class="loading-row" *ngIf="loadingFeedback">          
+      21 -      <div class="spinner-sm"></div> Đang tải...               
+      22 -    </div>                                                     
+      20 +    <app-table-skeleton *ngIf="loadingFeedback"                
+      21 +      variant="card" [rows]="3" [cols]="3" [showActions]="false
+         +"></app-table-skeleton>                                        
+      22  
+      23      <div class="empty-msg" *ngIf="!loadingFeedback && feedbacks
+          .length === 0">
+      24        <span class="material-icons">inbox</span>
+
+● Update(src\app\admin\shared\user-messages-dialog\user-messages-dialog.componen
+        t.html)
+  ⎿  Added 2 lines, removed 3 lines
+      49  
+      50    <!-- ── Conversation tab ────────────────────────────────────
+          ───────────────── -->
+      51    <div class="tab-content" *ngIf="activeTab === 'conversation'"
+          >
+      52 -    <div class="loading-row" *ngIf="loadingMessages">          
+      53 -      <div class="spinner-sm"></div> Đang tải...               
+      54 -    </div>                                                     
+      52 +    <app-table-skeleton *ngIf="loadingMessages"                
+      53 +      variant="card" [rows]="4" [cols]="2" [showActions]="false
+         +"></app-table-skeleton>                                        
+      54  
+      55      <!-- Message list -->
+      56      <div class="chat-list" *ngIf="!loadingMessages">
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src\app\admin\shared\user-role-dialog\user-role-dialog.component.html)
+  ⎿  Added 1 line, removed 1 line
+      2    <h2>Quản lý quyền người dùng</h2>
+      3    <div class="subtitle">{{ data.userName }}</div>
+      4  
+      5 -  <div *ngIf="loading" style="text-align:center;padding:20px;col
+        -or:var(--text-muted)">Đang tải...</div>                         
+      5 +  <app-table-skeleton *ngIf="loading" [rows]="3" [cols]="2" [sho
+        +wActions]="false"></app-table-skeleton>                         
+      6  
+      7    <ng-container *ngIf="!loading">
+      8      <div class="section-label">Roles hiện tại</div>
+
+● Now the responsive part. Let me check which admin pages already have
+  breakpoints:
+  Read 1 file, ran 3 shell commands (ctrl+o to expand)
+
+● Now adding the missing responsive rules — topic-list first:
+
+  Read 1 file, ran 2 shell commands (ctrl+o to expand)
+
+● Now responsive tuning for the new skeleton components:
+
+● Update(src\app\admin\shared\analytics-skeleton\analytics-skeleton.component.ts
+        )
+  ⎿  Added 15 lines
+       88        gap: 8px;
+       89      }
+       90      .ask__bar { flex: 1; min-width: 0; border-radius: 4px 4px 
+           0 0; }
+       91 +                                                              
+       92 +    @media (max-width: 768px) {                               
+       93 +      .ask__stats { gap: 8px; }                               
+       94 +      .ask__stat { flex: 1 1 calc(50% - 4px); padding: 10px; }
+       95 +      .ask__chart { padding: 12px; }                          
+       96 +      .ask__chart-title { width: 110px; }                     
+       97 +      .ask__chart-body { height: 150px; gap: 5px; }           
+       98 +    }                                                         
+       99 +                                                              
+      100 +    /* Điện thoại hẹp: cột giả sát nhau dễ thành vệt liền — bớ
+          +t số cột thấy được. */                                        
+      101 +    @media (max-width: 480px) {                               
+      102 +      .ask__stat { flex: 1 1 100%; }                          
+      103 +      .ask__chart-body { height: 120px; gap: 4px; }           
+      104 +      .ask__bar:nth-child(n + 9) { display: none; }           
+      105 +    }                                                         
+      106    `],
+      107  })
+      108  export class AnalyticsSkeletonComponent {
+
+● Update(src\app\admin\shared\form-skeleton\form-skeleton.component.ts)
+  ⎿  Added 14 lines
+      55      .fsk__label { height: 10px; width: 28%; margin-bottom: 8px;
+           border-radius: 4px; }
+      56      .fsk__input { height: 38px; width: 100%; border-radius: 6px
+          ; }
+      57      .fsk__input--tall { height: 86px; }
+      58 +                                                               
+      59 +    @media (max-width: 1100px) {                               
+      60 +      /* Một cột: ảnh bìa full-width sẽ cao lố màn hình → kẹp l
+         +ại và căn giữa. */                                             
+      61 +      .fsk__cover { max-width: 200px; margin: 0 auto; }        
+      62 +      .fsk__btn { max-width: 200px; margin-left: auto; margin-r
+         +ight: auto; }                                                  
+      63 +    }                                                          
+      64 +                                                               
+      65 +    @media (max-width: 768px) {                                
+      66 +      .fsk { gap: 14px; }                                      
+      67 +      .fsk__box { padding: 14px; }                             
+      68 +      .fsk__field { margin-bottom: 12px; }                     
+      69 +      .fsk__input { height: 34px; }                            
+      70 +      .fsk__input--tall { height: 70px; }                      
+      71 +    }                                                          
+      72    `],
+      73  })
+      74  export class FormSkeletonComponent {
+
+● Update(src\app\admin\shared\table-skeleton\table-skeleton.component.ts)
+  ⎿  Added 12 lines
+      59      .tsk__cell { height: 11px; border-radius: 4px; }
+      60  
+      61      .tsk__action { flex: none; width: 64px; height: 26px; borde
+          r-radius: 6px; }
+      62 +                                                               
+      63 +    @media (max-width: 768px) {                                
+      64 +      .tsk__row { gap: 10px; padding: 10px; }                  
+      65 +      .tsk__action { width: 44px; height: 24px; }              
+      66 +    }                                                          
+      67 +                                                               
+      68 +    /* Điện thoại hẹp: cột thao tác giả chiếm chỗ của phần chữ 
+         +→ bỏ hẳn. */                                                   
+      69 +    @media (max-width: 480px) {                                
+      70 +      .tsk__cells { gap: 6px; }                                
+      71 +      .tsk__cell { height: 10px; }                             
+      72 +      .tsk__action { display: none; }                          
+      73 +    }                                                          
+      74    `],
+      75  })
+      76  export class TableSkeletonComponent {
+
+● Update(src\app\admin\shared\detail-card-skeleton\detail-card-skeleton.componen
+        t.ts)
+  ⎿  Added 6 lines
+      37      .dsk__lines { flex: 1; display: flex; flex-direction: colum
+          n; gap: 6px; }
+      38      .dsk__l1 { height: 9px; width: 40%; }
+      39      .dsk__l2 { height: 12px; width: 75%; }
+      40 +                                                               
+      41 +    @media (max-width: 768px) {                                
+      42 +      .dsk__media { width: 96px; height: 144px; }              
+      43 +      .dsk__media--round { width: 72px; height: 72px; }        
+      44 +      .dsk__rows { margin-top: 14px; gap: 11px; }              
+      45 +    }                                                          
+      46    `],
+      47  })
+      48  export class DetailCardSkeletonComponent {
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src\app\admin\shared\interaction-skeleton\interaction-skeleton.componen
+        t.ts)
+  ⎿  Added 7 lines
+      63        &--sub  { width: 30%; height: 9px; margin-top: 7px; }
+      64        &--meta { width: 108px; flex-shrink: 0; }
+      65      }
+      66 +                                                               
+      67 +    @media (max-width: 768px) {                                
+      68 +      .isk__row { gap: 10px; }                                 
+      69 +      .isk__avatar { width: 30px; height: 30px; }              
+      70 +      /* Cột thời gian bên phải bị `.ilist__row` giấu ở mobile 
+         +→ giấu theo. */                                                
+      71 +      .isk__line--meta { display: none; }                      
+      72 +    }                                                          
+      73    `],
+      74  })
+      75  export class InteractionSkeletonComponent {
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\admin\shared\interaction-skeleton\interaction-skeleton.componen
+        t.ts)
+  ⎿  Added 5 lines, removed 5 lines
+      64        &--meta { width: 108px; flex-shrink: 0; }
+      65      }
+      66  
+      67 -    @media (max-width: 768px) {                                
+      68 -      .isk__row { gap: 10px; }                                 
+      69 -      .isk__avatar { width: 30px; height: 30px; }              
+      70 -      /* Cột thời gian bên phải bị `.ilist__row` giấu ở mobile 
+         -→ giấu theo. */                                                
+      71 -      .isk__line--meta { display: none; }                      
+      67 +    /* Bám theo `.ilist__row` ở manga-info.component.scss: cùng
+         + ngưỡng 600px,                                                 
+      68 +       cột thời gian xuống hàng riêng thụt vào 48px (không phải
+         + bị ẩn). */                                                    
+      69 +    @media (max-width: 600px) {                                
+      70 +      .isk__row { flex-wrap: wrap; gap: 10px; }                
+      71 +      .isk__line--meta { width: calc(100% - 48px); margin-left:
+         + 48px; }                                                       
+      72      }
+      73    `],
+      74  })
+
+● Now let me build to verify everything compiles:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\admin\shared\interaction-skeleton\interaction-skeleton.componen
+        t.ts)
+  ⎿  Added 1 line, removed 1 line
+      64        &--meta { width: 108px; flex-shrink: 0; }
+      65      }
+      66  
+      67 -    /* Bám theo `.ilist__row` ở manga-info.component.scss: cùng
+         - ngưỡng 600px,                                                 
+      67 +    /* Bám theo .ilist__row ở manga-info.component.scss: cùng n
+         +gưỡng 600px,                                                   
+      68         cột thời gian xuống hàng riêng thụt vào 48px (không phải
+           bị ẩn). */
+      69      @media (max-width: 600px) {
+      70        .isk__row { flex-wrap: wrap; gap: 10px; }
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Build passes. Now for the second request — let me inventory what the app
+  already has, then research the gaps.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Web Search("MangaDex features list reading lists MDLists custom lists follows
+            feed")
+  ⎿  Did 1 search in 8s
+
+● Web Search("manga reader website features comparison mangadex mangabat 2026
+            reading history bookmark reader settings")
+  ⎿  Did 1 search in 7s
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+● Build is green. Let me update the Feature Index as the project conventions
+  require:
+
+  Ran 1 shell command (ctrl+o to expand)
+● Update(CLAUDE.md)
+  ⎿  Added 10 lines
+      234  | Chọn hiệu ứng trong Settings | `features/user/settings/setti
+           ngs.component.{ts,html,scss}` | `selectTransition()`, `.fx-sec
+           tion`, `.fx-card`; i18n `SETTINGS.FX_*` |
+      235  | Đồng bộ settings với server (gồm `Transition`) | `core/servi
+           ces/user-settings.service.ts` | `TRANSITION_NAMES`/`TRANSITION
+           _VALUES`, `applyDto()`, `saveWith()` |
+      236  
+      237 +### Admin — khung xương (skeleton) & responsive               
+      238 +                                                              
+      239 +| Chức năng | File | Neo trong file |                         
+      240 +|-----------|------|----------------|                         
+      241 +| Bộ skeleton dùng chung của admin — 4 component, phủ mọi tran
+          +g `/admin/*` | `admin/shared/table-skeleton/`<br>`admin/shared
+          +/detail-card-skeleton/`<br>`admin/shared/interaction-skeleton/
+          +`<br>`admin/shared/analytics-skeleton/`<br>`admin/shared/form-
+          +skeleton/` | `TableSkeletonComponent` (`variant` table/card, `
+          +leading` none/cover/avatar) — danh sách, bảng, panel chi tiết<
+          +br>`DetailCardSkeletonComponent` (`variant` cover/avatar) — th
+          +ẻ chi tiết cột phải<br>`InteractionSkeletonComponent` (`varian
+          +t` follow/comment) — khối follow/comment ở `manga-info`<br>`An
+          +alyticsSkeletonComponent` (`statRows`/`stats`/`charts`/`chartC
+          +ols`/`bars`) — trang thống kê + biểu đồ dashboard<br>`FormSkel
+          +etonComponent` (`sections`/`fields`) — form 2 cột `manga-form`
+          +<br>Tất cả dùng class `.skeleton` toàn cục ở `styles.scss`, mỗ
+          +i component tự có `@media` riêng |                            
+      242 +| Bảng chương ẩn sau `*ngIf` lúc hiện skeleton → phải nối lại 
+          +`MatSort` | `admin/pages/chapter-list/chapter-list.component.t
+          +s` | setter `@ViewChild(MatSort) set sortRef()` — `ngAfterView
+          +Init` chạy khi bảng chưa render nên gán `dataSource.sort` ở đó
+          + là mất sort; `mat-paginator` nằm ngoài `*ngIf` nên vẫn gán tr
+          +ong `ngAfterViewInit` |                                       
+      243 +| Biểu đồ dashboard có cờ loading riêng khỏi thẻ thống kê | `a
+          +dmin/pages/dashboard/dashboard.component.{ts,html}` | `chartsL
+          +oading` — bật lại mỗi lần `loadCharts()` (đổi range cũng nạp l
+          +ại) |                                                         
+      244 +| Thẻ thông tin truyện ở cột phải trang chương nạp riêng | `ad
+          +min/pages/chapter-list/chapter-list.component.{ts,html}` | `ma
+          +ngaLoading` — trước đây `*ngIf="manga"` nên cột phải trống trơ
+          +n lúc chờ |                                                   
+      245 +| Responsive cho 2 trang admin chưa có breakpoint | `admin/pag
+          +es/topic-list/topic-list.component.scss`<br>`admin/pages/taxon
+          +omy-requests/taxonomy-requests.component.scss` | `topic-list`:
+          + 1024px bỏ lưới 2 cột + bỏ `sticky` của `.page-detail`; 768px 
+          +`.category-bar` cuộn ngang<br>`taxonomy-requests`: 768px `.req
+          +-card` xếp dọc, `.r-btn` trải hết chiều ngang |               
+      246 +                                                              
+      247  ### Admin — quản lý truyện
+      248  
+      249  | Chức năng | File | Neo trong file |
+
+● Phần 1 — Skeleton ở /admin/*
+
+  Đã có sẵn (9 chỗ): manga-list, user-list, role-list, trash-bin,
+  comment-moderation, chapter-images, manga-info, taxonomy-info, user-profile,
+  và ô stat của dashboard.
+
+  Thiếu — đã thêm (12 chỗ):
+
+  ┌──────────────────────┬──────────────────────┬──────────────────────────┐
+  │        Trang         │        Trước         │           Sau            │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ chapter-list — bảng  │ spinner overlay đè   │ app-table-skeleton       │
+  │                      │ bảng mờ              │                          │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ chapter-list — cột   │ không có gì, cột     │ app-detail-card-skeleton │
+  │ phải                 │ trống trơn           │  + cờ mangaLoading mới   │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ taxonomy-list        │ mat-progress-spinner │ skeleton bảng (desktop)  │
+  │                      │                      │ / thẻ (mobile)           │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ topic-list — danh    │ spinner              │ app-table-skeleton       │
+  │ sách                 │                      │ card+avatar              │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ topic-list — replies │ spinner              │ skeleton avatar          │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ manga-form           │ chữ "Đang tải dữ     │ app-form-skeleton (mới)  │
+  │                      │ liệu..."             │                          │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ manga-analytics      │ spinner              │ app-analytics-skeleton   │
+  │                      │                      │ (mới)                    │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ user-analytics       │ spinner              │ app-analytics-skeleton   │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ dashboard — biểu đồ  │ không có gì, chart   │ app-analytics-skeleton + │
+  │                      │ rỗng rồi nhảy        │  cờ chartsLoading mới    │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ detail panel × 3     │                      │                          │
+  │ (dashboard, 2        │ spinner              │ skeleton avatar          │
+  │ analytics)           │                      │                          │
+  ├──────────────────────┼──────────────────────┼──────────────────────────┤
+  │ user-messages-dialog │                      │                          │
+  │  × 2,                │ spinner nhỏ / chữ    │ skeleton                 │
+  │ user-role-dialog     │                      │                          │
+  └──────────────────────┴──────────────────────┴──────────────────────────┘
+
+  Không cần — đã kiểm tra chứ không bỏ sót: taxonomy-requests (BehaviorSubject
+  in-memory, emit đồng bộ), image-editor (không fetch gì lúc init). Spinner còn
+  lại ở nút submit và ô search là đúng chỗ, không đổi.
+
+  Một điểm đáng lưu ý: chapter-list giờ *ngIf cả bảng, nên MatSort không tồn tại
+  lúc ngAfterViewInit → đã chuyển sang setter @ViewChild(MatSort) set 
+  sortRef(). Nếu để nguyên thì sort chết âm thầm.
+
+  Responsive: topic-list và taxonomy-requests là 2 trang admin duy nhất có 0
+  @media — đã thêm (topic-list bỏ lưới 2 cột + bỏ sticky ở ≤1024px;
+  taxonomy-requests xếp dọc thẻ ở ≤768px). Cả 5 skeleton component cũng đã có
+  breakpoint riêng. Build ng build pass.
+
+  ---
+  Phần 2 — Chức năng còn thiếu so với MangaDex / MangaBat
+
+  Xếp theo mức độ đáng làm. Đây là danh sách gợi ý như bạn yêu cầu, chưa đụng
+  code.
+
+  🔴 Nhóm 1 — Khác biệt lớn nhất, nên làm trước
+
+  1. Reading status thay cho follow nhị phân. Hiện chỉ có following: true/false.
+  MangaDex có 6 trạng thái: Đang đọc / Định đọc / Tạm dừng / Đã xong / Đọc lại
+  / Đã drop. Đây là thứ giữ chân người dùng mạnh nhất.
+  2. Custom list (kiểu MDList). User tự tạo list, đặt public/private, share
+  link. Kèm "pinned list" hiện ở trang thư viện.
+  3. Feed cập nhật riêng. Trang "Chương mới từ truyện tôi theo dõi" — hiện có
+  SignalR notification nhưng chưa có feed dạng trang.
+  4. Content rating + cổng 18+. Admin đã có levelOptions (0/13+/16+/18+) nhưng
+  public không dùng tới: không blur thumbnail, không hỏi xác nhận, không lọc
+  theo tuổi. Với site manga đây gần như bắt buộc.
+
+  🟠 Nhóm 2 — Reader (nơi user ở lâu nhất)
+
+  5. Chế độ đọc 2 trang (double-page spread) — hiện chỉ vertical/horizontal.
+  6. Fit width / fit height / fit both / zoom gốc — hiện chỉ có imageSize (%).
+  7. Phím tắt: ←/→ lật trang, N/P chương sau-trước, F fullscreen.
+  8. Fullscreen API.
+  9. Auto-scroll cho webtoon (chỉnh tốc độ).
+  10. Data saver — toggle chất lượng ảnh thấp/cao.
+  11. Retry ảnh lỗi + placeholder blur khi tải.
+
+  🟡 Nhóm 3 — Tìm kiếm & khám phá
+
+  12. Loại trừ tag (exclude) và chế độ AND/OR giữa các tag — hiện chỉ có
+  include.
+  13. Lọc theo trạng thái truyện (đang ra / hoàn thành / tạm ngưng / hủy) và
+  demographic (shounen/seinen/shoujo/josei) — chưa có.
+  14. Nút "Truyện ngẫu nhiên".
+  15. "Truyện tương tự" ở trang detail (dựa độ trùng tag).
+  16. Tên khác / romaji / tên gốc cho manga + tìm được theo tên khác.
+
+  🟢 Nhóm 4 — Cộng đồng
+
+  17. Nhóm dịch (scanlation group) — chưa có khái niệm này. Nếu định mở cho
+  nhiều nhóm dịch thì đây là thay đổi schema lớn: chapter thuộc nhóm, trang
+  nhóm, follow nhóm, nhiều bản dịch cho cùng 1 chương.
+  18. Forum công khai — hiện topic-list chỉ là thảo luận nội bộ admin.
+  19. Report bình luận — CLAUDE.md ghi rõ endpoint chưa có, nút mới chỉ hiện
+  toast.
+  20. Trang profile công khai (xem hồ sơ người khác) + follow user.
+  21. Report lỗi chương (thiếu trang, sai thứ tự, ảnh hỏng).
+
+  🔵 Nhóm 5 — Hạ tầng / SEO
+
+  22. PWA — chưa có manifest.webmanifest, chưa có service worker. Bạn đã có
+  download offline rồi, thêm PWA là bước hợp lý tiếp theo.
+  23. sitemap.xml động + JSON-LD (ComicSeries/Book) — có robots.txt, có SSR,
+  nhưng chưa có sitemap và structured data. Đây là thứ rẻ nhất mà ăn traffic
+  nhất.
+  24. srcset / WebP-AVIF cho ảnh bìa.
+
+  Bạn muốn tôi bắt đầu từ nhóm nào? Nếu chọn nhóm 1 thì cần thống nhất với
+  backend trước vì phải đổi schema follow-manga.
+
+  Sources: MangaDex CustomList API changelog (https://forums.mangadex.org/thread
+  s/follows-customlist-api-changelog-breaking-changes.1419832/) · MangaDex
+  MDList docs (https://api.mangadex.org/docs/03-manga/mdlist/) · MangaDex
+  feature overview (https://alternativeto.net/software/mangadex/about/)
+
+✻ Baked for 11m 54s
+
+> tất cả                                                                        
+
+● "Tất cả" là ~24 chức năng, trong đó một nửa cần đổi schema backend. Tôi sẽ làm
+  theo đợt, bắt đầu từ nhóm không cần backend. Trước hết kiểm tra xem backend
+  có nằm trong tầm sửa không:
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Backend có sẵn MangaLevel, MangaStatus, MangaType, AssociateName, Bookmark,
+  Report — nhiều thứ chỉ là client chưa dùng. Tôi lập danh sách công việc rồi
+  làm theo đợt:
+● 16 hạng mục. Bắt đầu từ nhóm reader — đọc code hiện tại trước:
+
+  Read 5 files (ctrl+o to expand)
+
+● Now implementing the reader upgrades. First the viewer:
+
+● Write(src\app\shared\components\reader-viewer\reader-viewer.component.html)
+  ⎿  Added 43 lines, removed 13 lines
+       1 -<div class="reader-content" [class.horizontal]="direction === '
+         -horizontal'"                                                   
+       1 +<div class="reader-content"                                    
+       2 +     [class.horizontal]="direction === 'horizontal'"           
+       3 +     [class.fit-height]="fitMode === 'height'"                 
+       4 +     [class.fit-both]="fitMode === 'both'"                     
+       5 +     [class.fit-original]="fitMode === 'original'"             
+       6       (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd
+          ($event)">
+       7    <!-- Vertical mode -->
+       8    <ng-container *ngIf="direction === 'vertical'">
+       9      <div class="reader-page-wrapper" *ngFor="let img of images;
+           let i = index"
+      10           #pageRef [attr.data-page]="i"
+      11           [style.max-width.%]="imageSize">
+       8 -      <img *ngIf="shouldLoad(i)"                               
+       9 -           [src]="img.cloudUrl"                                
+      12 +      <!-- Ảnh lỗi: hiện nút thử lại thay vì đổi sang ảnh "sorr
+         +y" — trang truyện                                              
+      13 +           hỏng thì người đọc cần tải lại đúng trang đó, không 
+         +phải ảnh thay thế. -->                                         
+      14 +      <div *ngIf="failed.has(i)" class="reader-img-error">     
+      15 +        <i class="fa-solid fa-triangle-exclamation"></i>       
+      16 +        <span>{{ 'READER.IMAGE_FAILED' | translate }}</span>   
+      17 +        <button type="button" class="reader-retry-btn" (click)=
+         +"retry(i)">                                                    
+      18 +          <i class="fa-solid fa-rotate-right me-1"></i>{{ 'READ
+         +ER.RETRY' | translate }}                                       
+      19 +        </button>                                              
+      20 +      </div>                                                   
+      21 +                                                               
+      22 +      <img *ngIf="shouldLoad(i) && !failed.has(i)"             
+      23 +           [src]="srcFor(i)"                                   
+      24             [alt]="'Page ' + (i + 1)"
+      11 -           appImageFallback                                    
+      25 +           (error)="onImgError(i)"                             
+      26             class="reader-img">
+      13 -      <div *ngIf="!shouldLoad(i)" class="reader-img-placeholder
+         -"></div>                                                       
+      27 +      <div *ngIf="!shouldLoad(i) && !failed.has(i)" class="read
+         +er-img-placeholder"></div>                                     
+      28        <div class="page-indicator">{{ i + 1 }} / {{ images.lengt
+          h }}</div>
+      29      </div>
+      30    </ng-container>
+     ...
+      34      <div class="horizontal-viewer">
+      35        <button class="horizontal-nav horizontal-nav--prev"
+      36          (click)="goToPage(horizontalDir === 'rtl' ? 'next' : 'p
+          rev')"
+      23 -        [disabled]="horizontalDir === 'rtl' ? currentPage >= im
+         -ages.length - 1 : currentPage <= 0">                           
+      37 +        [disabled]="horizontalDir === 'rtl' ? !canGoNext : !can
+         +GoPrev">                                                       
+      38          <i class="fa-solid fa-chevron-left"></i>
+      39        </button>
+      40  
+      41        <div class="horizontal-page" #pageRef [attr.data-page]="c
+          urrentPage"
+      42 +           [class.horizontal-page--double]="isDouble"          
+      43             [style.max-width.%]="imageSize">
+      29 -        <img *ngIf="images[currentPage]"                       
+      30 -             [src]="images[currentPage].cloudUrl"              
+      31 -             [alt]="'Page ' + (currentPage + 1)"               
+      32 -             appImageFallback                                  
+      33 -             class="reader-img">                               
+      44 +        <!-- `pagePair` là 1 ảnh ở chế độ thường, 2 ảnh ở chế đ
+         +ộ trang đôi và đã                                              
+      45 +             xếp sẵn đúng thứ tự nhìn theo rtl/ltr. -->        
+      46 +        <ng-container *ngFor="let p of pagePair">              
+      47 +          <div class="horizontal-slot" *ngIf="failed.has(p)">  
+      48 +            <div class="reader-img-error">                     
+      49 +              <i class="fa-solid fa-triangle-exclamation"></i> 
+      50 +              <span>{{ 'READER.IMAGE_FAILED' | translate }}</sp
+         +an>                                                            
+      51 +              <button type="button" class="reader-retry-btn" (c
+         +lick)="retry(p)">                                              
+      52 +                <i class="fa-solid fa-rotate-right me-1"></i>{{
+         + 'READER.RETRY' | translate }}                                 
+      53 +              </button>                                        
+      54 +            </div>                                             
+      55 +          </div>                                               
+      56 +                                                               
+      57 +          <img *ngIf="images[p] && !failed.has(p)"             
+      58 +               [src]="srcFor(p)"                               
+      59 +               [alt]="'Page ' + (p + 1)"                       
+      60 +               (error)="onImgError(p)"                         
+      61 +               class="reader-img">                             
+      62 +        </ng-container>                                        
+      63 +                                                               
+      64          <div class="page-indicator page-indicator--visible">
+      35 -          {{ currentPage + 1 }} / {{ images.length }}          
+      65 +          {{ pageLabel }} / {{ images.length }}                
+      66          </div>
+      67        </div>
+      68  
+      69        <button class="horizontal-nav horizontal-nav--next"
+      70          (click)="goToPage(horizontalDir === 'rtl' ? 'prev' : 'n
+          ext')"
+      41 -        [disabled]="horizontalDir === 'rtl' ? currentPage <= 0 
+         -: currentPage >= images.length - 1">                           
+      71 +        [disabled]="horizontalDir === 'rtl' ? !canGoPrev : !can
+         +GoNext">                                                       
+      72          <i class="fa-solid fa-chevron-right"></i>
+      73        </button>
+      74      </div>
+
+● Write(src\app\shared\components\reader-viewer\reader-viewer.component.ts)
+  ⎿  Added 102 lines, removed 5 lines
+       6  import { Subject } from 'rxjs';
+       7  import { ChapterImage } from '../../../core/models/chapter.inte
+          rface';
+       8  
+       9 +/** Cách ảnh lấp khung đọc. */                                 
+      10 +export type ReaderFitMode = 'width' | 'height' | 'both' | 'orig
+         +inal';                                                         
+      11 +                                                               
+      12  @Component({
+      13    selector: 'app-reader-viewer',
+      14    templateUrl: './reader-viewer.component.html',
+     ...
+      21    @Input() horizontalDir: 'rtl' | 'ltr' = 'rtl';
+      22    @Input() imageSize = 100;
+      23    @Input() preloadCount = 3;
+      24 +  /** Ảnh lấp theo chiều rộng / chiều cao / vừa cả hai / cỡ gốc
+         +. */                                                           
+      25 +  @Input() fitMode: ReaderFitMode = 'width';                   
+      26 +  /** Trang đôi — chỉ có tác dụng ở chế độ ngang (giống sách gi
+         +ấy). */                                                        
+      27 +  @Input() doublePage = false;                                 
+      28    @Output() pageChange = new EventEmitter<number>();
+      29  
+      30    @ViewChildren('pageRef') pageRefs!: QueryList<ElementRef>;
+     ...
+      32    currentPage = 0;
+      33    visibleIndices = new Set<number>();
+      34  
+      35 +  /**                                                          
+      36 +   * Các trang đang hiện ở chế độ ngang, đã xếp đúng thứ tự nhì
+         +n (rtl thì trang                                               
+      37 +   * nhỏ hơn nằm bên phải). Là field chứ không phải getter: get
+         +ter trả mảng mới                                               
+      38 +   * mỗi vòng change-detection sẽ khiến `*ngFor` dựng lại ảnh v
+         +à nháy màn hình.                                               
+      39 +   */                                                          
+      40 +  pagePair: number[] = [0];                                    
+      41 +                                                               
+      42 +  /** Chỉ số ảnh tải lỗi — hiện nút thử lại thay cho ảnh. */   
+      43 +  failed = new Set<number>();                                  
+      44 +                                                               
+      45 +  /** Token phá cache cho từng ảnh, tăng mỗi lần bấm thử lại. *
+         +/                                                              
+      46 +  private retryTokens = new Map<number, number>();             
+      47 +                                                               
+      48    private observer: IntersectionObserver | null = null;
+      49    private visiblePages = new Set<number>();
+      50    private hasScrolledToInitial = false;
+     ...
+      70    ngOnChanges(changes: SimpleChanges): void {
+      71      if (changes['images']) {
+      72        this.hasScrolledToInitial = false;
+      53 -      this.updateVisibleIndices();                             
+      73 +      this.failed.clear();                                     
+      74 +      this.retryTokens.clear();                                
+      75      }
+      55 -    if (changes['preloadCount'] || changes['images'] || changes
+         -['direction']) {                                               
+      76 +    if (changes['preloadCount'] || changes['images'] || changes
+         +['direction'] ||                                               
+      77 +        changes['doublePage'] || changes['horizontalDir']) {   
+      78        this.updateVisibleIndices();
+      79      }
+      80    }
+     ...
+       85      this.destroy$.complete();
+       86    }
+       87  
+       88 +  /** Trang đôi chỉ áp dụng ở chế độ ngang — cuộn dọc mà ghép 
+          +đôi thì vô nghĩa. */                                          
+       89 +  get isDouble(): boolean {                                   
+       90 +    return this.doublePage && this.direction === 'horizontal';
+       91 +  }                                                           
+       92 +                                                              
+       93 +  /** Số trang lật mỗi lần: 2 khi đang xem trang đôi. */      
+       94 +  private get step(): number {                                
+       95 +    return this.isDouble ? 2 : 1;                             
+       96 +  }                                                           
+       97 +                                                              
+       98 +  get canGoPrev(): boolean { return this.currentPage > 0; }   
+       99 +                                                              
+      100 +  get canGoNext(): boolean {                                  
+      101 +    return this.currentPage + this.step <= this.images.length 
+          +- 1;                                                          
+      102 +  }                                                           
+      103 +                                                              
+      104 +  /** Nhãn trang dưới góc ảnh: "3-4" khi xem trang đôi, "3" kh
+          +i xem đơn. */                                                 
+      105 +  get pageLabel(): string {                                   
+      106 +    if (!this.isDouble || this.pagePair.length < 2) return Str
+          +ing(this.currentPage + 1);                                    
+      107 +    const nums = this.pagePair.map(p => p + 1).sort((a, b) => 
+          +a - b);                                                       
+      108 +    return `${nums[0]}-${nums[nums.length - 1]}`;             
+      109 +  }                                                           
+      110 +                                                              
+      111 +  /**                                                         
+      112 +   * Chức năng: dựng URL ảnh, kèm token phá cache nếu trang nà
+          +y từng bấm thử lại                                            
+      113 +   * (không có token thì trình duyệt trả lại đúng bản lỗi tron
+          +g cache).                                                     
+      114 +   * Yêu cầu: `index` — vị trí ảnh trong `images`.            
+      115 +   * Kết quả trả về: URL đầy đủ; chuỗi rỗng nếu không có ảnh ở
+          + vị trí đó.                                                   
+      116 +   * Exception: không ném — index sai trả chuỗi rỗng.         
+      117 +   */                                                         
+      118 +  srcFor(index: number): string {                             
+      119 +    const url = this.images[index]?.cloudUrl;                 
+      120 +    if (!url) return '';                                      
+      121 +    const token = this.retryTokens.get(index);                
+      122 +    if (!token) return url;                                   
+      123 +    return url + (url.includes('?') ? '&' : '?') + '_retry=' +
+          + token;                                                       
+      124 +  }                                                           
+      125 +                                                              
+      126 +  /**                                                         
+      127 +   * Chức năng: đánh dấu ảnh tải lỗi để template đổi sang khối
+          + "thử lại".                                                   
+      128 +   * Yêu cầu: `index` — vị trí ảnh trong `images`.            
+      129 +   * Kết quả trả về: không (thêm vào `failed`).               
+      130 +   * Exception: không ném.                                    
+      131 +   */                                                         
+      132 +  onImgError(index: number): void {                           
+      133 +    this.failed.add(index);                                   
+      134 +  }                                                           
+      135 +                                                              
+      136 +  /**                                                         
+      137 +   * Chức năng: tải lại một ảnh lỗi — tăng token phá cache rồi
+          + bỏ khỏi `failed`.                                            
+      138 +   * Yêu cầu: `index` — vị trí ảnh trong `images`.            
+      139 +   * Kết quả trả về: không (cập nhật `retryTokens` và `failed`
+          + tại chỗ).                                                    
+      140 +   * Exception: không ném — lỗi lần nữa thì `onImgError` lại đ
+          +ánh dấu.                                                      
+      141 +   */                                                         
+      142 +  retry(index: number): void {                                
+      143 +    this.retryTokens.set(index, (this.retryTokens.get(index) ?
+          +? 0) + 1);                                                    
+      144 +    this.failed.delete(index);                                
+      145 +  }                                                           
+      146 +                                                              
+      147    private setupObserver(): void {
+      148      this.observer?.disconnect();
+      149      this.visiblePages.clear();
+     ...
+      183      for (let i = start; i <= end; i++) {
+      184        this.visibleIndices.add(i);
+      185      }
+      186 +    this.rebuildPagePair();                                   
+      187    }
+      188  
+      189 +  /**                                                         
+      190 +   * Chức năng: dựng lại danh sách trang đang hiện ở chế độ ng
+          +ang, xếp đúng thứ                                             
+      191 +   * tự nhìn — rtl thì trang nhỏ hơn nằm bên phải nên phải đảo
+          + mảng.                                                        
+      192 +   * Yêu cầu: `currentPage`, `isDouble`, `horizontalDir` đã ở 
+          +giá trị mới.                                                  
+      193 +   * Kết quả trả về: không (gán lại `pagePair`).              
+      194 +   * Exception: không ném — hết ảnh thì cặp chỉ còn 1 phần tử.
+      195 +   */                                                         
+      196 +  private rebuildPagePair(): void {                           
+      197 +    const pair = [this.currentPage];                          
+      198 +    if (this.isDouble && this.currentPage + 1 <= this.images.l
+          +ength - 1) {                                                  
+      199 +      pair.push(this.currentPage + 1);                        
+      200 +    }                                                         
+      201 +    this.pagePair = this.horizontalDir === 'rtl' ? pair.revers
+          +e() : pair;                                                   
+      202 +  }                                                           
+      203 +                                                              
+      204    shouldLoad(index: number): boolean {
+      205      return this.visibleIndices.has(index);
+      206    }
+     ...
+      213    get preloadIndices(): number[] {
+      214      const result: number[] = [];
+      215      this.visibleIndices.forEach(i => {
+      119 -      if (i !== this.currentPage && i >= 0 && i < this.images.
+          -length) result.push(i);                                       
+      216 +      if (!this.pagePair.includes(i) && i >= 0 && i < this.ima
+          +ges.length) result.push(i);                                   
+      217      });
+      218      return result;
+      219    }
+     ...
+      257  
+      258    goToPage(direction: 'prev' | 'next'): void {
+      259      const target = direction === 'prev'
+      163 -      ? Math.max(0, this.currentPage - 1)                     
+      164 -      : Math.min(this.images.length - 1, this.currentPage + 1)
+          -;                                                             
+      260 +      ? Math.max(0, this.currentPage - this.step)             
+      261 +      : Math.min(this.images.length - 1, this.currentPage + th
+          +is.step);                                                     
+      262      if (this.direction === 'horizontal') {
+      263        this.currentPage = target;
+      264        this.pageChange.emit(target);
+
+● Now the viewer styles for fit modes, double page, and the retry block:
+
+● Write(src\app\shared\components\reader-viewer\reader-viewer.component.scss)
+  ⎿  Added 91 lines
+       35    margin: 0 auto;
+       36  }
+       37  
+       38 +// ── Fit mode ───────────────────────────────────────────────
+          +─────────────────                                             
+       39 +// Mặc định (không class) là "vừa chiều rộng" — hành vi cũ, gi
+          +ữ nguyên.                                                     
+       40 +// Ba class dưới đây do `fitMode` gắn lên `.reader-content`, á
+          +p cho cả hai chiều                                            
+       41 +// đọc. `100vh` chứ không phải `100%` vì khung dọc cao theo nộ
+          +i dung, lấy % sẽ                                              
+       42 +// ra 0 và ảnh biến mất.                                      
+       43 +.reader-content.fit-height .reader-img {                      
+       44 +  width: auto;                                                
+       45 +  max-width: 100%;                                            
+       46 +  height: auto;                                               
+       47 +  max-height: 100vh;                                          
+       48 +}                                                             
+       49 +                                                              
+       50 +.reader-content.fit-both .reader-img {                        
+       51 +  width: auto;                                                
+       52 +  height: auto;                                               
+       53 +  max-width: 100%;                                            
+       54 +  max-height: 100vh;                                          
+       55 +  object-fit: contain;                                        
+       56 +}                                                             
+       57 +                                                              
+       58 +// Cỡ gốc: không ép gì cả, ảnh rộng hơn khung thì cuộn ngang t
+          +rong khung.                                                   
+       59 +.reader-content.fit-original {                                
+       60 +  overflow-x: auto;                                           
+       61 +                                                              
+       62 +  .reader-img {                                               
+       63 +    width: auto;                                              
+       64 +    max-width: none;                                          
+       65 +    height: auto;                                             
+       66 +  }                                                           
+       67 +}                                                             
+       68 +                                                              
+       69  .reader-img-placeholder {
+       70    width: 100%;
+       71    min-height: 600px;
+       72    background: rgba(255,255,255,0.02);
+       73  }
+       74  
+       75 +// ── Ảnh lỗi + thử lại ──────────────────────────────────────
+          +─────────────────                                             
+       76 +.reader-img-error {                                           
+       77 +  width: 100%;                                                
+       78 +  min-height: 320px;                                          
+       79 +  display: flex;                                              
+       80 +  flex-direction: column;                                     
+       81 +  align-items: center;                                        
+       82 +  justify-content: center;                                    
+       83 +  gap: 10px;                                                  
+       84 +  padding: 24px;                                              
+       85 +  background: rgba(255, 255, 255, 0.03);                      
+       86 +  border: 1px dashed rgba(255, 255, 255, 0.15);               
+       87 +  color: var(--text-muted, #9aa);                             
+       88 +  font-size: 0.88rem;                                         
+       89 +  text-align: center;                                         
+       90 +                                                              
+       91 +  i { font-size: 1.6rem; color: #e0a13a; }                    
+       92 +}                                                             
+       93 +                                                              
+       94 +.reader-retry-btn {                                           
+       95 +  padding: 7px 16px;                                          
+       96 +  border: none;                                               
+       97 +  border-radius: 6px;                                         
+       98 +  background: var(--accent-primary, #e94560);                 
+       99 +  color: #fff;                                                
+      100 +  font-size: 0.84rem;                                         
+      101 +  font-weight: 600;                                           
+      102 +  cursor: pointer;                                            
+      103 +                                                              
+      104 +  &:hover { filter: brightness(1.1); }                        
+      105 +}                                                             
+      106 +                                                              
+      107  .page-indicator {
+      108    position: absolute;
+      109    bottom: 8px;
+     ...
+      150      max-width: 100%;
+      151      object-fit: contain;
+      152    }
+      153 +                                                              
+      154 +  // Trang đôi: hai ảnh sát nhau, mỗi ảnh chiếm tối đa nửa khu
+          +ng để cặp trang                                               
+      155 +  // luôn nằm gọn trong màn hình.                             
+      156 +  &--double {                                                 
+      157 +    gap: 2px;                                                 
+      158 +                                                              
+      159 +    .reader-img { max-width: 50%; }                           
+      160 +    .horizontal-slot { flex: 1; max-width: 50%; }             
+      161 +  }                                                           
+      162  }
+      163  
+      164 +.horizontal-slot {                                            
+      165 +  display: flex;                                              
+      166 +  align-items: center;                                        
+      167 +  justify-content: center;                                    
+      168 +}                                                             
+      169 +                                                              
+      170 +// Trang đôi trên màn hẹp không đọc nổi — xếp dọc lại cho đỡ b
+          +é.                                                            
+      171 +@media (max-width: 768px) {                                   
+      172 +  .horizontal-page--double {                                  
+      173 +    flex-direction: column;                                   
+      174 +    gap: 4px;                                                 
+      175 +                                                              
+      176 +    .reader-img { max-width: 100%; max-height: 50vh; }        
+      177 +    .horizontal-slot { max-width: 100%; }                     
+      178 +  }                                                           
+      179 +                                                              
+      180 +  .reader-img-error { min-height: 200px; }                    
+      181 +}                                                             
+      182 +                                                              
+      183  // Off-screen image cache for adjacent pages — fetched but nev
+           er shown.
+      184  .horizontal-preload {
+      185    position: absolute;
+
+● Now the reader component — settings model, keyboard shortcuts, fullscreen,
+  auto-scroll:
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Now I'll extend the reader with fit mode, double page, keyboard shortcuts,
+  fullscreen and auto-scroll:
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.ts)
+  ⎿  Added 6 lines
+      22    mode: 'normal' | 'focus';
+      23    imageSize: number;
+      24    preloadCount: number;
+      25 +  /** Cách ảnh lấp khung: vừa rộng / vừa cao / vừa cả hai / cỡ 
+         +gốc. */                                                        
+      26 +  fitMode: ReaderFitMode;                                      
+      27 +  /** Hiện 2 trang cạnh nhau — chỉ có tác dụng ở chế độ đọc nga
+         +ng. */                                                         
+      28 +  doublePage: boolean;                                         
+      29 +  /** Tốc độ tự cuộn (px mỗi giây) ở chế độ dọc. Không bật/tắt 
+         +bằng field này. */                                             
+      30 +  autoScrollSpeed: number;                                     
+      31  }
+      32  
+      33  @Component({
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.ts)
+  ⎿  Added 1 line, removed 1 line
+       8  import { UserPreferencesService } from '../../../core/services/
+          user-preferences.service';
+       9  import { SeoService } from '../../../core/services/seo.service'
+          ;
+      10  import { ChapterImage } from '../../../core/models/chapter.inte
+          rface';
+      11 -import { ReaderViewerComponent } from '../../../shared/componen
+         -ts/reader-viewer/reader-viewer.component';                     
+      11 +import { ReaderViewerComponent, ReaderFitMode } from '../../../
+         +shared/components/reader-viewer/reader-viewer.component';      
+      12  import { chapterFullName, chapterName } from '../../../core/uti
+          ls/chapter-label';
+      13  import { dropLegacyKey, scopedKey } from '../../../core/utils/u
+          ser-storage';
+      14  import { RESPONSE_CONTEXT, ResponseContext } from '../../../cor
+          e/tokens/response-context';
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.ts)
+  ⎿  Added 15 lines, removed 1 line
+      75      horizontalDir: 'rtl',
+      76      mode: 'normal',
+      77      imageSize: 100,
+      78 -    preloadCount: 3                                            
+      78 +    preloadCount: 3,                                           
+      79 +    fitMode: 'width',                                          
+      80 +    doublePage: false,                                         
+      81 +    autoScrollSpeed: 60                                        
+      82    };
+      83    pendingSettings!: ReaderSettings;
+      84  
+      85 +  /** Tự cuộn: trạng thái phiên đọc, KHÔNG lưu vào localStorage
+         + (bật lại mỗi lần). */                                         
+      86 +  isAutoScrolling = false;                                     
+      87 +  isFullscreen = false;                                        
+      88 +  /** Bảng phím tắt bật bằng phím `?`. */                      
+      89 +  isShortcutHelpOpen = false;                                  
+      90 +                                                               
+      91 +  private autoScrollRaf: number | null = null;                 
+      92 +  private autoScrollLastTs = 0;                                
+      93 +  /** Phần px lẻ chưa đủ 1 đơn vị để cuộn, cộng dồn qua các fra
+         +me. */                                                         
+      94 +  private autoScrollRemainder = 0;                             
+      95 +                                                               
+      96    // Resume-reading prompt (mode = 'ask')
+      97    showResumePrompt = false;
+      98    resumeTarget: LocalProgress | null = null;
+
+● Now the keyboard, fullscreen and auto-scroll logic:
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.ts)
+  ⎿  Added 120 lines
+      425      return this.chapters[this.currentChapterIndex] ?? null;
+      426    }
+      427  
+      428 +  // ── Phím tắt ─────────────────────────────────────────────
+          +────────────────                                              
+      429 +  /**                                                         
+      430 +   * Chức năng: phím tắt toàn trang cho reader. Mũi tên trái/p
+          +hải do                                                        
+      431 +   * `ReaderViewerComponent` tự bắt (nó biết rtl/ltr), ở đây c
+          +hỉ lo chuyển                                                  
+      432 +   * chương, fullscreen, tự cuộn và bảng trợ giúp.            
+      433 +   * Yêu cầu: `event` — sự kiện keydown của window. Bỏ qua khi
+          + con trỏ đang ở                                               
+      434 +   * ô nhập liệu (bình luận dưới trang) hoặc khi có phím bổ tr
+          +ợ.                                                            
+      435 +   * Kết quả trả về: không (đổi state / điều hướng).          
+      436 +   * Exception: không ném.                                    
+      437 +   */                                                         
+      438 +  @HostListener('window:keydown', ['$event'])                 
+      439 +  onReaderKeydown(event: KeyboardEvent): void {               
+      440 +    if (event.ctrlKey || event.altKey || event.metaKey) return
+          +;                                                             
+      441 +                                                              
+      442 +    const el = event.target as HTMLElement | null;            
+      443 +    const tag = el?.tagName;                                  
+      444 +    if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContent
+          +Editable) return;                                             
+      445 +                                                              
+      446 +    switch (event.key) {                                      
+      447 +      case 'n': case 'N':                                     
+      448 +        event.preventDefault(); this.nextChapter(); break;    
+      449 +      case 'p': case 'P':                                     
+      450 +        event.preventDefault(); this.prevChapter(); break;    
+      451 +      case 'f': case 'F':                                     
+      452 +        event.preventDefault(); this.toggleFullscreen(); break
+          +;                                                             
+      453 +      case ' ':                                               
+      454 +        // Space chỉ có nghĩa ở chế độ dọc — bật/tắt tự cuộn t
+          +hay vì nhảy trang.                                            
+      455 +        if (this.settings.direction === 'vertical') {         
+      456 +          event.preventDefault(); this.toggleAutoScroll();    
+      457 +        }                                                     
+      458 +        break;                                                
+      459 +      case '?':                                               
+      460 +        event.preventDefault(); this.isShortcutHelpOpen = !thi
+          +s.isShortcutHelpOpen; break;                                  
+      461 +      case 'Escape':                                          
+      462 +        if (this.isShortcutHelpOpen) { this.isShortcutHelpOpen
+          + = false; }                                                   
+      463 +        else if (this.isSidebarOpen) { this.closeSidebar(); } 
+      464 +        else if (this.isChapterListOpen) { this.closeChapterLi
+          +st(); }                                                       
+      465 +        else if (this.isAutoScrolling) { this.stopAutoScroll()
+          +; }                                                           
+      466 +        break;                                                
+      467 +    }                                                         
+      468 +  }                                                           
+      469 +                                                              
+      470 +  // ── Fullscreen ───────────────────────────────────────────
+          +────────────────                                              
+      471 +  /**                                                         
+      472 +   * Chức năng: bật/tắt toàn màn hình bằng Fullscreen API.    
+      473 +   * Yêu cầu: chỉ chạy phía trình duyệt — trên Node không có `
+          +document`.                                                    
+      474 +   * Kết quả trả về: không (cờ `isFullscreen` do `fullscreench
+          +ange` cập nhật,                                               
+      475 +   * không gán tay, vì người dùng có thể thoát bằng Esc của tr
+          +ình duyệt).                                                   
+      476 +   * Exception: không ném — trình duyệt từ chối thì nuốt lỗi, 
+          +giữ nguyên trạng thái.                                        
+      477 +   */                                                         
+      478 +  toggleFullscreen(): void {                                  
+      479 +    if (!isPlatformBrowser(this.platformId)) return;          
+      480 +    if (!document.fullscreenElement) {                        
+      481 +      document.documentElement.requestFullscreen?.().catch(() 
+          +=> {});                                                       
+      482 +    } else {                                                  
+      483 +      document.exitFullscreen?.().catch(() => {});            
+      484 +    }                                                         
+      485 +  }                                                           
+      486 +                                                              
+      487 +  @HostListener('document:fullscreenchange')                  
+      488 +  onFullscreenChange(): void {                                
+      489 +    this.isFullscreen = isPlatformBrowser(this.platformId) && 
+          +!!document.fullscreenElement;                                 
+      490 +  }                                                           
+      491 +                                                              
+      492 +  // ── Tự cuộn (webtoon) ────────────────────────────────────
+          +────────────────                                              
+      493 +  toggleAutoScroll(): void {                                  
+      494 +    if (this.isAutoScrolling) this.stopAutoScroll();          
+      495 +    else this.startAutoScroll();                              
+      496 +  }                                                           
+      497 +                                                              
+      498 +  /**                                                         
+      499 +   * Chức năng: bắt đầu tự cuộn trang theo `settings.autoScrol
+          +lSpeed` (px/giây).                                            
+      500 +   * Dùng `requestAnimationFrame` + delta thời gian thật, khôn
+          +g phải `setInterval`,                                         
+      501 +   * để tốc độ không đổi theo tần số quét màn hình.           
+      502 +   * Yêu cầu: chỉ có nghĩa ở chế độ đọc dọc và phía trình duyệ
+          +t.                                                            
+      503 +   * Kết quả trả về: không (bật `isAutoScrolling`, giữ handle 
+          +ở `autoScrollRaf`).                                           
+      504 +   * Exception: không ném — cuộn tới đáy trang thì tự dừng.   
+      505 +   */                                                         
+      506 +  startAutoScroll(): void {                                   
+      507 +    if (!isPlatformBrowser(this.platformId)) return;          
+      508 +    if (this.settings.direction !== 'vertical' || this.isAutoS
+          +crolling) return;                                             
+      509 +                                                              
+      510 +    this.isAutoScrolling = true;                              
+      511 +    this.autoScrollLastTs = 0;                                
+      512 +    this.autoScrollRemainder = 0;                             
+      513 +                                                              
+      514 +    const tick = (ts: number) => {                            
+      515 +      if (!this.isAutoScrolling) return;                      
+      516 +                                                              
+      517 +      if (this.autoScrollLastTs === 0) this.autoScrollLastTs =
+          + ts;                                                          
+      518 +      const dt = (ts - this.autoScrollLastTs) / 1000;         
+      519 +      this.autoScrollLastTs = ts;                             
+      520 +                                                              
+      521 +      // Cộng dồn phần lẻ: ở tốc độ thấp mỗi frame chưa đủ 1px
+          +, làm tròn xuống                                              
+      522 +      // từng frame sẽ ra 0 và trang đứng im.                 
+      523 +      this.autoScrollRemainder += this.settings.autoScrollSpee
+          +d * dt;                                                       
+      524 +      const px = Math.floor(this.autoScrollRemainder);        
+      525 +      if (px > 0) {                                           
+      526 +        this.autoScrollRemainder -= px;                       
+      527 +        window.scrollBy(0, px);                               
+      528 +      }                                                       
+      529 +                                                              
+      530 +      const atBottom =                                        
+      531 +        window.innerHeight + window.scrollY >= document.body.s
+          +crollHeight - 2;                                              
+      532 +      if (atBottom) { this.stopAutoScroll(); return; }        
+      533 +                                                              
+      534 +      this.autoScrollRaf = requestAnimationFrame(tick);       
+      535 +    };                                                        
+      536 +                                                              
+      537 +    this.autoScrollRaf = requestAnimationFrame(tick);         
+      538 +  }                                                           
+      539 +                                                              
+      540 +  stopAutoScroll(): void {                                    
+      541 +    this.isAutoScrolling = false;                             
+      542 +    if (this.autoScrollRaf !== null) {                        
+      543 +      cancelAnimationFrame(this.autoScrollRaf);               
+      544 +      this.autoScrollRaf = null;                              
+      545 +    }                                                         
+      546 +  }                                                           
+      547 +                                                              
+      548    toggleSidebar(): void {
+      549      this.isSidebarOpen = !this.isSidebarOpen;
+      550      if (this.isSidebarOpen) {
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.ts)
+  ⎿  Added 1 line
+      239      this.destroy$.complete();
+      240      clearTimeout(this.menuTimeout);
+      241      this.cancelViewTracking();
+      242 +    this.stopAutoScroll();                                    
+      243    }
+      244  
+      245    loadImages(): void {
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.ts)
+  ⎿  Added 2 lines
+      560  
+      561    applySettings(): void {
+      562      this.settings = { ...this.pendingSettings };
+      563 +    // Đổi sang đọc ngang thì tự cuộn hết ý nghĩa — dừng, khôn
+          +g để chạy ngầm.                                               
+      564 +    if (this.settings.direction !== 'vertical') this.stopAutoS
+          +croll();                                                      
+      565      this.saveSettings();
+      566      this.closeSidebar();
+      567    }
+
+● Now the reader template — settings panel, auto-scroll control and shortcut
+  help:
+● Update(src\app\features\manga\manga-reader\manga-reader.component.html)
+  ⎿  Added 52 lines
+       59        </div>
+       60  
+       61        <div class="setting-group">
+       62 +        <label class="setting-label">{{ 'READER.FIT_MODE' | tr
+          +anslate }}</label>                                            
+       63 +        <div class="setting-options setting-options--wrap">   
+       64 +          <button class="option-btn" [class.active]="pendingSe
+          +ttings.fitMode === 'width'"                                   
+       65 +            (click)="pendingSettings.fitMode = 'width'">      
+       66 +            <i class="fa-solid fa-arrows-left-right me-1"></i>
+          +{{ 'READER.FIT_WIDTH' | translate }}                          
+       67 +          </button>                                           
+       68 +          <button class="option-btn" [class.active]="pendingSe
+          +ttings.fitMode === 'height'"                                  
+       69 +            (click)="pendingSettings.fitMode = 'height'">     
+       70 +            <i class="fa-solid fa-arrows-up-down me-1"></i>{{ 
+          +'READER.FIT_HEIGHT' | translate }}                            
+       71 +          </button>                                           
+       72 +          <button class="option-btn" [class.active]="pendingSe
+          +ttings.fitMode === 'both'"                                    
+       73 +            (click)="pendingSettings.fitMode = 'both'">       
+       74 +            <i class="fa-solid fa-compress me-1"></i>{{ 'READE
+          +R.FIT_BOTH' | translate }}                                    
+       75 +          </button>                                           
+       76 +          <button class="option-btn" [class.active]="pendingSe
+          +ttings.fitMode === 'original'"                                
+       77 +            (click)="pendingSettings.fitMode = 'original'">   
+       78 +            <i class="fa-solid fa-magnifying-glass me-1"></i>{
+          +{ 'READER.FIT_ORIGINAL' | translate }}                        
+       79 +          </button>                                           
+       80 +        </div>                                                
+       81 +      </div>                                                  
+       82 +                                                              
+       83 +      <!-- Trang đôi chỉ có nghĩa khi lật ngang -->           
+       84 +      <div class="setting-group" *ngIf="pendingSettings.direct
+          +ion === 'horizontal'">                                        
+       85 +        <label class="setting-label">{{ 'READER.DOUBLE_PAGE' |
+          + translate }}</label>                                         
+       86 +        <div class="setting-options">                         
+       87 +          <button class="option-btn" [class.active]="!pendingS
+          +ettings.doublePage"                                           
+       88 +            (click)="pendingSettings.doublePage = false">     
+       89 +            <i class="fa-solid fa-file me-1"></i>{{ 'READER.SI
+          +NGLE_PAGE' | translate }}                                     
+       90 +          </button>                                           
+       91 +          <button class="option-btn" [class.active]="pendingSe
+          +ttings.doublePage"                                            
+       92 +            (click)="pendingSettings.doublePage = true">      
+       93 +            <i class="fa-solid fa-book-open me-1"></i>{{ 'READ
+          +ER.DOUBLE_PAGE' | translate }}                                
+       94 +          </button>                                           
+       95 +        </div>                                                
+       96 +      </div>                                                  
+       97 +                                                              
+       98 +      <!-- Tốc độ tự cuộn chỉ dùng cho chế độ dọc -->         
+       99 +      <div class="setting-group" *ngIf="pendingSettings.direct
+          +ion === 'vertical'">                                          
+      100 +        <label class="setting-label">                         
+      101 +          {{ 'READER.AUTO_SCROLL_SPEED' | translate }}        
+      102 +          <span class="setting-value">{{ pendingSettings.autoS
+          +crollSpeed }} px/s</span>                                     
+      103 +        </label>                                              
+      104 +        <input type="range" class="form-range" min="10" max="3
+          +00" step="10"                                                 
+      105 +          [(ngModel)]="pendingSettings.autoScrollSpeed" [ngMod
+          +elOptions]="{ standalone: true }">                            
+      106 +        <div class="range-labels">                            
+      107 +          <span>10</span>                                     
+      108 +          <span>150</span>                                    
+      109 +          <span>300</span>                                    
+      110 +        </div>                                                
+      111 +      </div>                                                  
+      112 +                                                              
+      113 +      <div class="setting-group">                             
+      114          <label class="setting-label">{{ 'READER.MODE' | transl
+           ate }}</label>
+      115          <div class="setting-options">
+      116            <button class="option-btn" [class.active]="pendingSe
+           ttings.mode === 'normal'"
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.html)
+  ⎿  Added 21 lines
+      179      [horizontalDir]="settings.horizontalDir"
+      180      [imageSize]="settings.imageSize"
+      181      [preloadCount]="settings.preloadCount"
+      182 +    [fitMode]="settings.fitMode"                              
+      183 +    [doublePage]="settings.doublePage"                        
+      184      (pageChange)="onPageChange($event)">
+      185    </app-reader-viewer>
+      186  
+      187 +  <!-- Bảng phím tắt (phím `?`) -->                           
+      188 +  <div class="shortcut-overlay" *ngIf="isShortcutHelpOpen" (cl
+          +ick)="isShortcutHelpOpen = false">                            
+      189 +    <div class="shortcut-dialog" (click)="$event.stopPropagati
+          +on()">                                                        
+      190 +      <h3>{{ 'READER.SHORTCUTS' | translate }}</h3>           
+      191 +      <ul class="shortcut-list">                              
+      192 +        <li><kbd>←</kbd> <kbd>→</kbd><span>{{ 'READER.SC_FLIP'
+          + | translate }}</span></li>                                   
+      193 +        <li><kbd>N</kbd><span>{{ 'READER.NEXT_CHAPTER' | trans
+          +late }}</span></li>                                           
+      194 +        <li><kbd>P</kbd><span>{{ 'READER.PREV_CHAPTER' | trans
+          +late }}</span></li>                                           
+      195 +        <li><kbd>F</kbd><span>{{ 'READER.FULLSCREEN' | transla
+          +te }}</span></li>                                             
+      196 +        <li><kbd>Space</kbd><span>{{ 'READER.AUTO_SCROLL' | tr
+          +anslate }}</span></li>                                        
+      197 +        <li><kbd>?</kbd><span>{{ 'READER.SHORTCUTS' | translat
+          +e }}</span></li>                                              
+      198 +        <li><kbd>Esc</kbd><span>{{ 'READER.SC_CLOSE' | transla
+          +te }}</span></li>                                             
+      199 +      </ul>                                                   
+      200 +      <button class="resume-btn resume-btn--primary" (click)="
+          +isShortcutHelpOpen = false">                                  
+      201 +        {{ 'COMMON.CLOSE' | translate }}                      
+      202 +      </button>                                               
+      203 +    </div>                                                    
+      204 +  </div>                                                      
+      205 +                                                              
+      206    <!-- Skeleton loading — phác thảo các trang ảnh trong cột đọ
+           c -->
+      207    <div class="reader-loading" *ngIf="isLoading && !notFound">
+      208      <span class="skeleton reader-skel__page" *ngFor="let p of 
+           [1,2,3]"></span>
+
+● Now add auto-scroll + fullscreen buttons to the bottom bar:
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.html)
+  ⎿  Added 11 lines
+      240          <i class="fa-solid fa-list me-1"></i>
+      241          <span class="bb-chapter-label">{{ chapterName(currentC
+           hapter) }}</span>
+      242        </button>
+      243 +      <!-- Tự cuộn: chỉ hiện khi đọc dọc, vì cuộn ngang không 
+          +có gì để cuộn. -->                                            
+      244 +      <button class="bb-btn" *ngIf="settings.direction === 've
+          +rtical'"                                                      
+      245 +        [class.bb-btn--on]="isAutoScrolling"                  
+      246 +        (click)="toggleAutoScroll()"                          
+      247 +        [title]="'READER.AUTO_SCROLL' | translate">           
+      248 +        <i class="fa-solid" [ngClass]="isAutoScrolling ? 'fa-p
+          +ause' : 'fa-play'"></i>                                       
+      249 +      </button>                                               
+      250 +      <button class="bb-btn" (click)="toggleFullscreen()"     
+      251 +        [title]="'READER.FULLSCREEN' | translate">            
+      252 +        <i class="fa-solid" [ngClass]="isFullscreen ? 'fa-comp
+          +ress' : 'fa-expand'"></i>                                     
+      253 +      </button>                                               
+      254        <button class="bb-btn" (click)="toggleSidebar()"
+      255          [title]="'READER.SETTINGS' | translate">
+      256          <i class="fa-solid fa-sliders"></i>
+
+● Now the i18n keys. Let me check the existing structure:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Now the styles for the shortcut dialog and the new setting controls:
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\features\manga\manga-reader\manga-reader.component.scss)
+  ⎿  Added 7 lines
+      370  .setting-options {
+      371    display: flex;
+      372    gap: 8px;
+      373 +                                                              
+      374 +  // 4 lựa chọn (kiểu vừa khung) nhét một hàng thì chữ vỡ — ch
+          +o xuống 2 hàng.                                               
+      375 +  &--wrap {                                                   
+      376 +    flex-wrap: wrap;                                          
+      377 +                                                              
+      378 +    .option-btn { flex: 1 1 calc(50% - 4px); }                
+      379 +  }                                                           
+      380  }
+      381  
+      382  .option-btn {
+
+  Read 1 file, ran 3 shell commands (ctrl+o to expand)
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Important finding — let me verify against the backend command before going
+  further:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Đã xong nhóm reader (3/16 hạng mục), và tôi dừng lại vì gặp một phát hiện làm
+  đổi kế hoạch của 2 hạng mục tiếp theo.
+
+  Đã làm xong — nhóm reader
+
+  Trong ReaderSettings (lưu localStorage theo tài khoản): thêm fitMode,
+  doublePage, autoScrollSpeed.
+
+  ┌─────────────┬───────────────────────────────────────────────────────────┐
+  │  Chức năng  │                         Chi tiết                          │
+  ├─────────────┼───────────────────────────────────────────────────────────┤
+  │ 4 kiểu vừa  │ Vừa rộng (cũ) / vừa cao / vừa cả hai / cỡ gốc — fit-*     │
+  │ khung       │ class trên .reader-content, áp cho cả đọc dọc lẫn ngang.  │
+  │             │ Cỡ gốc cho cuộn ngang trong khung.                        │
+  ├─────────────┼───────────────────────────────────────────────────────────┤
+  │             │ Chỉ ở chế độ ngang. pagePair xếp sẵn đúng thứ tự nhìn     │
+  │ Trang đôi   │ (rtl thì trang nhỏ nằm phải), lật 2 trang mỗi lần, nhãn   │
+  │             │ hiện "3-4". Màn ≤768px tự xếp dọc vì 2 trang cạnh nhau    │
+  │             │ quá bé.                                                   │
+  ├─────────────┼───────────────────────────────────────────────────────────┤
+  │             │ N/P chương sau-trước, F fullscreen, Space tự cuộn, ? bảng │
+  │ Phím tắt    │  phím tắt, Esc đóng/dừng. Bỏ qua khi con trỏ đang ở ô     │
+  │             │ bình luận. ←/→ giữ nguyên ở viewer (nó biết rtl/ltr).     │
+  ├─────────────┼───────────────────────────────────────────────────────────┤
+  │             │ Fullscreen API; cờ isFullscreen cập nhật qua              │
+  │ Fullscreen  │ fullscreenchange chứ không gán tay, vì user thoát được    │
+  │             │ bằng Esc của trình duyệt.                                 │
+  ├─────────────┼───────────────────────────────────────────────────────────┤
+  │             │ requestAnimationFrame + delta thời gian thật (không       │
+  │ Tự cuộn     │ setInterval) nên tốc độ không đổi theo tần số quét. Cộng  │
+  │             │ dồn px lẻ — nếu không, tốc độ thấp làm tròn xuống 0 mỗi   │
+  │             │ frame và trang đứng im. Tới đáy tự dừng.                  │
+  ├─────────────┼───────────────────────────────────────────────────────────┤
+  │ Retry ảnh   │ Bỏ appImageFallback khỏi ảnh truyện — đổi sang ảnh        │
+  │ lỗi         │ "sorry" là sai với trang truyện. Giờ hiện nút Thử lại,    │
+  │             │ tải lại kèm token phá cache.                              │
+  └─────────────┴───────────────────────────────────────────────────────────┘
+
+  Kèm nút tự cuộn + fullscreen ở bottombar, i18n vi/en đầy đủ, responsive. Build
+  pass.
+
+  ⚠️ Chặn hạng mục #4 và #5 — cần bạn quyết
+
+  Tôi kiểm tra backend trước khi làm cổng 18+, và tôi nói sai ở tin nhắn trước:
+  backend không có phân loại độ tuổi.
+
+  MangaLevel thực ra là bậc truy cập, không phải tuổi:
+  /// Users need a certain level to access or use coin to unlock manga
+  public enum MangaLevel { Normal = 1, Pro = 2, Vip = 3, Master = 4 }
+
+  Tệ hơn, manga-form ở admin đang gửi giá trị backend không parse được ở cả 3
+  trường enum:
+
+  Trường: Level
+  Client gửi: '0','1','2','3' gắn nhãn "Mọi độ tuổi/13+/16+/18+"
+  Backend nhận (MangaLevel/MangaStatus/MangaType): Normal=1..Master=4 — '0'
+  không
+  tồn tại, các giá trị còn lại lệch nghĩa hoàn toàn
+  ────────────────────────────────────────
+  Trường: Status
+  Client gửi: 'Ongoing','Completed','Hiatus','Hidden'
+  Backend nhận (MangaLevel/MangaStatus/MangaType): Active=1,Paused=2,Finished=3
+  —
+  không tên nào khớp
+  ────────────────────────────────────────
+  Trường: Type
+  Client gửi: 'Manga','Manhwa','Manhua'
+  Backend nhận (MangaLevel/MangaStatus/MangaType): Oneshot,Ova,Dojinshi,Series —
+
+  khác hẳn khái niệm; Manhwa/Manhua thuộc Countries chứ không phải Type
+
+  Command binding là enum có kiểu (public MangaLevel Level), nên 3 trường này
+  hiện không round-trip được. Đây là bug có sẵn, không phải do tôi vừa sửa.
+
+  Vì vậy:
+  - #4 (cổng 18+) cần thêm hẳn enum ContentRating mới vào backend — tức đổi
+  schema + migration trên DB đang có dữ liệu thật.
+  - #5 (lọc theo trạng thái/loại) phải sửa xong bảng enum trên thì lọc mới có
+  nghĩa.
+
+  Bạn muốn tôi làm theo hướng nào?
+
+  1. Sửa enum trước, chưa đụng schema — map lại manga-form đúng
+  MangaStatus/MangaType hiện có, bỏ nhãn tuổi sai ở Level. Không migration. Xong
+  thì #5 làm được ngay, #4 tạm gác.
+  2. Thêm ContentRating vào backend — enum mới + migration + DTO + admin + cổng
+  18+ ở client. Làm được cả #4 lẫn #5 nhưng đụng DB thật.
+
+  Trong lúc chờ, tôi làm tiếp các hạng mục không phụ thuộc: #6 (truyện tương tự
+  + ngẫu nhiên), #7 (tên khác), #8 (sitemap + JSON-LD), #9 (PWA) — nói nếu bạn
+  muốn thứ tự khác.
+
+✻ Brewed for 9m 4s
+
+※ recap: Goal is filling feature gaps in the Yahallo manga site; reader upgrades (fit modes, double page, shortcuts, auto-scroll, retry) are done and building. Next: you pick option 1 or 2 on the content-rating enum question before I continue. (disable recaps in /config)
+
+> List cho tôi danh sách(chỉ xem thôi đừng code)                                
+● Danh sách toàn bộ 17 hạng mục, kèm trạng thái và thứ gì chặn thứ gì.
+
+  ✅ Đã xong (3)
+
+  ┌─────┬──────────────────────────────────────┬─────────┐
+  │  #  │               Hạng mục               │ Phạm vi │
+  ├─────┼──────────────────────────────────────┼─────────┤
+  │ 1   │ Reader: 4 kiểu vừa khung + trang đôi │ Client  │
+  ├─────┼──────────────────────────────────────┼─────────┤
+  │ 2   │ Reader: phím tắt + fullscreen        │ Client  │
+  ├─────┼──────────────────────────────────────┼─────────┤
+  │ 3   │ Reader: tự cuộn + retry ảnh lỗi      │ Client  │
+  └─────┴──────────────────────────────────────┴─────────┘
+
+  🔴 Đang bị chặn (2) — cần bạn quyết trước
+
+  ┌─────┬───────────────────┬───────────────────────────────────────────────┐
+  │  #  │     Hạng mục      │                  Vướng ở đâu                  │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │     │ Sửa 3 trường enum │ Level/Status/Type gửi giá trị backend không   │
+  │ 17  │  sai ở manga-form │ parse được. Phải làm trước #5. Client-only,   │
+  │     │                   │ không migration                               │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │     │ Cổng 18+ / phân   │ Backend không có trường tuổi. MangaLevel là   │
+  │ 4   │ loại độ tuổi      │ bậc truy cập. Cần enum ContentRating mới +    │
+  │     │                   │ migration trên DB thật                        │
+  └─────┴───────────────────┴───────────────────────────────────────────────┘
+
+  🟢 Làm được ngay, chỉ client (4)
+
+  ┌─────┬───────────────────┬───────────────────────────────────────────────┐
+  │  #  │     Hạng mục      │                    Ghi chú                    │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │     │ Truyện tương tự + │                                               │
+  │ 6   │  nút truyện ngẫu  │ Dùng filter-manga sẵn có, không cần API mới   │
+  │     │ nhiên             │                                               │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │ 8   │ sitemap.xml động  │ Đã có SSR (server.ts) và robots.txt — chỉ     │
+  │     │ + JSON-LD         │ thiếu 2 thứ này                               │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │ 9   │ PWA (manifest +   │ Chưa có manifest.webmanifest lẫn              │
+  │     │ service worker)   │ ngsw-config.json                              │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │     │ Tên khác          │ Backend đã có MangaAssociateNameEntity; cần   │
+  │ 7   │ (associate names) │ kiểm tra DTO public có trả không — nếu không  │
+  │     │                   │ thì đụng backend nhẹ                          │
+  └─────┴───────────────────┴───────────────────────────────────────────────┘
+
+  🟠 Cần backend, vừa (4)
+
+  ┌─────┬───────────────────────────────┬───────────────────────────────────┐
+  │  #  │           Hạng mục            │           Việc backend            │
+  ├─────┼───────────────────────────────┼───────────────────────────────────┤
+  │ 5   │ Lọc theo trạng thái / loại /  │ Thêm param vào filter-manga. Chặn │
+  │     │ loại trừ tag                  │  bởi #17                          │
+  ├─────┼───────────────────────────────┼───────────────────────────────────┤
+  │ 13  │ Report bình luận + report lỗi │ ReportEntity đã có — chủ yếu nối  │
+  │     │  chương                       │ endpoint                          │
+  ├─────┼───────────────────────────────┼───────────────────────────────────┤
+  │ 12  │ Feed chương mới từ truyện     │ Cần endpoint gộp theo follow      │
+  │     │ đang theo dõi                 │                                   │
+  ├─────┼───────────────────────────────┼───────────────────────────────────┤
+  │ 14  │ Trang profile công khai +     │ Cần endpoint user public + bảng   │
+  │     │ follow user                   │ follow-user                       │
+  └─────┴───────────────────────────────┴───────────────────────────────────┘
+
+  🔵 Cần backend, lớn (4)
+
+  ┌─────┬───────────────────┬───────────────────────────────────────────────┐
+  │  #  │     Hạng mục      │                 Việc backend                  │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │ 10  │ Reading status 6  │ Thêm cột vào FollowEntity + migration +       │
+  │     │ trạng thái        │ endpoint lọc                                  │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │     │ Custom list       │ Entity mới CustomList + bảng nối + CRUD.      │
+  │ 11  │ (MDList) + trang  │ BookmarkEntity có thể tái dụng                │
+  │     │ thư viện          │                                               │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │ 16  │ Forum công khai   │ BlogEntity/ThreadOfBlogEntity đã có, cần mở   │
+  │     │                   │ quyền + API cho user thường                   │
+  ├─────┼───────────────────┼───────────────────────────────────────────────┤
+  │     │ Nhóm dịch         │ Nặng nhất. Chapter thuộc nhóm, nhiều bản      │
+  │ 15  │ (scanlation       │ dịch/chương, trang nhóm, follow nhóm. Đổi     │
+  │     │ group)            │ schema sâu                                    │
+  └─────┴───────────────────┴───────────────────────────────────────────────┘
+
+  ---
+  Thứ tự phụ thuộc đáng lưu ý:
+  - #17 → #5 (sửa enum xong mới lọc được)
+  - #4 độc lập nhưng cần quyết định migration
+  - #15 nên làm cuối, vì nó đổi cấu trúc chapter mà #12 (feed) và #10 (reading
+  status) đều đọc vào
+
+  Gợi ý thứ tự nếu bạn muốn ăn chắc: 17 → 8 → 9 → 6 → 7 → 5 → 13 → 10 → 12 → 11
+  → 14 → 16 → 4 → 15.
+
+  Nói tôi biết bạn chốt hướng nào cho #4 và có muốn đổi thứ tự không, tôi bắt
+  đầu code.
+
+✻ Sautéed for 29s
+
+> Làm frontend thôi không đụng backend                                          
+
+● Rõ — chỉ sửa trong Yahallo-Client-Refactor. Tôi đọc API (chỉ đọc, không sửa)
+  để biết cái gì làm được thuần frontend:
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+● Đã rõ ranh giới. Bắt đầu bằng #17 (sửa enum sai) vì nó chặn #5:
+
+  Read 1 file (ctrl+o to expand)
+
+● Cả countriesOptions cũng sai (0-3 gán Nhật/Hàn/Trung, nhưng CountriesEnum là
+  mã ISO). Lấy giá trị thật:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Now tạo file hằng số enum ở client, phản chiếu đúng backend:
+
+● Write(src\app\core\models\manga-enums.ts)
+  ⎿  Wrote 110 lines to src\app\core\models\manga-enums.ts
+       1 /**
+         MangaEnums`,
+       3  * `CountryEnums/CountriesEnum`).
+       5  * ⚠️ Trước đây admin `manga-form` tự chế danh sách lựa chọn khô
+         ng khớp enum thật
+         tries gửi '0'…).
+       7  * Command của backend bind vào enum có kiểu nên những giá trị đ
+       8  * được — lưu xong là mất. Mọi nơi cần các trường này phải lấy h
+         ằng ở file này,
+      10  *
+     … +112 lines (ctrl+o to expand)
+
+● Update(src\app\admin\pages\manga-form\manga-form.component.ts)
+  ⎿  Added 6 lines, removed 26 lines
+      36    // Linked series/seasons — managed by RelatedMangaSelectorCom
+          ponent
+      37    linkedMangas: any[] = [];
+      38  
+      39 -  statusOptions = [                                            
+      40 -    { value: 'Ongoing', label: 'Đang ra' },                    
+      41 -    { value: 'Completed', label: 'Hoàn thành' },               
+      42 -    { value: 'Hiatus', label: 'Tạm dừng' },                    
+      43 -    { value: 'Hidden', label: 'Ẩn' },                          
+      44 -  ];                                                           
+      39 +  // Lấy từ core/models/manga-enums.ts — phản chiếu enum thật c
+         +ủa backend.                                                    
+      40 +  // Danh sách tự chế trước đây gửi lên giá trị không parse đượ
+         +c (xem file đó).                                               
+      41 +  statusOptions = MANGA_STATUS_OPTIONS;                        
+      42 +  typeOptions = MANGA_TYPE_OPTIONS;                            
+      43 +  levelOptions = MANGA_LEVEL_OPTIONS;                          
+      44 +  countriesOptions = COUNTRY_OPTIONS;                          
+      45  
+      46 -  typeOptions = [                                              
+      47 -    { value: 'Manga', label: 'Manga (Nhật)' },                 
+      48 -    { value: 'Manhwa', label: 'Manhwa (Hàn)' },                
+      49 -    { value: 'Manhua', label: 'Manhua (Trung)' },              
+      50 -  ];                                                           
+      51 -                                                               
+      52 -  levelOptions = [                                             
+      53 -    { value: '0', label: 'Mọi độ tuổi' },                      
+      54 -    { value: '1', label: '13+' },                              
+      55 -    { value: '2', label: '16+' },                              
+      56 -    { value: '3', label: '18+' },                              
+      57 -  ];                                                           
+      58 -                                                               
+      59 -  countriesOptions = [                                         
+      60 -    { value: '0', label: 'Nhật Bản' },                         
+      61 -    { value: '1', label: 'Hàn Quốc' },                         
+      62 -    { value: '2', label: 'Trung Quốc' },                       
+      63 -    { value: '3', label: 'Khác' },                             
+      64 -  ];                                                           
+      65 -                                                               
+      46    constructor(
+      47      private fb: FormBuilder,
+      48      private route: ActivatedRoute,
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\admin\pages\manga-form\manga-form.component.ts)
+  ⎿  Added 4 lines
+       4  import { forkJoin } from 'rxjs';
+       5  import { ToastrService } from 'ngx-toastr';
+       6  import { AdminMangaService } from '../../services/admin-manga.s
+          ervice';
+       7 +import {                                                       
+       8 +  MANGA_STATUS_OPTIONS, MANGA_TYPE_OPTIONS, MANGA_LEVEL_OPTIONS
+         +, COUNTRY_OPTIONS,                                             
+       9 +  MangaStatus, MangaType, MangaLevel, Countries,               
+      10 +} from '../../../core/models/manga-enums';                     
+      11  
+      12  @Component({
+      13    selector: 'app-manga-form',
+
+● Giờ sửa giá trị mặc định, patch khi sửa, và buildFormData:
+
+● Update(src\app\admin\pages\manga-form\manga-form.component.ts)
+  ⎿  Added 5 lines, removed 4 lines
+      59      this.form = this.fb.group({
+      60        name: ['', Validators.required],
+      61        description: [''],
+      62 -      type: ['Manga'],                                         
+      63 -      status: ['Ongoing'],                                     
+      64 -      level: ['0'],                                            
+      65 -      countries: ['0'],                                        
+      62 +      // Giá trị SỐ đúng enum backend, không phải chuỗi tên tự 
+         +đặt.                                                           
+      63 +      type: [MangaType.Series],                                
+      64 +      status: [MangaStatus.Active],                            
+      65 +      level: [MangaLevel.Normal],                              
+      66 +      countries: [Countries.JP],                               
+      67        season: [1, [Validators.min(1)]],
+      68      });
+      69  
+
+● Update(src\app\admin\pages\manga-form\manga-form.component.ts)
+  ⎿  Added 6 lines, removed 4 lines
+       99            this.form.patchValue({
+      100              name: m.name,
+      101              description: m.description,
+      102 -            type: m.type,                                     
+      103 -            status: m.status,                                 
+      104 -            level: String(m.level ?? '0'),                    
+      105 -            countries: String(m.countries ?? '0'),            
+      102 +            // API trả số (hoặc chuỗi số) — ép về number để kh
+          +ớp [value] của                                                
+      103 +            // <option>, nếu không select sẽ không chọn đúng m
+          +ục nào.                                                       
+      104 +            type: Number(m.type ?? MangaType.Series),         
+      105 +            status: Number(m.status ?? MangaStatus.Active),   
+      106 +            level: Number(m.level ?? MangaLevel.Normal),      
+      107 +            countries: Number(m.countries ?? Countries.JP),   
+      108              season: m.season ?? 1,
+      109            });
+      110            // Populate multi-select selections
+
+● Update(src\app\admin\pages\manga-form\manga-form.component.ts)
+  ⎿  Added 5 lines, removed 4 lines
+      139      const v = this.form.value;
+      140      fd.append('Name', v.name);
+      141      fd.append('Description', v.description ?? '');
+      142 -    fd.append('Type', v.type);                                
+      143 -    fd.append('Status', v.status);                            
+      144 -    fd.append('Level', v.level);                              
+      145 -    fd.append('Countries', v.countries);                      
+      142 +    // Enum backend nhận số — String() ở đây chỉ là yêu cầu củ
+          +a FormData.                                                   
+      143 +    fd.append('Type', String(v.type));                        
+      144 +    fd.append('Status', String(v.status));                    
+      145 +    fd.append('Level', String(v.level));                      
+      146 +    fd.append('Countries', String(v.countries));              
+      147      fd.append('Season', String(v.season ?? 1));
+      148      this.selectedTagIds.forEach(id    => fd.append('TagIds',  
+             id));
+      149      this.selectedAuthorIds.forEach(id => fd.append('AuthorIds'
+           , id));
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● manga-list đã đúng status/type (1-3, 1-4) — chỉ levelOptions sai. Xem cách nó
+  dùng trước khi sửa:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\admin\pages\manga-list\manga-list.component.ts)
+  ⎿  Added 6 lines, removed 6 lines
+      63      { value: '3', label: 'Dojinshi' },
+      64      { value: '4', label: 'Series' },
+      65    ];
+      66 -  readonly levelOptions = [                                    
+      67 -    { value: '0', label: 'Mọi độ tuổi' },                      
+      68 -    { value: '1', label: '13+' },                              
+      69 -    { value: '2', label: '16+' },                              
+      70 -    { value: '3', label: '18+' },                              
+      71 -  ];                                                           
+      66 +  // `MangaLevel` là BẬC TRUY CẬP (Normal..Master), không phải 
+         +phân loại độ tuổi                                              
+      67 +  // — nhãn "13+/16+/18+" trước đây là sai, và giá trị '0' khôn
+         +g có trong enum.                                               
+      68 +  // Giữ kiểu chuỗi vì bộ lọc này gửi thẳng lên query param.   
+      69 +  readonly levelOptions = MANGA_LEVEL_OPTIONS.map(             
+      70 +    o => ({ value: String(o.value), label: o.label })          
+      71 +  );                                                           
+      72    readonly displayModeOptions = [
+      73      { value: DisplayMode.Visible,  label: 'Đang hiện' },
+      74      { value: DisplayMode.Hidden,   label: 'Đã ẩn' },
+
+  Ran 1 shell command (ctrl+o to expand)
+● Update(src\app\admin\pages\manga-list\manga-list.component.ts)
+  ⎿  Added 1 line
+       5  import { Subject, debounceTime, takeUntil } from 'rxjs';
+       6  import { AdminMangaService, AdminMangaFilter, DisplayMode } fro
+          m '../../services/admin-manga.service';
+       7  import { MangaSortBy } from '../../../core/models/manga.interfa
+          ce';
+       8 +import { MANGA_LEVEL_OPTIONS } from '../../../core/models/manga
+         +-enums';                                                       
+       9  import { ConfirmDialogComponent } from '../../shared/confirm-di
+          alog/confirm-dialog.component';
+      10  import { PermissionService } from '../../../core/services/permi
+          ssion.service';
+      11  import { AuthService } from '../../../core/services/auth.servic
+          e';
+
+  Ran 1 shell command (ctrl+o to expand)
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+● Giờ thêm 3 bộ lọc status / type / countries vào pipeline tìm kiếm:
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 6 lines
+      37    authorId?: string;
+      38    artistId?: string;
+      39    season?: number;
+      40 +  /** `MangaStatus` — đang ra / tạm ngưng / hoàn thành. */     
+      41 +  status?: number;                                             
+      42 +  /** `MangaType` — oneshot / OVA / doujinshi / nhiều chương. *
+         +/                                                              
+      43 +  type?: number;                                               
+      44 +  /** `CountriesEnum` — nước xuất xứ (Nhật/Hàn/Trung…). */     
+      45 +  countries?: number;                                          
+      46    sortBy?: MangaSortBy;
+      47    reverseSort?: boolean;
+      48  }
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 3 lines
+      548        authorId: this.selectedAuthor?.id,
+      549        artistId: this.selectedArtist?.id,
+      550        season: this.selectedYear ?? undefined,
+      551 +      status: this.selectedStatus ?? undefined,               
+      552 +      type: this.selectedType ?? undefined,                   
+      553 +      countries: this.selectedCountry ?? undefined,           
+      554        sortBy: this.sortBy ?? undefined,
+      555        reverseSort: this.sortBy ? this.reverseSort : undefined,
+      556      };
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 3 lines
+      617        authorId: c.authorId,
+      618        artistId: c.artistId,
+      619        season: c.season,
+      620 +      status: c.status,                                       
+      621 +      type: c.type,                                           
+      622 +      countries: c.countries,                                 
+      623        sortBy: c.sortBy,
+      624        reverseSort: c.reverseSort,
+      625        pageNo: page,
+
+● Giờ thêm state, xử lý chọn, đồng bộ URL:
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 14 lines
+      69    tags: Tag[] = [];
+      70    selectedCategories: string[] = [];
+      71    selectedYear: number | null = null;
+      72 +                                                               
+      73 +  // Bộ lọc trạng thái / hình thức / xuất xứ — `filter-manga` đ
+         +ã nhận sẵn 3 param                                             
+      74 +  // này, trước đây client chỉ không gửi lên. Giá trị là số đún
+         +g enum backend.                                                
+      75 +  selectedStatus: number | null = null;                        
+      76 +  selectedType: number | null = null;                          
+      77 +  selectedCountry: number | null = null;                       
+      78 +                                                               
+      79 +  readonly statusOptions = MANGA_STATUS_OPTIONS;               
+      80 +  readonly typeOptions = MANGA_TYPE_OPTIONS;                   
+      81 +  readonly countryOptions = COUNTRY_OPTIONS;                   
+      82 +                                                               
+      83 +  statusOpen = false;                                          
+      84 +  typeOpen = false;                                            
+      85 +  countryOpen = false;                                         
+      86    yearOpen = false;
+      87    readonly years: number[] = Array.from(
+      88      { length: new Date().getFullYear() - 1989 },
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 51 lines
+      340      if (!target.closest('.year-dd')) {
+      341        this.yearOpen = false;
+      342      }
+      343 +    if (!target.closest('.status-dd')) this.statusOpen = false
+          +;                                                             
+      344 +    if (!target.closest('.type-dd')) this.typeOpen = false;   
+      345 +    if (!target.closest('.country-dd')) this.countryOpen = fal
+          +se;                                                           
+      346    }
+      347  
+      348    selectYear(y: number | null): void {
+     ...
+      353    }
+      354  
+      355    /**
+      356 +   * Chức năng: chọn trạng thái ra chương rồi chạy lại tìm kiế
+          +m.                                                            
+      357 +   * Yêu cầu: `s` — giá trị `MangaStatus`, `null` để bỏ lọc.  
+      358 +   * Kết quả trả về: không (đổi `selectedStatus`, gọi lại API 
+          +qua afterCriteriaChange).                                     
+      359 +   * Exception: không ném — chọn lại đúng giá trị cũ thì bỏ qu
+          +a, không gọi API thừa.                                        
+      360 +   */                                                         
+      361 +  selectStatus(s: number | null): void {                      
+      362 +    this.statusOpen = false;                                  
+      363 +    if (this.selectedStatus === s) return;                    
+      364 +    this.selectedStatus = s;                                  
+      365 +    this.afterCriteriaChange();                               
+      366 +  }                                                           
+      367 +                                                              
+      368 +  /**                                                         
+      369 +   * Chức năng: chọn hình thức phát hành (oneshot/OVA/doujinsh
+          +i/nhiều chương).                                              
+      370 +   * Yêu cầu: `t` — giá trị `MangaType`, `null` để bỏ lọc.    
+      371 +   * Kết quả trả về: không (đổi `selectedType`, gọi lại API). 
+      372 +   * Exception: không ném — trùng giá trị cũ thì bỏ qua.      
+      373 +   */                                                         
+      374 +  selectType(t: number | null): void {                        
+      375 +    this.typeOpen = false;                                    
+      376 +    if (this.selectedType === t) return;                      
+      377 +    this.selectedType = t;                                    
+      378 +    this.afterCriteriaChange();                               
+      379 +  }                                                           
+      380 +                                                              
+      381 +  /**                                                         
+      382 +   * Chức năng: chọn nước xuất xứ.                            
+      383 +   * Yêu cầu: `c` — giá trị `CountriesEnum`, `null` để bỏ lọc.
+      384 +   * Kết quả trả về: không (đổi `selectedCountry`, gọi lại API
+          +).                                                            
+      385 +   * Exception: không ném — trùng giá trị cũ thì bỏ qua.      
+      386 +   */                                                         
+      387 +  selectCountry(c: number | null): void {                     
+      388 +    this.countryOpen = false;                                 
+      389 +    if (this.selectedCountry === c) return;                   
+      390 +    this.selectedCountry = c;                                 
+      391 +    this.afterCriteriaChange();                               
+      392 +  }                                                           
+      393 +                                                              
+      394 +  clearStatus(): void { this.selectStatus(null); }            
+      395 +  clearType(): void { this.selectType(null); }                
+      396 +  clearCountry(): void { this.selectCountry(null); }          
+      397 +                                                              
+      398 +  /** Nhãn đang chọn để hiện trên nút dropdown; `null` khi chư
+          +a lọc. */                                                     
+      399 +  get statusLabel(): string | null { return enumLabel(this.sta
+          +tusOptions, this.selectedStatus); }                           
+      400 +  get typeLabel(): string | null { return enumLabel(this.typeO
+          +ptions, this.selectedType); }                                 
+      401 +  get countryLabel(): string | null { return enumLabel(this.co
+          +untryOptions, this.selectedCountry); }                        
+      402 +                                                              
+      403 +  /**                                                         
+      404     * Tier 1 — đổi đối tượng tìm kiếm. Hiện chỉ Manga hoạt động
+            đầy đủ (list manga
+      405     * + full bộ lọc). Tag/Author/Artist đang DỰNG KHUNG: chỉ cò
+           n search-bar + lọc
+      406     * năm, kết quả là placeholder "info entity" — sẽ wiring ở p
+           hần tier tương lai.
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 3 lines
+      1045    get hasActiveFilter(): boolean {
+      1046      return this.selectedCategories.length > 0
+      1047          || this.selectedYear != null
+      1048 +        || this.selectedStatus != null                       
+      1049 +        || this.selectedType != null                         
+      1050 +        || this.selectedCountry != null                      
+      1051          || !!this.selectedAuthor
+      1052          || !!this.selectedArtist;
+      1053    }
+
+● Giờ đồng bộ URL (deep-link / back-button) và import:
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 3 lines
+      736      if (this.selectedAuthor) qp.author = this.selectedAuthor.i
+           d;
+      737      if (this.selectedArtist) qp.artist = this.selectedArtist.i
+           d;
+      738      if (this.selectedYear != null) qp.year = this.selectedYear
+           ;
+      739 +    if (this.selectedStatus != null) qp.status = this.selected
+          +Status;                                                       
+      740 +    if (this.selectedType != null) qp.type = this.selectedType
+          +;                                                             
+      741 +    if (this.selectedCountry != null) qp.country = this.select
+          +edCountry;                                                    
+      742      if (this.sortBy) qp.sort = this.sortBy;
+      743      if (this.sortBy && !this.reverseSort) qp.asc = 1;
+      744      if (this.currentPage > 1) qp.page = this.currentPage;
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 2 lines, removed 1 line
+      265  
+      266    /** Có param nào đáng phục hồi vào bộ lọc không? */
+      267    private hasRestorableParams(params: any): boolean {
+      268 -    return ['q', 'prefix', 'tagId', 'tags', 'author', 'artist'
+          -, 'year', 'page', 'sort', 'asc']                              
+      268 +    return ['q', 'prefix', 'tagId', 'tags', 'author', 'artist'
+          +, 'year', 'page', 'sort', 'asc',                              
+      269 +            'status', 'type', 'country']                      
+      270        .some(k => params?.[k] != null);
+      271    }
+      272  
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 5 lines
+      301        const y = Number(params['year']);
+      302        if (!Number.isNaN(y)) this.selectedYear = y;
+      303      }
+      304 +    // Chỉ nhận giá trị CÓ trong bảng lựa chọn — URL do người 
+          +dùng sửa được, số                                             
+      305 +    // lạ lọt xuống API sẽ thành lỗi 400 thay vì im lặng bỏ qu
+          +a bộ lọc.                                                     
+      306 +    this.selectedStatus = this.parseEnumParam(params['status']
+          +, this.statusOptions);                                        
+      307 +    this.selectedType = this.parseEnumParam(params['type'], th
+          +is.typeOptions);                                              
+      308 +    this.selectedCountry = this.parseEnumParam(params['country
+          +'], this.countryOptions);                                     
+      309      if (params['sort']) {
+      310        const s = this.sortOptions.find(o => o.value === params[
+           'sort']);
+      311        if (s) this.sortBy = s.value;
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 15 lines
+      397      this.afterCriteriaChange();
+      398    }
+      399  
+      400 +  /**                                                         
+      401 +   * Chức năng: đọc một query param enum từ URL, chỉ chấp nhận
+          + giá trị có thật                                              
+      402 +   * trong bảng lựa chọn.                                     
+      403 +   * Yêu cầu: `raw` — giá trị thô từ URL; `options` — bảng lựa
+          + chọn hợp lệ.                                                 
+      404 +   * Kết quả trả về: số enum hợp lệ, hoặc `null` nếu thiếu / k
+          +hông phải số /                                                
+      405 +   * không nằm trong bảng.                                    
+      406 +   * Exception: không ném — giá trị rác coi như không lọc.    
+      407 +   */                                                         
+      408 +  private parseEnumParam(raw: any, options: EnumOption<number>
+          +[]): number | null {                                          
+      409 +    if (raw == null || raw === '') return null;               
+      410 +    const n = Number(raw);                                    
+      411 +    if (Number.isNaN(n)) return null;                         
+      412 +    return options.some(o => o.value === n) ? n : null;       
+      413 +  }                                                           
+      414 +                                                              
+      415    clearStatus(): void { this.selectStatus(null); }
+      416    clearType(): void { this.selectType(null); }
+      417    clearCountry(): void { this.selectCountry(null); }
+
+● Update(src\app\features\manga\manga-search\manga-search.component.ts)
+  ⎿  Added 3 lines
+       8  import { UserPreferencesService } from '../../../core/services/
+          user-preferences.service';
+       9  import { Manga, Tag } from '../../../core/models/interfaces';
+      10  import { MangaSortBy } from '../../../core/models/manga.interfa
+          ce';
+      11 +import {                                                       
+      12 +  MANGA_STATUS_OPTIONS, MANGA_TYPE_OPTIONS, COUNTRY_OPTIONS, En
+         +umOption, enumLabel,                                           
+      13 +} from '../../../core/models/manga-enums';                     
+      14  
+      15  export interface RecommendItem {
+      16    id: string;
+
+● Giờ thêm UI. Xem cấu trúc dropdown năm để làm theo cùng kiểu:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\features\manga\manga-search\manga-search.component.html)  ⎿  Added 51 lines
+      114                    [class.active]="selectedYear === y" (click)=
+           "selectYear(y)">{{ y }}</button>
+      115          </div>
+      116        </div>
+      117 +                                                              
+      118 +      <!-- Trạng thái ra chương -->                           
+      119 +      <label>{{ 'SEARCH.FILTER_STATUS' | translate }}</label> 
+      120 +      <div class="year-dd status-dd" [class.year-dd--open]="st
+          +atusOpen">                                                    
+      121 +        <button type="button" class="year-dd__trigger" (click)
+          +="statusOpen = !statusOpen">                                  
+      122 +          <span>{{ statusLabel ?? ('SEARCH.ALL' | translate) }
+          +}</span>                                                      
+      123 +          <span class="badge-x" *ngIf="selectedStatus !== null
+          +" role="button" tabindex="-1"                                 
+      124 +                aria-label="clear" (click)="$event.stopPropaga
+          +tion(); clearStatus()"><i class="fa-solid fa-xmark"></i></span
+          +>                                                             
+      125 +          <i class="fa-solid fa-chevron-down"></i>            
+      126 +        </button>                                             
+      127 +        <div class="year-dd__panel" *ngIf="statusOpen">       
+      128 +          <button type="button" class="year-dd__item" [class.a
+          +ctive]="selectedStatus === null"                              
+      129 +                  (click)="selectStatus(null)">{{ 'SEARCH.ALL'
+          + | translate }}</button>                                      
+      130 +          <button type="button" class="year-dd__item" *ngFor="
+          +let o of statusOptions"                                       
+      131 +                  [class.active]="selectedStatus === o.value" 
+          +(click)="selectStatus(o.value)">{{ o.label }}</button>        
+      132 +        </div>                                                
+      133 +      </div>                                                  
+      134 +                                                              
+      135 +      <!-- Hình thức phát hành -->                            
+      136 +      <label>{{ 'SEARCH.FILTER_TYPE' | translate }}</label>   
+      137 +      <div class="year-dd type-dd" [class.year-dd--open]="type
+          +Open">                                                        
+      138 +        <button type="button" class="year-dd__trigger" (click)
+          +="typeOpen = !typeOpen">                                      
+      139 +          <span>{{ typeLabel ?? ('SEARCH.ALL' | translate) }}<
+          +/span>                                                        
+      140 +          <span class="badge-x" *ngIf="selectedType !== null" 
+          +role="button" tabindex="-1"                                   
+      141 +                aria-label="clear" (click)="$event.stopPropaga
+          +tion(); clearType()"><i class="fa-solid fa-xmark"></i></span> 
+      142 +          <i class="fa-solid fa-chevron-down"></i>            
+      143 +        </button>                                             
+      144 +        <div class="year-dd__panel" *ngIf="typeOpen">         
+      145 +          <button type="button" class="year-dd__item" [class.a
+          +ctive]="selectedType === null"                                
+      146 +                  (click)="selectType(null)">{{ 'SEARCH.ALL' |
+          + translate }}</button>                                        
+      147 +          <button type="button" class="year-dd__item" *ngFor="
+          +let o of typeOptions"                                         
+      148 +                  [class.active]="selectedType === o.value" (c
+          +lick)="selectType(o.value)">{{ o.label }}</button>            
+      149 +        </div>                                                
+      150 +      </div>                                                  
+      151 +                                                              
+      152 +      <!-- Nước xuất xứ -->                                   
+      153 +      <label>{{ 'SEARCH.FILTER_COUNTRY' | translate }}</label>
+      154 +      <div class="year-dd country-dd" [class.year-dd--open]="c
+          +ountryOpen">                                                  
+      155 +        <button type="button" class="year-dd__trigger" (click)
+          +="countryOpen = !countryOpen">                                
+      156 +          <span>{{ countryLabel ?? ('SEARCH.ALL' | translate) 
+          +}}</span>                                                     
+      157 +          <span class="badge-x" *ngIf="selectedCountry !== nul
+          +l" role="button" tabindex="-1"                                
+      158 +                aria-label="clear" (click)="$event.stopPropaga
+          +tion(); clearCountry()"><i class="fa-solid fa-xmark"></i></spa
+          +n>                                                            
+      159 +          <i class="fa-solid fa-chevron-down"></i>            
+      160 +        </button>                                             
+      161 +        <div class="year-dd__panel" *ngIf="countryOpen">      
+      162 +          <button type="button" class="year-dd__item" [class.a
+          +ctive]="selectedCountry === null"                             
+      163 +                  (click)="selectCountry(null)">{{ 'SEARCH.ALL
+          +' | translate }}</button>                                     
+      164 +          <button type="button" class="year-dd__item" *ngFor="
+          +let o of countryOptions"                                      
+      165 +                  [class.active]="selectedCountry === o.value"
+          + (click)="selectCountry(o.value)">{{ o.label }}</button>      
+      166 +        </div>                                                
+      167 +      </div>                                                  
+      168      </div>
+      169  
+      170      <!-- Bộ lọc theo thể loại/tác giả/hoạ sĩ CHỈ áp cho đối tư
+           ợng Manga.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Cần bọc mỗi cặp label+dropdown để xếp lưới cho gọn:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Sửa vị trí comment bị lệch do bọc div:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\features\manga\manga-search\manga-search.component.scss)
+  ⎿  Added 15 lines, removed 2 lines
+      451  }
+      452  
+      453  // ── Simple category chips ──────────────────────────────────
+           ──────────────────
+      454 +// 4 bộ lọc dropdown (năm / trạng thái / hình thức / xuất xứ).
+          + Xếp lưới 2 cột                                               
+      455 +// cho đỡ tốn chiều dọc; cột trái vốn đã hẹp nên không để 4 cộ
+          +t.                                                            
+      456  .filter-year-row {
+      457 +  display: grid;                                              
+      458 +  grid-template-columns: repeat(2, minmax(0, 1fr));           
+      459 +  gap: 10px;                                                  
+      460 +  margin-bottom: 12px;                                        
+      461 +  min-width: 0;                                               
+      462 +                                                              
+      463 +  label { font-size: 0.8rem; font-weight: 600; color: var(--te
+          +xt-secondary); }                                              
+      464 +}                                                             
+      465 +                                                              
+      466 +.filter-field {                                               
+      467    display: flex;
+      468    flex-direction: column;
+      469    gap: 6px;
+      458 -  margin-bottom: 12px;                                        
+      470    min-width: 0;
+      471 +}                                                             
+      472  
+      461 -  label { font-size: 0.8rem; font-weight: 600; color: var(--te
+          -xt-secondary); }                                              
+      473 +@media (max-width: 480px) {                                   
+      474 +  .filter-year-row { grid-template-columns: 1fr; gap: 8px; }  
+      475  }
+      476  
+      477  .year-dd {
+
+● Thêm khoá i18n rồi build:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+● Thêm khối "Truyện tương tự" theo độ trùng tag, cùng kiểu với 2 khối sẵn có:
+
+● Update(src\app\features\manga\manga-detail\manga-detail.component.ts)
+  ⎿  Added 3 lines
+      34    synopsisExpanded = false;
+      35    sameAuthorManga: Manga[] = [];
+      36    sameArtistManga: Manga[] = [];
+      37 +  /** Truyện tương tự — xếp theo số thể loại trùng với truyện đ
+         +ang xem. */                                                    
+      38 +  similarManga: Manga[] = [];                                  
+      39 +  similarLoading = false;                                      
+      40    // Download range picker (download-all)
+      41    showDownloadPanel = false;
+      42    readonly MAX_RANGE = 10;
+
+● Update(src\app\features\manga\manga-detail\manga-detail.component.ts)
+  ⎿  Added 39 lines
+      363            this.sameArtistManga = (r.data || []).filter(m => m.
+           id !== this.mangaId).slice(0, 4);
+      364          });
+      365      }
+      366 +                                                              
+      367 +    this.loadSimilarManga();                                  
+      368    }
+      369  
+      370    /**
+      371 +   * Chức năng: gợi ý truyện tương tự dựa trên thể loại trùng 
+          +nhau. Lấy rộng theo                                           
+      372 +   * vài tag đầu rồi xếp hạng tại client theo SỐ tag trùng — l
+          +àm vậy vì                                                     
+      373 +   * `filter-manga` không có tham số "độ liên quan", và ghép A
+          +ND hết tag thì                                                
+      374 +   * thường ra rỗng.                                          
+      375 +   * Yêu cầu: `this.manga` đã tải xong và có ít nhất 1 thể loạ
+          +i.                                                            
+      376 +   * Kết quả trả về: không (gán `similarManga`, tối đa 6 truyệ
+          +n, bỏ chính nó).                                              
+      377 +   * Exception: không ném — lỗi API để danh sách rỗng, khối nà
+          +y tự ẩn.                                                      
+      378 +   */                                                         
+      379 +  loadSimilarManga(): void {                                  
+      380 +    const tagIds = (this.manga?.tags ?? [])                   
+      381 +      .map((t: any) => t.id)                                  
+      382 +      .filter(Boolean)                                        
+      383 +      .slice(0, 3);                                           
+      384 +    if (!tagIds.length) return;                               
+      385 +                                                              
+      386 +    const own = new Set<string>((this.manga?.tags ?? []).map((
+          +t: any) => t.id));                                            
+      387 +    this.similarLoading = true;                               
+      388 +    this.mangaService.filterPaginated({ tagIds, pageSize: 24 }
+          +)                                                             
+      389 +      .pipe(takeUntil(this.destroy$))                         
+      390 +      .subscribe({                                            
+      391 +        next: r => {                                          
+      392 +          this.similarManga = (r.data || [])                  
+      393 +            .filter(m => m.id !== this.mangaId)               
+      394 +            .map(m => ({                                      
+      395 +              manga: m,                                       
+      396 +              score: (m.tags ?? []).filter((t: any) => own.has
+          +(t.id)).length,                                               
+      397 +            }))                                               
+      398 +            .sort((a, b) => b.score - a.score)                
+      399 +            .slice(0, 6)                                      
+      400 +            .map(x => x.manga);                               
+      401 +          this.similarLoading = false;                        
+      402 +        },                                                    
+      403 +        error: () => { this.similarLoading = false; }         
+      404 +      });                                                     
+      405 +  }                                                           
+      406 +                                                              
+      407 +  /**                                                         
+      408     * Chức năng: Router link tới trang đọc của một chương.
+      409     * Yêu cầu: `chapter` thuộc bộ đang xem; `page` là số trang 
+           0-based (mặc định 0
+      410     *   = đọc từ đầu chương; nút "Đọc tiếp" truyền trang đã lưu
+           ).
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\features\manga\manga-detail\manga-detail.component.html)
+  ⎿  Added 23 lines
+      308            </div>
+      309          </div>
+      310  
+      311 +        <!-- Truyện tương tự (xếp theo số thể loại trùng) --> 
+      312 +        <div class="card side-card mb-3" *ngIf="similarLoading
+          + || similarManga.length > 0">                                 
+      313 +          <div class="card-body">                             
+      314 +            <div class="side-card__header">                   
+      315 +              <h4 class="side-card__title">                   
+      316 +                <i class="fa-solid fa-wand-magic-sparkles me-2
+          +"></i>{{ 'MANGA.SIMILAR' | translate }}                       
+      317 +              </h4>                                           
+      318 +            </div>                                            
+      319 +                                                              
+      320 +            <div class="side-card__list" *ngIf="similarLoading
+          +">                                                            
+      321 +              <span class="skeleton side-manga-skel" *ngFor="l
+          +et s of [1,2,3,4]"></span>                                    
+      322 +            </div>                                            
+      323 +                                                              
+      324 +            <div class="side-card__list" *ngIf="!similarLoadin
+          +g">                                                           
+      325 +              <a class="side-manga-item" *ngFor="let m of simi
+          +larManga"                                                     
+      326 +                 [routerLink]="['/manga', m.id]">             
+      327 +                <img [src]="m.mangaThumbnail" [alt]="m.display
+          +Name" appImageFallback loading="lazy">                        
+      328 +                <span class="side-manga-item__name">{{ m.displ
+          +ayName }}</span>                                              
+      329 +              </a>                                            
+      330 +            </div>                                            
+      331 +          </div>                                              
+      332 +        </div>                                                
+      333 +                                                              
+      334        </aside>
+      335      </div>
+      336    </div>
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Giờ nút "Truyện ngẫu nhiên". Xem service và header:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\core\services\manga.service.ts)
+  ⎿  Added 23 lines
+      627      );
+      628    }
+      629  
+      630 +  /**                                                         
+      631 +   * Chức năng: lấy id một truyện ngẫu nhiên. `filter-manga` k
+          +hông có chế độ                                                
+      632 +   * random nên phải 2 nhịp: nhịp đầu xin 1 bản ghi chỉ để biế
+          +t `totalCount`,                                               
+      633 +   * nhịp sau nhảy tới một trang ngẫu nhiên với `pageSize = 1`
+          +.                                                             
+      634 +   * Yêu cầu: không.                                          
+      635 +   * Kết quả trả về: Observable emit id truyện rồi complete; e
+          +mit `null` khi kho                                            
+      636 +   * truyện rỗng hoặc API lỗi.                                
+      637 +   * Exception: không ném — mọi lỗi quy về `null` để nơi gọi c
+          +hỉ cần báo toast.                                             
+      638 +   */                                                         
+      639 +  getRandomMangaId(): Observable<string | null> {             
+      640 +    return this.filterPaginated({ pageNo: 1, pageSize: 1 }).pi
+          +pe(                                                           
+      641 +      switchMap(first => {                                    
+      642 +        const total = first.totalCount ?? 0;                  
+      643 +        if (!total) return of(null);                          
+      644 +        const page = Math.floor(Math.random() * total) + 1;   
+      645 +        return this.filterPaginated({ pageNo: page, pageSize: 
+          +1 }).pipe(                                                    
+      646 +          map(r => r.data?.[0]?.id ?? null)                   
+      647 +        );                                                    
+      648 +      }),                                                     
+      649 +      catchError(() => of(null))                              
+      650 +    );                                                        
+      651 +  }                                                           
+      652 +                                                              
+      653    getTotalCount(): Observable<number> {
+      654      return this.getPaginated(1, 1).pipe(
+      655        map((res: any) => res?.data?.totalCount ?? res?.totalCou
+           nt ?? 0)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\core\services\manga.service.ts)
+  ⎿  Added 1 line, removed 1 line
+      1  import { HttpClient, HttpParams } from '@angular/common/http';
+      2  import { Injectable } from '@angular/core';
+      3  import { Observable, of } from 'rxjs';
+      4 -import { map } from 'rxjs/operators';                           
+      4 +import { map, switchMap, catchError } from 'rxjs/operators';    
+      5  import { environment } from '../../../environments/environment';
+      6  import { Chapter, Manga, MangaDetailDto, MangaStatsDto, MangaPag
+         ination, PagedResult } from '../models/interfaces';
+      7  import { ChapterImage, ChapterSortBy } from '../models/chapter.i
+         nterface';
+
+● Giờ nối nút vào header (cả desktop và menu mobile):
+
+● Update(src\app\Layout\header\header.component.html)
+  ⎿  Added 4 lines
+      24        </div>
+      25        <a class="nav-link" routerLink="/top-manga">{{ 'NAV.TOP_M
+          ANGA' | translate }}</a>
+      26        <a class="nav-link" routerLink="/search/advanced">{{ 'NAV
+          .ADVANCED_SEARCH' | translate }}</a>
+      27 +      <button type="button" class="nav-link nav-link--btn" (cli
+         +ck)="goRandomManga()"                                          
+      28 +              [disabled]="randomLoading">                      
+      29 +        <i class="fa-solid fa-shuffle me-1" [class.fa-spin]="ra
+         +ndomLoading"></i>{{ 'NAV.RANDOM' | translate }}                
+      30 +      </button>                                                
+      31      </nav>
+      32  
+      33      <!-- Actions -->
+
+  Ran 1 shell command (ctrl+o to expand)
+● Update(src\app\Layout\header\header.component.html)
+  ⎿  Added 3 lines
+      228      <a routerLink="/search/advanced" (click)="isMenuOpen=false
+           ">
+      229        <i class="fa-solid fa-search me-2"></i>{{ 'NAV.ADVANCED_
+           SEARCH' | translate }}
+      230      </a>
+      231 +    <a role="button" tabindex="0" (click)="isMenuOpen=false; g
+          +oRandomManga()">                                              
+      232 +      <i class="fa-solid fa-shuffle me-2" [class.fa-spin]="ran
+          +domLoading"></i>{{ 'NAV.RANDOM' | translate }}                
+      233 +    </a>                                                      
+      234      <hr>
+      235      <div class="mobile-categories">
+      236        <strong class="text-muted">{{ 'NAV.CATEGORIES' | transla
+           te }}</strong>
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(src\app\Layout\header\header.component.ts)
+  ⎿  Added 20 lines
+       98      private adminState: AdminStateService,
+       99      private masterData: MasterDataService,
+      100      private router: Router,
+      101 +    private mangaService: MangaService,                       
+      102 +    private toastr: ToastrService,                            
+      103    ) {}
+      104  
+      105 +  /**                                                         
+      106 +   * Chức năng: mở một truyện ngẫu nhiên. Chặn bấm liên tiếp b
+          +ằng `randomLoading`                                           
+      107 +   * vì mỗi lần gọi tốn 2 request.                            
+      108 +   * Yêu cầu: không.                                          
+      109 +   * Kết quả trả về: không (điều hướng sang `/manga/:id`).    
+      110 +   * Exception: không ném — kho rỗng hoặc API lỗi thì hiện toa
+          +st và đứng yên.                                               
+      111 +   */                                                         
+      112 +  goRandomManga(): void {                                     
+      113 +    if (this.randomLoading) return;                           
+      114 +    this.randomLoading = true;                                
+      115 +    this.mangaService.getRandomMangaId()                      
+      116 +      .pipe(takeUntil(this.destroy$), finalize(() => this.rand
+          +omLoading = false))                                           
+      117 +      .subscribe(id => {                                      
+      118 +        if (id) this.router.navigate(['/manga', id]);         
+      119 +        else this.toastr.info('Chưa có truyện nào để bốc ngẫu 
+          +nhiên');                                                      
+      120 +      });                                                     
+      121 +  }                                                           
+      122 +                                                              
+      123    ngOnInit(): void {
+      124      this.availableLangs = this.translation.getAvailableLangs()
+           ;
+      125      this.currentLang = this.translation.currentLang;
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Thêm i18n cho nút và style, rồi build:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Xong 6/17. Build pass sau mỗi bước.
+
+  Đã làm trong lượt này (thuần frontend)
+
+  #17 — Sửa enum sai ở admin. Hoá ra là 4 trường chứ không phải 3:
+  countriesOptions cũng gửi 0-3 cho Nhật/Hàn/Trung, nhưng CountriesEnum là mã
+  ISO (JP=112, KR=119, CN=46). Tạo core/models/manga-enums.ts làm nguồn duy
+  nhất, phản chiếu đúng backend, rồi trỏ manga-form + manga-list vào đó. Giá trị
+  giờ là số đúng enum; patchValue ép Number() để <select> chọn đúng mục khi mở
+  form sửa.
+
+  #5 — Lọc trạng thái / hình thức / xuất xứ ở /search/advanced. filter-manga vốn
+  đã nhận sẵn 3 param này, client chỉ chưa gửi. Nối vào đúng pipeline
+  buildMangaCriteria → runMangaSearch nên kết hợp được với tag/tác giả/năm sẵn
+  có. Có deep-link qua URL (?status=&type=&country=), và parseEnumParam chỉ nhận
+  giá trị có thật — URL sửa tay không đẩy số rác xuống API. 4 dropdown xếp lưới
+  2 cột, 1 cột ở ≤480px.
+
+  #6 — Truyện tương tự + ngẫu nhiên. Khối "Truyện tương tự" ở sidebar
+  manga-detail: lấy rộng theo 3 tag đầu rồi xếp hạng tại client theo số tag 
+  trùng — vì filter-manga không có tham số độ liên quan, mà ghép AND hết tag thì
+  hầu như ra rỗng. Có skeleton cao đúng bằng item thật. Nút "Ngẫu nhiên" ở nav
+  (cả desktop + menu mobile): getRandomMangaId() đi 2 nhịp — xin totalCount rồi
+  nhảy trang ngẫu nhiên với pageSize=1.
+
+  Còn lại
+
+  Làm được thuần frontend (2,5 việc):
+  - #8 sitemap.xml + JSON-LD — server.ts đã có sẵn SSR, chỉ thêm route và
+  structured data
+  - #9 PWA — cần thêm @angular/service-worker vào package.json, phải soát kỹ
+  tương tác với SSR và download offline sẵn có
+  - #13 một nửa — POST /Report/Create đã có, ReportEnumType có ChapterEntity →
+  report lỗi chương làm được; nhưng enum không có CommentEntity → report bình
+  luận vẫn phải sửa backend
+
+  Không làm được nếu không đụng backend (8,5 việc):
+
+  ┌─────────────────┬───────────────────────────────────────────────────────┐
+  │        #        │                  Thiếu gì ở backend                   │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 4               │ Không có trường phân loại độ tuổi (MangaLevel là bậc  │
+  │                 │ truy cập)                                             │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 5 (phần còn     │ FilterMangaQuery không có param loại trừ tag          │
+  │ lại)            │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 7               │ AssociateNames không nằm trong MangaDto lẫn           │
+  │                 │ MangaSumaryDto                                        │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 13 (phần còn    │ ReportEnumType thiếu CommentEntity                    │
+  │ lại)            │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 10, 11, 12, 14, │ Thiếu entity / endpoint hẳn                           │
+  │  16             │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ 15              │ Đổi schema chapter sâu                                │
+  └─────────────────┴───────────────────────────────────────────────────────┘
+
+  Tôi làm tiếp #8 rồi #9, và #13 phần report chương — hay bạn muốn dừng ở đây để
+  review 6 cái vừa xong trước?
+
+✻ Cooked for 9m 49s
+
+※ recap: Goal is closing feature gaps in the Yahallo manga client, frontend only. Six of seventeen items are done and building clean, most recently the search filters and similar/random manga. Next I'd add sitemap plus JSON-LD, unless you want to review first. (disable recaps in /config)
