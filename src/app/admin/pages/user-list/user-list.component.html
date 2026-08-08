@@ -147,7 +147,7 @@
   <div *ngIf="!u.avatarUrl" class="user-card__avatar user-card__avatar--initials">{{ getInitials(u.name) }}</div>
 
   <h3 class="user-card__display-name">{{ u.name ?? u.displayName ?? '—' }}</h3>
-  <span class="user-card__username" *ngIf="u.userName">@{{ u.userName }}</span>
+  <span class="user-card__username" *ngIf="u.userName">&#64;{{ u.userName }}</span>
 
   <div class="user-card__roles" *ngIf="u.roleList?.length">
     <span class="role-chip role-chip--lg" *ngFor="let r of u.roleList">{{ r }}</span>

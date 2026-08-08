@@ -10,6 +10,7 @@ import { MangaFormComponent } from './pages/manga-form/manga-form.component';
 import { ChapterListComponent } from './pages/chapter-list/chapter-list.component';
 import { MangaAnalyticsComponent } from './pages/manga-analytics/manga-analytics.component';
 import { UserListComponent } from './pages/user-list/user-list.component';
+import { UserProfileComponent } from './pages/user-profile/user-profile.component';
 import { UserAnalyticsComponent } from './pages/user-analytics/user-analytics.component';
 import { TopicListComponent } from './pages/topic-list/topic-list.component';
 import { TaxonomyListComponent } from './pages/taxonomy-list/taxonomy-list.component';
@@ -62,6 +63,13 @@ const routes: Routes = [
       {
         path: 'users/:id/analytics',
         component: UserAnalyticsComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permission.ManageUsers }
+      },
+      {
+        // Ho so mot nguoi dung + truyen ho da dang. Phai dung SAU 'users/:id/analytics'.
+        path: 'users/:id',
+        component: UserProfileComponent,
         canActivate: [PermissionGuard],
         data: { permission: Permission.ManageUsers }
       },

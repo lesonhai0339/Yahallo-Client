@@ -1,7 +1,9 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { NgChartsModule } from 'ng2-charts';
+// ng2-charts v6 bỏ NgChartsModule: directive thành standalone, còn phần đăng ký
+// controller/scale của Chart.js chuyển sang provider.
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 // Angular Material
 import { MatTableModule } from '@angular/material/table';
@@ -32,6 +34,7 @@ import { MangaListComponent } from './pages/manga-list/manga-list.component';
 import { MangaFormComponent } from './pages/manga-form/manga-form.component';
 import { ChapterListComponent } from './pages/chapter-list/chapter-list.component';
 import { UserListComponent } from './pages/user-list/user-list.component';
+import { UserProfileComponent } from './pages/user-profile/user-profile.component';
 import { MangaAnalyticsComponent } from './pages/manga-analytics/manga-analytics.component';
 import { UserAnalyticsComponent } from './pages/user-analytics/user-analytics.component';
 
@@ -89,6 +92,7 @@ const MAT_MODULES = [
     MangaFormComponent,
     ChapterListComponent,
     UserListComponent,
+    UserProfileComponent,
     MangaAnalyticsComponent,
     UserAnalyticsComponent,
     ConfirmDialogComponent,
@@ -117,8 +121,9 @@ const MAT_MODULES = [
     FormsModule,
     ReactiveFormsModule,
     AdminRoutingModule,
-    NgChartsModule,
+    BaseChartDirective,
     ...MAT_MODULES,
   ],
+  providers: [provideCharts(withDefaultRegisterables())],
 })
 export class AdminModule {}

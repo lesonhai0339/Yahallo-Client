@@ -1,0 +1,128 @@
+<div class="user-profile-page">
+
+  <a class="back-link" (click)="goUserList()">
+    <span class="material-icons">arrow_back</span> Danh sách người dùng
+  </a>
+
+  <!-- Loading -->
+  <div class="profile-skeleton" *ngIf="userLoading">
+    <div class="skeleton profile-skeleton__avatar"></div>
+    <div class="profile-skeleton__body">
+      <div class="skeleton profile-skeleton__line profile-skeleton__line--name"></div>
+      <div class="skeleton profile-skeleton__line profile-skeleton__line--meta"></div>
+      <div class="skeleton profile-skeleton__line profile-skeleton__line--meta"></div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!userLoading && notFound">
+    <span class="material-icons">person_off</span>
+    <p>Không tìm thấy người dùng này</p>
+  </div>
+
+  <ng-container *ngIf="!userLoading && user">
+    <!-- Hero -->
+    <section class="profile-hero">
+      <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" [alt]="user.name" class="profile-hero__avatar" />
+      <div *ngIf="!user.avatarUrl" class="profile-hero__avatar profile-hero__avatar--ph">
+        {{ (user.name || '?').charAt(0) }}
+      </div>
+
+      <div class="profile-hero__body">
+        <h1 class="profile-hero__name">{{ user.name }}</h1>
+        <div class="profile-hero__handle" *ngIf="user.userName">&#64;{{ user.userName }}</div>
+
+        <div class="profile-hero__chips">
+          <span class="chip" *ngIf="user.email">
+            <span class="material-icons">mail</span>{{ user.email }}
+            <span class="chip__ok material-icons" *ngIf="user.emailConfirmed" title="Đã xác thực">verified</span>
+          </span>
+          <span class="chip" *ngIf="user.phone">
+            <span class="material-icons">call</span>{{ user.phone }}
+          </span>
+          <span class="chip" *ngIf="user.level != null">
+            <span class="material-icons">military_tech</span>Level {{ user.level }}
+          </span>
+          <span class="chip" *ngIf="user.createDate">
+            <span class="material-icons">calendar_today</span>Tham gia {{ user.createDate | date:'dd/MM/yyyy' }}
+          </span>
+        </div>
+
+        <div class="profile-hero__id">ID: {{ user.id || userId }}</div>
+      </div>
+
+      <div class="profile-hero__actions">
+        <button class="btn" (click)="goAnalytics()">
+          <span class="material-icons">bar_chart</span> Thống kê
+        </button>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stat-row">
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ totalCount | number }}</div>
+        <div class="stat-tile__label">Truyện đã đăng</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ chaptersOnPage | number }}</div>
+        <div class="stat-tile__label">Chương (trang này)</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ viewsOnPage | number }}</div>
+        <div class="stat-tile__label">Lượt xem (trang này)</div>
+      </div>
+    </section>
+
+    <!-- Manga -->
+    <section class="works">
+      <div class="works__head">
+        <h2>Truyện đã đăng <span class="works__count">({{ totalCount | number }})</span></h2>
+        <button class="btn btn-ghost" (click)="goAllManga()">
+          Tất cả truyện <span class="material-icons">arrow_forward</span>
+        </button>
+      </div>
+
+      <div class="manga-grid" *ngIf="mangaLoading">
+        <div class="mg-card mg-card--sk" *ngFor="let i of [1,2,3,4,5,6]">
+          <div class="skeleton mg-card__cover"></div>
+          <div class="skeleton mg-card__skline"></div>
+        </div>
+      </div>
+
+      <div class="manga-grid" *ngIf="!mangaLoading && mangas.length">
+        <button type="button" class="mg-card" *ngFor="let m of mangas" (click)="goManga(m)">
+          <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="mg-card__cover" />
+          <div *ngIf="!m.thumbnail" class="mg-card__cover mg-card__cover--ph">?</div>
+
+          <span class="mg-card__hidden" *ngIf="m.hidden">Đã ẩn</span>
+
+          <div class="mg-card__body">
+            <div class="mg-card__name" [title]="m.name">{{ m.name }}</div>
+            <div class="mg-card__meta">
+              <span><span class="material-icons">menu_book</span>{{ m.totalChapters }}</span>
+              <span><span class="material-icons">visibility</span>{{ m.totalViews | number }}</span>
+            </div>
+            <div class="mg-card__date" *ngIf="m.updateDate">
+              Cập nhật {{ m.updateDate | date:'dd/MM/yy' }}
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="empty-state" *ngIf="!mangaLoading && !mangas.length">
+        <span class="material-icons">library_books</span>
+        <p>Người dùng này chưa đăng truyện nào</p>
+      </div>
+
+      <div class="pager" *ngIf="!mangaLoading && totalPages > 1">
+        <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(pageIndex - 1)">
+          <span class="material-icons">chevron_left</span>
+        </button>
+        <span class="pager__info">Trang {{ pageIndex + 1 }} / {{ totalPages }}</span>
+        <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(pageIndex + 1)">
+          <span class="material-icons">chevron_right</span>
+        </button>
+      </div>
+    </section>
+  </ng-container>
+</div>

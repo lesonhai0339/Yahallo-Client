@@ -18,7 +18,22 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrls: ['./manga-list.component.scss']
 })
 export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns = ['thumbnail', 'name', 'type', 'status', 'totalChapters', 'totalViews', 'updateDate', 'actions'];
+  /**
+   * Cột hiển thị. Là property thường (không getter) vì `matHeaderRowDef` nhận
+   * mảng — getter trả mảng mới mỗi vòng change-detection sẽ dựng lại cả bảng.
+   * Gọi `syncColumns()` mỗi khi tiêu chí lọc đổi.
+   */
+  displayedColumns: string[] = [];
+
+  /** Cột `deleteDate` chỉ có nghĩa khi đang xem thùng rác, nên ẩn lúc bình thường. */
+  private syncColumns(): void {
+    this.displayedColumns = [
+      'thumbnail', 'name', 'type', 'status', 'totalChapters', 'totalViews',
+      'createDate',
+      ...(this.criteria.isDeleted ? ['deleteDate'] : []),
+      'updateDate', 'owner', 'actions',
+    ];
+  }
   dataSource = new MatTableDataSource<any>([]);
   totalCount = 0;
   pageSize = 20;
@@ -37,6 +52,8 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   readonly sortOptions = [
     { value: MangaSortBy.LastUpdate,   label: 'Cập nhật' },
+    { value: MangaSortBy.CreateDate,   label: 'Ngày tạo' },
+    { value: MangaSortBy.DeleteDate,   label: 'Ngày xoá' },
     { value: MangaSortBy.ViewCount,    label: 'Lượt xem' },
     { value: MangaSortBy.ChapterCount, label: 'Số chương' },
     { value: MangaSortBy.Rating,       label: 'Đánh giá' },
@@ -99,6 +116,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {}
 
   ngOnInit(): void {
+    this.syncColumns();
     // Tìm theo tên chạy trên SERVER (tham số Name) chứ không lọc tại chỗ như
     // trước — bảng chỉ giữ một trang, lọc tại chỗ sẽ bỏ sót các trang còn lại.
     this.search$.pipe(debounceTime(350), takeUntil(this.destroy$)).subscribe(v => {
@@ -122,7 +140,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
     return {
       name: '', authorId: '', artistId: '', tagIds: '',
       level: '', status: '', displayMode: '', type: '', countries: '',
-      userId: '', isDeleted: false,
+      ownerId: '', isDeleted: false,
     };
   }
 
@@ -130,7 +148,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
   get activeFilterCount(): number {
     const c = this.criteria;
     const values = [c.authorId, c.artistId, c.tagIds, c.level, c.status,
-      c.displayMode, c.type, c.countries, c.userId];
+      c.displayMode, c.type, c.countries, c.ownerId];
     return values.filter(v => !!v).length + (c.isDeleted ? 1 : 0);
   }
 
@@ -148,7 +166,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
       displayMode: c.displayMode || null,
       type: c.type || null,
       countries: c.countries || null,
-      userId: c.userId || null,
+      ownerId: c.ownerId || null,
       sortBy: this.sortBy || this.defaultSort,
       reverseSort: this.reverseSort,
       isDeleted: c.isDeleted,
@@ -168,24 +186,29 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loading = true;
     this.mangaService.filter(this.buildFilter()).subscribe({
       next: (res: any) => {
-        const d = res?.value ?? res;
-        let items = d?.data ?? d?.items ?? [];
+        const page = res?.value ?? res;
+        let items = page?.data ?? page?.items ?? [];
 
+        // Chủ sở hữu nằm ở `owner.id` — backend đã bỏ hẳn `userId` ở cấp gốc.
         if (this.perm.isOwnMangaOnly()) {
-          const userId = this.auth.currentUser?.id;
-          items = items.filter((m: any) => m.userId === userId);
+          const uid = this.auth.currentUser?.id;
+          items = items.filter((m: any) => m.owner?.id === uid);
         }
 
-        this.totalCount = this.perm.isOwnMangaOnly() ? items.length : (d?.totalCount ?? 0);
-        // API trả MangaDto: displayName / viewCount / lastestChapter... nhưng
-        // template card + bảng đọc name / totalViews / totalChapters / updateDate.
+        this.totalCount = this.perm.isOwnMangaOnly() ? items.length : (page?.totalCount ?? 0);
+        // AdminMangaDto dùng displayName / totalView / totalChapter / totalComment /
+        // owner, còn bảng + card đọc name / totalViews / totalChapters / thumbnail.
+        // Chuẩn hoá ở đây; vẫn giữ fallback tên cũ để không vỡ nếu API đổi lại.
         this.dataSource.data = items.map((m: any) => ({
           ...m,
           name: m.displayName ?? m.name,
           thumbnail: m.mangaThumbnail ?? null,
-          totalViews: m.viewCount ?? m.totalViews ?? 0,
-          totalChapters: m.lastestChapter?.index ?? m.totalChapters ?? 0,
-          updateDate: m.lastestChapter?.createDate ?? m.updateDate ?? null,
+          totalViews: m.totalView ?? m.viewCount ?? m.totalViews ?? 0,
+          totalChapters: m.totalChapter ?? m.lastestChapter?.index ?? m.totalChapters ?? 0,
+          totalComments: m.totalComment ?? m.commentCount ?? 0,
+          updateDate: m.updateDate ?? m.lastestChapter?.createDate ?? null,
+          ownerId: m.owner?.id ?? null,
+          ownerName: m.owner?.name ?? null,
         }));
         this.loading = false;
         // Mặc định chọn phần tử đầu để hiển thị card chi tiết bên phải.
@@ -277,6 +300,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
   applyFilters(): void {
     // Giữ nguyên `name` của ô tìm kiếm — panel lọc không quản lý field đó.
     this.criteria = { ...this.draft, name: this.criteria.name };
+    this.syncColumns();
     this.pageIndex = 0;
     this.showFilters = false;
     this.loadData();
@@ -292,6 +316,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
   clearAll(): void {
     this.criteria = this.emptyCriteria();
     this.draft = this.emptyCriteria();
+    this.syncColumns();
     this.searchTerm = '';
     this.sortBy = this.defaultSort;
     this.reverseSort = true;
@@ -305,6 +330,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
     const name = this.criteria.name;
     this.criteria = { ...this.emptyCriteria(), name };
     this.draft = { ...this.criteria };
+    this.syncColumns();
     this.pageIndex = 0;
     this.loadData();
   }
@@ -354,6 +380,20 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   goAnalytics(manga: any): void {
     this.router.navigate(['/admin/manga', manga.id, 'analytics']);
+  }
+
+  /**
+   * Chức năng: Mở trang thông tin người đăng truyện.
+   * Yêu cầu: `event` — click event, phải chặn để không kích hoạt chọn dòng;
+   *   `manga` — dòng đang bấm, cần `ownerId`.
+   * Kết quả trả về: không (điều hướng); không làm gì nếu truyện chưa có chủ.
+   * Exception: không ném.
+   */
+  goOwner(event: Event, manga: any): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!manga?.ownerId) return;
+    this.router.navigate(['/admin/users', manga.ownerId]);
   }
 
   /**

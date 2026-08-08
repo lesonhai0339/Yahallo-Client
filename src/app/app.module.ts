@@ -1,12 +1,13 @@
 import { APP_INITIALIZER, NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
+import { BrowserModule, provideClientHydration } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ToastrModule } from 'ngx-toastr';
 import { CookieService } from 'ngx-cookie-service';
 import { CommonModule } from '@angular/common';
-import { ImageCropperModule } from 'ngx-image-cropper';
+// ngx-image-cropper v8 bỏ NgModule; component giờ là standalone nên import thẳng.
+import { ImageCropperComponent } from 'ngx-image-cropper';
 import { MatDialogModule } from '@angular/material/dialog';
 
 import { RouterModule } from '@angular/router';
@@ -117,7 +118,7 @@ export function initTranslations(translation: TranslationService) {
     HttpClientModule,
     RouterModule,
     AppRoutingModule,
-    ImageCropperModule,
+    ImageCropperComponent,
     MatDialogModule,
     ToastrModule.forRoot({
       progressBar: true,
@@ -159,7 +160,8 @@ export function initTranslations(translation: TranslationService) {
       provide: HTTP_INTERCEPTORS,
       useClass: ErrorInterceptor,
       multi: true
-    }
+    },
+    provideClientHydration()
   ],
   bootstrap: [AppComponent]
 })

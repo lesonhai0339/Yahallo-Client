@@ -238,8 +238,9 @@ route), không phải số dòng — quy ước ghi ở mục 3.2.
 | Chức năng | File | Neo trong file |
 |-----------|------|----------------|
 | Danh sách truyện (endpoint riêng của admin) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.ts` | `getAll()` → `manga/admin/get-all-pagination`<br>`loadData()`, `hasActiveFilter` |
-| Lọc / tìm / sắp xếp truyện (server-side) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html,scss}` | `AdminMangaFilter`, `filter()` → `manga/admin/filter`, `getDetail()`<br>`criteria`/`draft`, `applyFilters()`, `resetFilters()`, `setSort()`, `.filter-panel`, `.sort-chips` |
+| Lọc / tìm / sắp xếp truyện (server-side) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html,scss}` | `AdminMangaFilter`, `filter()` → `manga/admin/filter`, `getDetail()`<br>`criteria`/`draft`, `applyFilters()`, `resetFilters()`, `setSort()`, `syncColumns()`, `.filter-panel`, `.sort-chips` |
 | Ẩn / hiện truyện (`DisplayMode`, tách khỏi `status`) | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-list/manga-list.component.{ts,html}` | `DisplayMode`, `updateDisplayMode()` → `manga/update`<br>`isHidden()`, `toggleVisibility()`, `getDisplayModeLabel()` |
+| Hồ sơ người dùng + truyện đã đăng | `admin/pages/user-profile/user-profile.component.{ts,html,scss}`<br>`admin/admin-routing.module.ts` | `loadUser()`, `loadMangas()` (lọc `ownerId`), `goManga()`<br>route `users/:id` (phải đứng TRƯỚC `users`) |
 | Tạo / sửa truyện | `admin/services/admin-manga.service.ts`<br>`admin/pages/manga-form/manga-form.component.ts` | `create()`, `update()` (Id nằm TRONG form, route `manga/update`)<br>`buildFormData()` |
 
 ### Trang tác giả / hoạ sĩ / thể loại
@@ -251,3 +252,14 @@ route), không phải số dòng — quy ước ghi ở mục 3.2.
 | Khối info + danh sách truyện (dùng chung với search) | `shared/components/entity-detail/entity-detail.component.{ts,html,scss}` | `@Input splitHeight` / `moreLink` / `showViewToggle`, `:host(.entity-detail--split)`, `.person-hero`, `.person-works` |
 | Chuyển lưới / danh sách + skeleton theo chế độ | `shared/components/entity-detail/entity-detail.component.{ts,html,scss}` | `viewMode`, `setViewMode()`, `buildRows()`, `skeletonItems`, `.manga-list`, `.row-skeletons` |
 | Trang "xem thêm" — danh sách đầy đủ theo đối tượng | `app-routing.module.ts`<br>`features/manga/manga-list-page/manga-list-page.component.ts`<br>`core/services/manga.service.ts` | route `author\|artist\|tag/:id/manga`<br>`ListMode`, `isEntityMode`, `loadEntityName()`, `backLink`<br>`getSortedPaginated(..., filters)` |
+
+### SSR (chỉ có ở bản Refactor)
+
+| Chức năng | File | Neo trong file |
+|-----------|------|----------------|
+| SSR cho trang public, bỏ qua `/admin` | `server.ts`<br>`src/main.server.ts`<br>`src/app/app.module.server.ts` | `app()`, nhánh `server.get('/admin*')`<br>import `./server-shims`<br>`AppServerModule` |
+| Shim API trình duyệt phía Node | `src/server-shims.ts` | `emptyStorage` — `localStorage`/`sessionStorage` rỗng, KHÔNG lưu gì |
+| Hydration + TransferState | `src/app/app.module.ts` | `provideClientHydration()` |
+| Lệnh build/chạy | `package.json` | `build:ssr`, `serve:ssr`, `dev:ssr`, `prerender` |
+
+> Chi tiết quyết định và việc còn tồn: `sessions_chat/ssr-public-pages_20260731_1800.md`

@@ -485,6 +485,21 @@
   gap: 4px;
 }
 
+.owner-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover { text-decoration: underline; }
+}
+
+.owner-none { color: var(--text-muted); }
+
 .status-badge {
   padding: 3px 10px;
   border-radius: 20px;

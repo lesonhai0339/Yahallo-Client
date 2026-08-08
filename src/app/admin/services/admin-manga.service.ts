@@ -42,7 +42,8 @@ export interface AdminMangaFilter {
   displayMode?: DisplayMode | string | null;
   type?: string | number | null;
   countries?: string | number | null;
-  userId?: string | null;
+  /** Lọc theo chủ sở hữu — backend đã thay `UserId` bằng `Owner`. */
+  ownerId?: string | null;
   date?: string | null;
   timeZone?: string | null;
   sortBy?: string | null;
@@ -109,7 +110,7 @@ export class AdminMangaService {
     set('DisplayMode', f.displayMode);
     set('Type', f.type);
     set('Countries', f.countries);
-    set('UserId', f.userId);
+    set('OwnerId', f.ownerId);
     set('Date', f.date);
     set('TimeZone', f.timeZone);
     set('SortBy', f.sortBy);

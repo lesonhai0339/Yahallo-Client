@@ -23,7 +23,10 @@ export interface TagDto{
 
 /** Mirrors backend MangaSortBy enum (filter-manga) */
 export enum MangaSortBy {
+    CreateDate = 'CreateDate',
     LastUpdate = 'LastUpdate',
+    /** Backend viết là `Deletedate` (chữ d thường) — gửi sai tên là bind hỏng. */
+    DeleteDate = 'Deletedate',
     ViewCount = 'ViewCount',
     Rating = 'Rating',
     CommentCount = 'CommentCount',

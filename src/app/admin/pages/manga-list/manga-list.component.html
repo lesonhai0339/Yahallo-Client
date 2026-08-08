@@ -106,8 +106,8 @@
       </label>
 
       <label class="filter-field">
-        <span>Người đăng (id)</span>
-        <input [(ngModel)]="draft.userId" placeholder="UserId" />
+        <span>Chủ sở hữu (id)</span>
+        <input [(ngModel)]="draft.ownerId" placeholder="OwnerId" />
       </label>
 
       <label class="filter-check">
@@ -179,6 +179,34 @@
       <ng-container matColumnDef="totalViews">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Lượt xem</th>
         <td mat-cell *matCellDef="let m">{{ m.totalViews ?? 0 | number }}</td>
+      </ng-container>
+
+      <!-- Created -->
+      <ng-container matColumnDef="createDate">
+        <th mat-header-cell *matHeaderCellDef>Ngày tạo</th>
+        <td mat-cell *matCellDef="let m">
+          {{ m.createDate ? (m.createDate | date:'dd/MM/yy') : '—' }}
+        </td>
+      </ng-container>
+
+      <!-- Deleted (chỉ hiện khi đang lọc thùng rác) -->
+      <ng-container matColumnDef="deleteDate">
+        <th mat-header-cell *matHeaderCellDef>Ngày xoá</th>
+        <td mat-cell *matCellDef="let m">
+          {{ m.deleteDate ? (m.deleteDate | date:'dd/MM/yy') : '—' }}
+        </td>
+      </ng-container>
+
+      <!-- Owner -->
+      <ng-container matColumnDef="owner">
+        <th mat-header-cell *matHeaderCellDef>Người đăng</th>
+        <td mat-cell *matCellDef="let m">
+          <button *ngIf="m.ownerId; else noOwner" type="button" class="owner-link"
+            (click)="goOwner($event, m)" [title]="'Xem thông tin ' + (m.ownerName || m.ownerId)">
+            {{ m.ownerName || 'Không tên' }}
+          </button>
+          <ng-template #noOwner><span class="owner-none">—</span></ng-template>
+        </td>
       </ng-container>
 
       <!-- Date -->
