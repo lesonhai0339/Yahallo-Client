@@ -1,13 +1,11 @@
-import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
-import { Router } from '@angular/router';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSort } from '@angular/material/sort';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { AdminMangaService, AdminMangaFilter, DisplayMode } from '../../services/admin-manga.service';
 import { MangaSortBy } from '../../../core/models/manga.interface';
+import { MANGA_LEVEL_OPTIONS } from '../../../core/models/manga-enums';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/services/permission.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -17,24 +15,9 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './manga-list.component.html',
   styleUrls: ['./manga-list.component.scss']
 })
-export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
-  /**
-   * Cột hiển thị. Là property thường (không getter) vì `matHeaderRowDef` nhận
-   * mảng — getter trả mảng mới mỗi vòng change-detection sẽ dựng lại cả bảng.
-   * Gọi `syncColumns()` mỗi khi tiêu chí lọc đổi.
-   */
-  displayedColumns: string[] = [];
-
-  /** Cột `deleteDate` chỉ có nghĩa khi đang xem thùng rác, nên ẩn lúc bình thường. */
-  private syncColumns(): void {
-    this.displayedColumns = [
-      'thumbnail', 'name', 'type', 'status', 'totalChapters', 'totalViews',
-      'createDate',
-      ...(this.criteria.isDeleted ? ['deleteDate'] : []),
-      'updateDate', 'owner', 'actions',
-    ];
-  }
-  dataSource = new MatTableDataSource<any>([]);
+export class MangaListComponent implements OnInit, OnDestroy {
+  /** Một trang truyện đang hiển thị. Mảng thường — không còn MatTableDataSource. */
+  items: any[] = [];
   totalCount = 0;
   pageSize = 20;
   pageIndex = 0;
@@ -81,12 +64,12 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
     { value: '3', label: 'Dojinshi' },
     { value: '4', label: 'Series' },
   ];
-  readonly levelOptions = [
-    { value: '0', label: 'Mọi độ tuổi' },
-    { value: '1', label: '13+' },
-    { value: '2', label: '16+' },
-    { value: '3', label: '18+' },
-  ];
+  // `MangaLevel` là BẬC TRUY CẬP (Normal..Master), không phải phân loại độ tuổi
+  // — nhãn "13+/16+/18+" trước đây là sai, và giá trị '0' không có trong enum.
+  // Giữ kiểu chuỗi vì bộ lọc này gửi thẳng lên query param.
+  readonly levelOptions = MANGA_LEVEL_OPTIONS.map(
+    o => ({ value: String(o.value), label: o.label })
+  );
   readonly displayModeOptions = [
     { value: DisplayMode.Visible,  label: 'Đang hiện' },
     { value: DisplayMode.Hidden,   label: 'Đã ẩn' },
@@ -95,21 +78,20 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private search$ = new Subject<string>();
   private destroy$ = new Subject<void>();
-  /** Mobile: id of the card whose details/actions dropdown is open. */
-  expandedId: string | null = null;
+  /** 'grid' = nhiều cột; 'list' = mỗi truyện một hàng đầy chiều ngang. */
+  viewMode: 'grid' | 'list' = 'grid';
+
   /** Desktop: manga whose detail card is shown in the right aside. */
   selectedManga: any = null;
   /** Full detail (authors/artists/description) of the selected manga. */
   detail: any = null;
   detailLoading = false;
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
-
   constructor(
     private mangaService: AdminMangaService,
     private dialog: MatDialog,
     private router: Router,
+    private route: ActivatedRoute,
     private toastr: ToastrService,
     public perm: PermissionService,
     private auth: AuthService
@@ -124,11 +106,37 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
       this.pageIndex = 0;
       this.loadData();
     });
-    this.loadData();
-  }
+    // Theo dõi query param thay vì đọc snapshot một lần: bấm thể loại NGAY TRÊN
+    // trang này cũng điều hướng (đổi URL) chứ không lọc ngầm, mà cùng route thì
+    // `ngOnInit` không chạy lại — chỉ luồng này bắt được.
+    //
+    // `firstEmit` là bắt buộc: lần phát đầu tiên KHÔNG có query param nào thì
+    // giá trị đọc ra ('') trùng đúng giá trị mặc định trong `criteria`, guard
+    // bên dưới sẽ thoát sớm và trang không gọi API lần nào cả.
+    let firstEmit = true;
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(qp => {
+      const tagIds = qp.get('tagIds') ?? '';
+      const ownerId = qp.get('ownerId') ?? '';
+      const authorId = qp.get('authorId') ?? '';
+      const artistId = qp.get('artistId') ?? '';
+      const changed = tagIds !== this.criteria.tagIds
+        || ownerId !== this.criteria.ownerId
+        || authorId !== this.criteria.authorId
+        || artistId !== this.criteria.artistId;
+      if (!firstEmit && !changed) return;
+      firstEmit = false;
 
-  ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
+      this.criteria.tagIds = tagIds;
+      this.criteria.ownerId = ownerId;
+      this.criteria.authorId = authorId;
+      this.criteria.artistId = artistId;
+      this.draft.tagIds = tagIds;
+      this.draft.ownerId = ownerId;
+      this.draft.authorId = authorId;
+      this.draft.artistId = artistId;
+      this.pageIndex = 0;
+      this.loadData();
+    });
   }
 
   ngOnDestroy(): void {
@@ -179,7 +187,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
    *   phải sắp theo lần cập nhật gần nhất. `admin/get-all-pagination` không có
    *   tham số sắp xếp nên thứ tự phụ thuộc backend, không kiểm soát được.
    * Yêu cầu: `pageIndex` / `pageSize` / `criteria` / `sortBy` đã đặt.
-   * Kết quả trả về: không (cập nhật `dataSource`, `totalCount`, `loading`).
+   * Kết quả trả về: không (cập nhật `items`, `totalCount`, `loading`).
    * Exception: không ném — lỗi API thì chỉ tắt `loading`.
    */
   loadData(): void {
@@ -199,7 +207,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
         // AdminMangaDto dùng displayName / totalView / totalChapter / totalComment /
         // owner, còn bảng + card đọc name / totalViews / totalChapters / thumbnail.
         // Chuẩn hoá ở đây; vẫn giữ fallback tên cũ để không vỡ nếu API đổi lại.
-        this.dataSource.data = items.map((m: any) => ({
+        this.items = items.map((m: any) => ({
           ...m,
           name: m.displayName ?? m.name,
           thumbnail: m.mangaThumbnail ?? null,
@@ -212,7 +220,7 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
         }));
         this.loading = false;
         // Mặc định chọn phần tử đầu để hiển thị card chi tiết bên phải.
-        const first = this.dataSource.data[0];
+        const first = this.items[0];
         if (first) {
           this.selectManga(first, false);
         } else {
@@ -266,10 +274,50 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
     return (d?.artists ?? []).map((a: any) => a.name).join(', ');
   }
 
-  onPageChange(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
+  /** Tổng số trang — dùng cho thanh phân trang tự viết (đã bỏ mat-paginator). */
+  get totalPages(): number {
+    return this.pageSize > 0 ? Math.ceil(this.totalCount / this.pageSize) : 1;
+  }
+
+  goPage(index: number): void {
+    if (index < 0 || index >= this.totalPages || index === this.pageIndex) return;
+    this.pageIndex = index;
     this.loadData();
+  }
+
+  setPageSize(size: number): void {
+    if (size === this.pageSize) return;
+    this.pageSize = size;
+    this.pageIndex = 0;
+    this.loadData();
+  }
+
+  /**
+   * Chức năng: Mở trang thông tin truyện. Cố ý KHÔNG dẫn sang form sửa — xem và
+   *   sửa là hai ý định khác nhau.
+   * Yêu cầu: `manga.id` hợp lệ.
+   * Kết quả trả về: không (điều hướng).
+   * Exception: không ném.
+   */
+  goInfo(manga: any): void {
+    this.router.navigate(['/admin/manga', manga.id, 'info']);
+  }
+
+  setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode = mode;
+  }
+
+  /**
+   * Chức năng: Mở trang thông tin thể loại — giống bấm vào truyện thì ra
+   *   `manga-info`, bấm vào người đăng thì ra hồ sơ.
+   * Yêu cầu: `tag.id` hợp lệ.
+   * Kết quả trả về: không (điều hướng).
+   * Exception: không ném — thiếu id thì bỏ qua.
+   */
+  goTag(event: Event, tag: any): void {
+    event.stopPropagation();
+    if (!tag?.id) return;
+    this.router.navigate(['/admin/tags', tag.id]);
   }
 
   /** Ô tìm kiếm: đẩy vào subject có debounce, gọi API với tham số `Name`. */
@@ -352,10 +400,6 @@ export class MangaListComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.pageIndex = 0;
     this.loadData();
-  }
-
-  toggleExpand(manga: any): void {
-    this.expandedId = this.expandedId === manga.id ? null : manga.id;
   }
 
   goCreate(): void {

@@ -1,0 +1,33 @@
+<section class="new-strip">
+  <div class="new-strip__head">
+    <h2 class="new-strip__title">
+      <i class="fa-solid fa-certificate"></i>{{ 'HOME.NEW_MANGA' | translate }}
+    </h2>
+    <a routerLink="/new" class="see-more-link">
+      {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
+    </a>
+  </div>
+
+  <!-- Khung xương giữ đúng chiều cao để không giật layout khi dữ liệu về -->
+  <div class="new-strip__rail" *ngIf="loading">
+    <div class="new-item new-item--sk" *ngFor="let i of skeletonItems">
+      <div class="skeleton new-item__cover"></div>
+      <div class="skeleton new-item__skline"></div>
+    </div>
+  </div>
+
+  <div class="new-strip__rail" *ngIf="!loading">
+    <!-- Thẻ <a> thật (không phải div + click) để crawler lần được vào trang truyện -->
+    <a class="new-item" *ngFor="let m of mangas" [routerLink]="['/manga', m.id]" [title]="m.displayName">
+      <div class="new-item__cover">
+        <img [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback loading="lazy" />
+        <span class="new-item__chapter" *ngIf="chapterLabel(m)">{{ chapterLabel(m) }}</span>
+      </div>
+      <div class="new-item__name">{{ m.displayName }}</div>
+    </a>
+  </div>
+
+  <div class="new-strip__empty" *ngIf="!loading && !mangas.length">
+    Chưa có truyện mới nào
+  </div>
+</section>

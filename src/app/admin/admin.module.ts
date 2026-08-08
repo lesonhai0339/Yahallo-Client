@@ -36,6 +36,9 @@ import { ChapterListComponent } from './pages/chapter-list/chapter-list.componen
 import { UserListComponent } from './pages/user-list/user-list.component';
 import { UserProfileComponent } from './pages/user-profile/user-profile.component';
 import { MangaAnalyticsComponent } from './pages/manga-analytics/manga-analytics.component';
+import { MangaInfoComponent } from './pages/manga-info/manga-info.component';
+import { TaxonomyInfoComponent } from './pages/taxonomy-info/taxonomy-info.component';
+import { InteractionSkeletonComponent } from './shared/interaction-skeleton/interaction-skeleton.component';
 import { UserAnalyticsComponent } from './pages/user-analytics/user-analytics.component';
 
 // Shared dialogs & components
@@ -54,6 +57,8 @@ import { TaxonomyRequestsComponent } from './pages/taxonomy-requests/taxonomy-re
 import { TaxonomyFormDialogComponent } from './shared/taxonomy-form-dialog/taxonomy-form-dialog.component';
 import { DetailCardSkeletonComponent } from './shared/detail-card-skeleton/detail-card-skeleton.component';
 import { TableSkeletonComponent } from './shared/table-skeleton/table-skeleton.component';
+import { AnalyticsSkeletonComponent } from './shared/analytics-skeleton/analytics-skeleton.component';
+import { FormSkeletonComponent } from './shared/form-skeleton/form-skeleton.component';
 // ⚠️ MODULE MỚI THÊM (comment-moderation / trash-bin / role-list)
 // → xem docs/ADMIN_MODULES_ADDED.md để remove chính xác.
 import { CommentModerationComponent } from './pages/comment-moderation/comment-moderation.component';
@@ -87,6 +92,8 @@ const MAT_MODULES = [
     AdminLayoutComponent,
     DetailCardSkeletonComponent,
     TableSkeletonComponent,
+    AnalyticsSkeletonComponent,
+    FormSkeletonComponent,
     DashboardComponent,
     MangaListComponent,
     MangaFormComponent,
@@ -94,6 +101,9 @@ const MAT_MODULES = [
     UserListComponent,
     UserProfileComponent,
     MangaAnalyticsComponent,
+    MangaInfoComponent,
+    TaxonomyInfoComponent,
+    InteractionSkeletonComponent,
     UserAnalyticsComponent,
     ConfirmDialogComponent,
     ChapterFormDialogComponent,

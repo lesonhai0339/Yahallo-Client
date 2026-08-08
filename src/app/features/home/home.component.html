@@ -2,6 +2,11 @@
 
   <!-- Main Content -->
   <div class="container-fluid px-3 px-md-4 mt-4">
+
+    <!-- Dải "Truyện mới" nằm NGOÀI main-layout để chiếm trọn chiều ngang,
+         không bị bó trong cột nội dung cạnh sidebar. -->
+    <app-new-manga-strip [mangas]="newManga" [loading]="isLoading"></app-new-manga-strip>
+
     <div class="main-layout">
 
       <main class="main-content">
@@ -39,21 +44,6 @@
 
           <div class="manga-grid" *ngIf="!isLoading">
             <app-manga-sumary-card *ngFor="let manga of popularManga" [manga]="manga"></app-manga-sumary-card>
-          </div>
-        </section>
-
-        <!-- Recommended -->
-        <section class="manga-section">
-          <div class="section-header">
-            <h2 class="section-header__title">
-              <i class="fa-solid fa-wand-magic-sparkles"></i>{{ 'HOME.RECOMMENDED' | translate }}
-            </h2>
-          </div>
-
-          <app-loading-skeleton *ngIf="isLoading" [count]="6" [cols]="6"></app-loading-skeleton>
-
-          <div class="manga-grid" *ngIf="!isLoading">
-            <app-manga-sumary-card *ngFor="let manga of recommendedManga" [manga]="manga"></app-manga-sumary-card>
           </div>
         </section>
 

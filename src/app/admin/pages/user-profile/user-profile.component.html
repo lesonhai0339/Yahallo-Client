@@ -80,16 +80,26 @@
         <button class="btn btn-ghost" (click)="goAllManga()">
           Tất cả truyện <span class="material-icons">arrow_forward</span>
         </button>
-      </div>
 
-      <div class="manga-grid" *ngIf="mangaLoading">
+        <div class="view-toggle">
+          <button class="view-toggle__btn" [class.active]="viewMode === 'grid'"
+            (click)="setViewMode('grid')" title="Dạng lưới">
+            <span class="material-icons">grid_view</span>
+          </button>
+          <button class="view-toggle__btn" [class.active]="viewMode === 'list'"
+            (click)="setViewMode('list')" title="Dạng danh sách">
+            <span class="material-icons">view_list</span>
+          </button>
+        </div>
+      </div>
+      <div class="manga-grid" [class.manga-grid--list]="viewMode === 'list'" *ngIf="mangaLoading">
         <div class="mg-card mg-card--sk" *ngFor="let i of [1,2,3,4,5,6]">
           <div class="skeleton mg-card__cover"></div>
           <div class="skeleton mg-card__skline"></div>
         </div>
       </div>
 
-      <div class="manga-grid" *ngIf="!mangaLoading && mangas.length">
+      <div class="manga-grid" [class.manga-grid--list]="viewMode === 'list'" *ngIf="!mangaLoading && mangas.length">
         <button type="button" class="mg-card" *ngFor="let m of mangas" (click)="goManga(m)">
           <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="mg-card__cover" />
           <div *ngIf="!m.thumbnail" class="mg-card__cover mg-card__cover--ph">?</div>
@@ -115,13 +125,31 @@
       </div>
 
       <div class="pager" *ngIf="!mangaLoading && totalPages > 1">
-        <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(pageIndex - 1)">
-          <span class="material-icons">chevron_left</span>
-        </button>
-        <span class="pager__info">Trang {{ pageIndex + 1 }} / {{ totalPages }}</span>
-        <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(pageIndex + 1)">
-          <span class="material-icons">chevron_right</span>
-        </button>
+        <div class="pager__nav">
+          <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(0)" title="Trang đầu">
+            <span class="material-icons">first_page</span>
+          </button>
+          <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(pageIndex - 1)" title="Trang trước">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="pager__info">Trang {{ pageIndex + 1 }} / {{ totalPages }}</span>
+          <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(pageIndex + 1)" title="Trang sau">
+            <span class="material-icons">chevron_right</span>
+          </button>
+          <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(totalPages - 1)" title="Trang cuối">
+            <span class="material-icons">last_page</span>
+          </button>
+        </div>
+
+        <!-- Nhảy thẳng tới một trang: danh sách dài thì bấm mũi tên từng trang rất mệt -->
+        <form class="pager__jump" (ngSubmit)="jumpToPage()">
+          <span>Tới trang</span>
+          <!-- type="text" chứ không phải "number": number kèm hai nút tăng/giảm
+               thừa thãi. `inputmode="numeric"` vẫn cho bàn phím số trên mobile. -->
+          <input type="text" inputmode="numeric" [(ngModel)]="jumpTo"
+            [ngModelOptions]="{ standalone: true }" class="pager__jumpinput" placeholder="…" />
+          <button type="submit" class="pager__jumpbtn" [disabled]="!jumpTo">Đi</button>
+        </form>
       </div>
     </section>
   </ng-container>

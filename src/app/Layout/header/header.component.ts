@@ -9,6 +9,8 @@ import { TranslationService, SupportedLang } from '../../core/services/translati
 import { ThemeService } from '../../core/services/theme.service';
 import { AdminStateService } from '../../admin/services/admin-state.service';
 import { MasterDataService } from '../../core/services/master-data.service';
+import { MangaService } from '../../core/services/manga.service';
+import { ToastrService } from 'ngx-toastr';
 import { User } from '../../core/models/interfaces';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { AdminGuard } from '../../core/guards/admin.guard';
@@ -28,6 +30,9 @@ export interface SearchPrefix {
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInputRef!: ElementRef;
+
+  /** Đang bốc truyện ngẫu nhiên — chặn bấm liên tiếp (mỗi lần tốn 2 request). */
+  randomLoading = false;
 
   isDropdownOpen = false;
   closeTimer: any;
@@ -98,7 +103,27 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private adminState: AdminStateService,
     private masterData: MasterDataService,
     private router: Router,
+    private mangaService: MangaService,
+    private toastr: ToastrService,
   ) {}
+
+  /**
+   * Chức năng: mở một truyện ngẫu nhiên. Chặn bấm liên tiếp bằng `randomLoading`
+   * vì mỗi lần gọi tốn 2 request.
+   * Yêu cầu: không.
+   * Kết quả trả về: không (điều hướng sang `/manga/:id`).
+   * Exception: không ném — kho rỗng hoặc API lỗi thì hiện toast và đứng yên.
+   */
+  goRandomManga(): void {
+    if (this.randomLoading) return;
+    this.randomLoading = true;
+    this.mangaService.getRandomMangaId()
+      .pipe(takeUntil(this.destroy$), finalize(() => this.randomLoading = false))
+      .subscribe(id => {
+        if (id) this.router.navigate(['/manga', id]);
+        else this.toastr.info('Chưa có truyện nào để bốc ngẫu nhiên');
+      });
+  }
 
   ngOnInit(): void {
     this.availableLangs = this.translation.getAvailableLangs();

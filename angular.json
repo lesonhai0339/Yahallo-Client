@@ -110,6 +110,12 @@
         },
         "serve-ssr": {
           "builder": "@angular-devkit/build-angular:ssr-dev-server",
+          "options": {
+            "port": 4200,
+            "ssl": true,
+            "sslCert": ".certs/aspnet-dev-cert.pem",
+            "sslKey": ".certs/aspnet-dev-cert.key"
+          },
           "configurations": {
             "development": {
               "browserTarget": "yahallo-client-refactor:build:development",

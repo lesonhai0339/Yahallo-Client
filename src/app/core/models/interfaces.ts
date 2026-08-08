@@ -147,6 +147,9 @@ export interface Chapter {
   /** Số chương phụ — chương 10.5 là `index: 10`, `subIndex: 5`. 0 = chương thường. */
   subIndex: number;
   mangaId: string;
+  /** Tên truyện — API `filter-chapter` trả kèm, dùng cho `<title>` trang đọc
+   *  mà không phải gọi thêm `manga/detail`. Có thể thiếu ở response cũ. */
+  mangaName?: string;
   chapterDate: string;
 }
 

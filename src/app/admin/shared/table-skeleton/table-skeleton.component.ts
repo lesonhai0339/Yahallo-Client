@@ -59,6 +59,18 @@ import { Component, Input } from '@angular/core';
     .tsk__cell { height: 11px; border-radius: 4px; }
 
     .tsk__action { flex: none; width: 64px; height: 26px; border-radius: 6px; }
+
+    @media (max-width: 768px) {
+      .tsk__row { gap: 10px; padding: 10px; }
+      .tsk__action { width: 44px; height: 24px; }
+    }
+
+    /* Điện thoại hẹp: cột thao tác giả chiếm chỗ của phần chữ → bỏ hẳn. */
+    @media (max-width: 480px) {
+      .tsk__cells { gap: 6px; }
+      .tsk__cell { height: 10px; }
+      .tsk__action { display: none; }
+    }
   `],
 })
 export class TableSkeletonComponent {

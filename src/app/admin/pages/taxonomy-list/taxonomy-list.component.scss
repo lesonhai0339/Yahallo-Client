@@ -76,7 +76,7 @@
   }
 }
 
-.tax-loading, .tax-empty {
+.tax-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -194,4 +194,18 @@
   .tax-page__head { flex-direction: column; align-items: stretch; }
   .add-btn { justify-content: center; }
   .tax-search { max-width: 100%; }
+}
+
+
+// Tên trong bảng là nút dẫn sang trang thông tin — trông như link, không như nút.
+.tax-name-link {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--accent-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
 }

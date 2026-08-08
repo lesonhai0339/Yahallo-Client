@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild, Inject, Optional, PLATFORM_ID } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';
+import { Location, isPlatformBrowser } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,9 +8,10 @@ import { ReadingProgressService, LocalProgress } from '../../../core/services/re
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { SeoService } from '../../../core/services/seo.service';
 import { ChapterImage } from '../../../core/models/chapter.interface';
-import { ReaderViewerComponent } from '../../../shared/components/reader-viewer/reader-viewer.component';
+import { ReaderViewerComponent, ReaderFitMode } from '../../../shared/components/reader-viewer/reader-viewer.component';
 import { chapterFullName, chapterName } from '../../../core/utils/chapter-label';
 import { dropLegacyKey, scopedKey } from '../../../core/utils/user-storage';
+import { RESPONSE_CONTEXT, ResponseContext } from '../../../core/tokens/response-context';
 
 /** Tiền tố key cài đặt đọc — key thật kèm user-id. */
 const READER_SETTINGS_PREFIX = 'reader-settings';
@@ -21,6 +22,12 @@ export interface ReaderSettings {
   mode: 'normal' | 'focus';
   imageSize: number;
   preloadCount: number;
+  /** Cách ảnh lấp khung: vừa rộng / vừa cao / vừa cả hai / cỡ gốc. */
+  fitMode: ReaderFitMode;
+  /** Hiện 2 trang cạnh nhau — chỉ có tác dụng ở chế độ đọc ngang. */
+  doublePage: boolean;
+  /** Tốc độ tự cuộn (px mỗi giây) ở chế độ dọc. Không bật/tắt bằng field này. */
+  autoScrollSpeed: number;
 }
 
 @Component({
@@ -41,6 +48,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   initialPage = 0;
   currentChapterIndex = 0;
   isLoading = true;
+  /** Chương không tồn tại / không có ảnh — hiện trang lỗi thay vì treo loading. */
+  notFound = false;
   isMenuVisible = true;
   isSidebarOpen = false;
   isChapterListOpen = false;
@@ -66,9 +75,23 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     horizontalDir: 'rtl',
     mode: 'normal',
     imageSize: 100,
-    preloadCount: 3
+    preloadCount: 3,
+    fitMode: 'width',
+    doublePage: false,
+    autoScrollSpeed: 60
   };
   pendingSettings!: ReaderSettings;
+
+  /** Tự cuộn: trạng thái phiên đọc, KHÔNG lưu vào localStorage (bật lại mỗi lần). */
+  isAutoScrolling = false;
+  isFullscreen = false;
+  /** Bảng phím tắt bật bằng phím `?`. */
+  isShortcutHelpOpen = false;
+
+  private autoScrollRaf: number | null = null;
+  private autoScrollLastTs = 0;
+  /** Phần px lẻ chưa đủ 1 đơn vị để cuộn, cộng dồn qua các frame. */
+  private autoScrollRemainder = 0;
 
   // Resume-reading prompt (mode = 'ask')
   showResumePrompt = false;
@@ -88,8 +111,28 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private readingProgress: ReadingProgressService,
     private prefs: UserPreferencesService,
-    private seo: SeoService
+    private seo: SeoService,
+    @Inject(PLATFORM_ID) private platformId: Object,
+    // Chỉ được cung cấp khi render ở server (`server.ts`) → phía trình duyệt là null.
+    @Optional() @Inject(RESPONSE_CONTEXT) private responseContext: ResponseContext | null,
   ) {}
+
+  /**
+   * Chức năng: Đánh dấu chương không tồn tại và báo 404 cho tầng Express khi
+   *   đang render ở server. Không báo thì URL chương sai vẫn trả 200 — Google
+   *   coi là trang hợp lệ (soft 404), mà reader là loại URL nhiều nhất site.
+   * Yêu cầu: không.
+   * Kết quả trả về: không (đặt `notFound`, tắt `isLoading`).
+   * Exception: không ném — phía client `responseContext` là null nên bỏ qua.
+   */
+  private markNotFound(): void {
+    this.notFound = true;
+    this.isLoading = false;
+    // Chỉ ghi khi chưa ai ghi, tránh component sau đè mã của component trước.
+    if (this.responseContext && this.responseContext.status === 200) {
+      this.responseContext.status = 404;
+    }
+  }
 
   ngOnInit(): void {
     this.loadSettings();
@@ -97,7 +140,11 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
       this.mangaId = p['id'];
       this.chapterId = p['chapterId'];
       this.mangaName = p['name'] || '';
-      this.initialPage = parseInt(p['chapterIndex'] || '0', 10);
+      // Chặn ngay giá trị âm / không phải số. Cận TRÊN chưa chặn được ở đây vì
+      // chưa biết chương có bao nhiêu ảnh — việc đó do `clampInitialPage()` làm
+      // sau khi ảnh về.
+      const rawPage = parseInt(p['chapterIndex'] ?? '0', 10);
+      this.initialPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 0;
       this.currentPage = this.initialPage;   // tránh flush nhầm page cũ dưới chapter mới
       this.resolveResume();   // may adjust chapter/page ('always') or show prompt ('ask')
       this.loadImages();
@@ -183,32 +230,80 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     // Đẩy nốt vị trí đọc cuối cùng trước khi rời reader.
     this.flushProgress();
     this.seo.resetToDefault();
-    document.body.classList.remove('header-hidden');
+    // Angular huỷ app sau khi render xong ở server, nên hook này CÓ chạy trên
+    // Node — nơi không có `document.body` để mà dọn.
+    if (isPlatformBrowser(this.platformId)) {
+      document.body.classList.remove('header-hidden');
+    }
     this.destroy$.next();
     this.destroy$.complete();
     clearTimeout(this.menuTimeout);
     this.cancelViewTracking();
+    this.stopAutoScroll();
   }
 
   loadImages(): void {
     this.isLoading = true;
-    this.mangaService.getChapterImages(this.chapterId)
+    this.notFound = false;
+    this.mangaService.getChapterImages(this.mangaId,this.chapterId)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(imgs => {
-        this.images = imgs.sort((a, b) => a.index - b.index);
-        this.isLoading = false;
-        this.saveProgress(this.initialPage);
-        this.startViewTracking();
+      .subscribe({
+        next: imgs => {
+          // Chương rỗng cũng coi là không tìm thấy: không có ảnh thì trang đọc
+          // chẳng có gì để hiện, trả 200 kèm màn trắng là tệ hơn trả 404.
+          if (!imgs?.length) { this.markNotFound(); return; }
+
+          this.images = imgs.sort((a, b) => a.index - b.index);
+          this.clampInitialPage();
+          this.isLoading = false;
+          this.saveProgress(this.initialPage);
+          this.startViewTracking();
+        },
+        // API trả 404 khi chapterId không tồn tại. Trước đây không có nhánh này
+        // nên `isLoading` kẹt `true` và reader treo ở vòng xoay mãi mãi.
+        error: err => {
+          if (err?.status === 404) { this.markNotFound(); return; }
+          this.isLoading = false;
+        },
       });
+  }
+
+  /**
+   * Chức năng: Kẹp `initialPage` vào khoảng ảnh thật của chương và sửa lại URL
+   *   nếu lệch. Vào thẳng `.../chapter/<id>/999` khi chương chỉ có 20 ảnh thì
+   *   reader hiển thị đúng ảnh cuối, nhưng URL vẫn đứng ở 999 cho tới khi người
+   *   dùng cuộn — lúc đó `onPageChange` mới ghi lại. URL sai như vậy chia sẻ đi
+   *   là hỏng, và F5 lại rơi vào đúng trạng thái cũ.
+   * Yêu cầu: gọi SAU khi `images` đã có dữ liệu.
+   * Kết quả trả về: không (sửa `initialPage`, `currentPage`, thay URL tại chỗ).
+   * Exception: không ném — chương rỗng thì kẹp về 0.
+   */
+  private clampInitialPage(): void {
+    const maxIndex = Math.max(this.images.length - 1, 0);
+    const safe = Math.min(this.initialPage, maxIndex);
+    if (safe === this.initialPage) return;
+
+    this.initialPage = safe;
+    this.currentPage = safe;
+    // `replaceState` chứ không `navigate`: chỉ sửa URL cho khớp thực tế, không
+    // thêm một mục vào lịch sử (bấm Back phải về trang trước, không quay lại 999).
+    this.location.replaceState(`/manga/${this.mangaId}/chapter/${this.chapterId}/${safe}`);
   }
 
   loadChapters(): void {
     this.mangaService.getChapters(this.mangaId)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(chapters => {
+      .subscribe({
+        // `filter-chapter` KHÔNG trả 404 khi mangaId sai — nó trả 200 kèm mảng
+        // rỗng. Nên phải kiểm tra ở nhánh next, không phải nhánh error.
+        next: chapters => {
         this.chapters = chapters.sort((a, b) => a.index - b.index) || [];
         this.currentChapterIndex = this.chapters.findIndex(c => c.id === this.chapterId);
         const ch = this.currentChapter;
+        // Route đọc truyện KHÔNG có param `:name`, nên `this.mangaName` gần như
+        // luôn rỗng và title từng rơi về chuỗi 'Manga' cho mọi chương. Lấy tên
+        // từ chính response chapter — nó có sẵn `mangaName`, không tốn thêm request.
+        this.mangaName = this.mangaName || ch?.mangaName || this.chapters[0]?.mangaName || '';
         this.seo.setChapterReader({
           mangaName: this.mangaName || 'Manga',
           mangaId: this.mangaId,
@@ -216,6 +311,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
           chapterIndex: ch?.index,
           chapterTitle: ch?.title,
         });
+        },
+        error: () => { this.chapters = []; },
       });
   }
 
@@ -329,6 +426,126 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     return this.chapters[this.currentChapterIndex] ?? null;
   }
 
+  // ── Phím tắt ─────────────────────────────────────────────────────────────
+  /**
+   * Chức năng: phím tắt toàn trang cho reader. Mũi tên trái/phải do
+   * `ReaderViewerComponent` tự bắt (nó biết rtl/ltr), ở đây chỉ lo chuyển
+   * chương, fullscreen, tự cuộn và bảng trợ giúp.
+   * Yêu cầu: `event` — sự kiện keydown của window. Bỏ qua khi con trỏ đang ở
+   * ô nhập liệu (bình luận dưới trang) hoặc khi có phím bổ trợ.
+   * Kết quả trả về: không (đổi state / điều hướng).
+   * Exception: không ném.
+   */
+  @HostListener('window:keydown', ['$event'])
+  onReaderKeydown(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+    const el = event.target as HTMLElement | null;
+    const tag = el?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) return;
+
+    switch (event.key) {
+      case 'n': case 'N':
+        event.preventDefault(); this.nextChapter(); break;
+      case 'p': case 'P':
+        event.preventDefault(); this.prevChapter(); break;
+      case 'f': case 'F':
+        event.preventDefault(); this.toggleFullscreen(); break;
+      case ' ':
+        // Space chỉ có nghĩa ở chế độ dọc — bật/tắt tự cuộn thay vì nhảy trang.
+        if (this.settings.direction === 'vertical') {
+          event.preventDefault(); this.toggleAutoScroll();
+        }
+        break;
+      case '?':
+        event.preventDefault(); this.isShortcutHelpOpen = !this.isShortcutHelpOpen; break;
+      case 'Escape':
+        if (this.isShortcutHelpOpen) { this.isShortcutHelpOpen = false; }
+        else if (this.isSidebarOpen) { this.closeSidebar(); }
+        else if (this.isChapterListOpen) { this.closeChapterList(); }
+        else if (this.isAutoScrolling) { this.stopAutoScroll(); }
+        break;
+    }
+  }
+
+  // ── Fullscreen ───────────────────────────────────────────────────────────
+  /**
+   * Chức năng: bật/tắt toàn màn hình bằng Fullscreen API.
+   * Yêu cầu: chỉ chạy phía trình duyệt — trên Node không có `document`.
+   * Kết quả trả về: không (cờ `isFullscreen` do `fullscreenchange` cập nhật,
+   * không gán tay, vì người dùng có thể thoát bằng Esc của trình duyệt).
+   * Exception: không ném — trình duyệt từ chối thì nuốt lỗi, giữ nguyên trạng thái.
+   */
+  toggleFullscreen(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }
+
+  @HostListener('document:fullscreenchange')
+  onFullscreenChange(): void {
+    this.isFullscreen = isPlatformBrowser(this.platformId) && !!document.fullscreenElement;
+  }
+
+  // ── Tự cuộn (webtoon) ────────────────────────────────────────────────────
+  toggleAutoScroll(): void {
+    if (this.isAutoScrolling) this.stopAutoScroll();
+    else this.startAutoScroll();
+  }
+
+  /**
+   * Chức năng: bắt đầu tự cuộn trang theo `settings.autoScrollSpeed` (px/giây).
+   * Dùng `requestAnimationFrame` + delta thời gian thật, không phải `setInterval`,
+   * để tốc độ không đổi theo tần số quét màn hình.
+   * Yêu cầu: chỉ có nghĩa ở chế độ đọc dọc và phía trình duyệt.
+   * Kết quả trả về: không (bật `isAutoScrolling`, giữ handle ở `autoScrollRaf`).
+   * Exception: không ném — cuộn tới đáy trang thì tự dừng.
+   */
+  startAutoScroll(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.settings.direction !== 'vertical' || this.isAutoScrolling) return;
+
+    this.isAutoScrolling = true;
+    this.autoScrollLastTs = 0;
+    this.autoScrollRemainder = 0;
+
+    const tick = (ts: number) => {
+      if (!this.isAutoScrolling) return;
+
+      if (this.autoScrollLastTs === 0) this.autoScrollLastTs = ts;
+      const dt = (ts - this.autoScrollLastTs) / 1000;
+      this.autoScrollLastTs = ts;
+
+      // Cộng dồn phần lẻ: ở tốc độ thấp mỗi frame chưa đủ 1px, làm tròn xuống
+      // từng frame sẽ ra 0 và trang đứng im.
+      this.autoScrollRemainder += this.settings.autoScrollSpeed * dt;
+      const px = Math.floor(this.autoScrollRemainder);
+      if (px > 0) {
+        this.autoScrollRemainder -= px;
+        window.scrollBy(0, px);
+      }
+
+      const atBottom =
+        window.innerHeight + window.scrollY >= document.body.scrollHeight - 2;
+      if (atBottom) { this.stopAutoScroll(); return; }
+
+      this.autoScrollRaf = requestAnimationFrame(tick);
+    };
+
+    this.autoScrollRaf = requestAnimationFrame(tick);
+  }
+
+  stopAutoScroll(): void {
+    this.isAutoScrolling = false;
+    if (this.autoScrollRaf !== null) {
+      cancelAnimationFrame(this.autoScrollRaf);
+      this.autoScrollRaf = null;
+    }
+  }
+
   toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
     if (this.isSidebarOpen) {
@@ -343,6 +560,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
 
   applySettings(): void {
     this.settings = { ...this.pendingSettings };
+    // Đổi sang đọc ngang thì tự cuộn hết ý nghĩa — dừng, không để chạy ngầm.
+    if (this.settings.direction !== 'vertical') this.stopAutoScroll();
     this.saveSettings();
     this.closeSidebar();
   }

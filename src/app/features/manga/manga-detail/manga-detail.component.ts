@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Optional, Inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
@@ -11,6 +11,7 @@ import { ChapterSortBy } from '../../../core/models/chapter.interface';
 import { DownloadService } from '../../../core/services/download.service';
 import { chapterName, chapterNumber } from '../../../core/utils/chapter-label';
 import { ReadingProgressService } from '../../../core/services/reading-progress.service';
+import { RESPONSE_CONTEXT, ResponseContext } from '../../../core/tokens/response-context';
 
 @Component({
   selector: 'app-manga-detail',
@@ -27,12 +28,15 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   selectedRating = 0;
   hoverRating = 0;
   hasRated = false;
+  notFound = false;
   existingRating!: UserRating;
   showReratePanel = false;
   synopsisExpanded = false;
   sameAuthorManga: Manga[] = [];
   sameArtistManga: Manga[] = [];
-
+  /** Truyện tương tự — xếp theo số thể loại trùng với truyện đang xem. */
+  similarManga: Manga[] = [];
+  similarLoading = false;
   // Download range picker (download-all)
   showDownloadPanel = false;
   readonly MAX_RANGE = 10;
@@ -134,6 +138,7 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     private seo: SeoService,
     private download: DownloadService,
     private readingProgress: ReadingProgressService,
+    @Optional() @Inject(RESPONSE_CONTEXT) private responseContext: ResponseContext | null,
   ) {}
 
   // ── Download ─────────────────────────────────────────────────────────────────
@@ -217,12 +222,19 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
         this.loadRelatedManga();
         this.loadInteraction();
       },
-      error: () => {
-        this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe(m => {
-          this.manga = m as any;
-          this.isLoading = false;
-          this.loadStats();
-        });
+      error: (err) => {
+        this.isLoading = false;
+
+          if (err.status === 404) {
+            if (this.responseContext?.status === 200) this.responseContext.status = 404;
+            this.notFound = true;
+            return;                 
+          }
+
+         this.mangaService.getDetail(this.mangaId).pipe(takeUntil(this.destroy$)).subscribe({
+            next: m => { this.manga = m as any; this.loadStats(); },
+            error: () => { this.notFound = true; },
+          });
       }
     });
   }
@@ -351,6 +363,45 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
           this.sameArtistManga = (r.data || []).filter(m => m.id !== this.mangaId).slice(0, 4);
         });
     }
+
+    this.loadSimilarManga();
+  }
+
+  /**
+   * Chức năng: gợi ý truyện tương tự dựa trên thể loại trùng nhau. Lấy rộng theo
+   * vài tag đầu rồi xếp hạng tại client theo SỐ tag trùng — làm vậy vì
+   * `filter-manga` không có tham số "độ liên quan", và ghép AND hết tag thì
+   * thường ra rỗng.
+   * Yêu cầu: `this.manga` đã tải xong và có ít nhất 1 thể loại.
+   * Kết quả trả về: không (gán `similarManga`, tối đa 6 truyện, bỏ chính nó).
+   * Exception: không ném — lỗi API để danh sách rỗng, khối này tự ẩn.
+   */
+  loadSimilarManga(): void {
+    const tagIds = (this.manga?.tags ?? [])
+      .map((t: any) => t.id)
+      .filter(Boolean)
+      .slice(0, 3);
+    if (!tagIds.length) return;
+
+    const own = new Set<string>((this.manga?.tags ?? []).map((t: any) => t.id));
+    this.similarLoading = true;
+    this.mangaService.filterPaginated({ tagIds, pageSize: 24 })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: r => {
+          this.similarManga = (r.data || [])
+            .filter(m => m.id !== this.mangaId)
+            .map(m => ({
+              manga: m,
+              score: (m.tags ?? []).filter((t: any) => own.has(t.id)).length,
+            }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map(x => x.manga);
+          this.similarLoading = false;
+        },
+        error: () => { this.similarLoading = false; }
+      });
   }
 
   /**

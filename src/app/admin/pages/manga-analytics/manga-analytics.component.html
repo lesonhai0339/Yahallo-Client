@@ -13,10 +13,8 @@
   </div>
 
   <!-- Loading -->
-  <div *ngIf="loading" class="loading-state">
-    <div class="spinner"></div>
-    <span>Đang tải dữ liệu...</span>
-  </div>
+  <app-analytics-skeleton *ngIf="loading"
+    [statRows]="2" [stats]="4" [charts]="2" [chartCols]="1"></app-analytics-skeleton>
 
   <ng-container *ngIf="!loading && analytics">
     <!-- Block 1: toàn thời gian -->
@@ -131,10 +129,8 @@
       </div>
 
       <div class="detail-panel__body">
-        <div *ngIf="detailPanel.loading" class="detail-loading">
-          <div class="spinner"></div>
-          <span>Đang tải...</span>
-        </div>
+        <app-table-skeleton *ngIf="detailPanel.loading"
+          leading="avatar" [rows]="5" [cols]="2" [showActions]="false"></app-table-skeleton>
 
         <ng-container *ngIf="!detailPanel.loading && detailPanel.detail">
           <div class="detail-panel__count">

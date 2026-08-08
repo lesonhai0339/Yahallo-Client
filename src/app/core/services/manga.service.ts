@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Chapter, Manga, MangaDetailDto, MangaStatsDto, MangaPagination, PagedResult } from '../models/interfaces';
 import { ChapterImage, ChapterSortBy } from '../models/chapter.interface';
@@ -253,20 +253,6 @@ export class MangaService {
     );
   }
 
-  /**
-   * Per-user recommendations — a SEPARATE call, intentionally not bundled into
-   * the shared homepage payload because each user gets a different list.
-   *
-   * MOCK: no recommendation API yet, so we stand in with rating-sorted manga
-   * shuffled per call. TODO: replace with the real per-user endpoint when ready
-   * (e.g. GET `${base}/recommend?userId=...`).
-   */
-  getRecommendedForUser(count = 6): Observable<MangaSumaryDto[]> {
-    return this.getSortedPaginated(1, Math.max(count * 2, count), MangaSortBy.Rating).pipe(
-      map(res => [...res.data].sort(() => Math.random() - 0.5).slice(0, count))
-    );
-  }
-
   getRecommended(page = 1, pageSize = 12): Observable<Manga[]> {
     return this.getPaginated(page, pageSize).pipe(
       map((res: any) => {
@@ -409,6 +395,7 @@ export class MangaService {
                  subIndex: chapter.subIndex ?? 0,
                  title: chapter.title,
                  mangaId: chapter.mangaId,
+                 mangaName: chapter.mangaName,
                  chapterDate: chapter.createDate
               }
             )
@@ -428,8 +415,11 @@ export class MangaService {
     });
   }
 
-  getChapterImages(chapterId: string): Observable<ChapterImage[]> {
-    const params = new HttpParams().set('ChapterId', chapterId);
+  getChapterImages(mangaId: string, chapterId: string): Observable<ChapterImage[]> {
+    const params = new HttpParams()
+      .set('MangaId', mangaId)
+      .set('ChapterId', chapterId);
+
     return this.http.get(`${this.chapterBase}/get-image`, { params }).pipe(
       map((res: any) => {
         const raw: any[] = res?.value ?? res ?? [];
@@ -584,9 +574,13 @@ export class MangaService {
         } as Manga));
         const totalCount = raw?.totalCount ?? 0;
         const pageSize = params.pageSize ?? 20;
-        // Derive from the reliable totalCount + requested pageSize so the page
-        // count always matches this template's items-per-page.
-        const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : (raw?.totalPages ?? 1);
+        // Ưu tiên tính từ totalCount + pageSize để số trang khớp đúng số mục mỗi
+        // trang của template. Backend trả tên field là `pageCount` — nhánh dự
+        // phòng cũ chỉ đọc `totalPages` nên không bao giờ khớp, luôn rơi về 1
+        // và làm tầng trên tưởng "có 1 trang" ngay cả khi không có kết quả nào.
+        const totalPages = totalCount
+          ? Math.ceil(totalCount / pageSize)
+          : (raw?.totalPages ?? raw?.pageCount ?? (items.length ? 1 : 0));
         return { data: items, totalPages, totalCount };
       })
     );
@@ -621,11 +615,38 @@ export class MangaService {
         } as Manga));
         const totalCount = raw?.totalCount ?? 0;
         const pageSize = params.pageSize ?? 20;
-        // Derive from the reliable totalCount + requested pageSize so the page
-        // count always matches this template's items-per-page.
-        const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : (raw?.totalPages ?? 1);
+        // Ưu tiên tính từ totalCount + pageSize để số trang khớp đúng số mục mỗi
+        // trang của template. Backend trả tên field là `pageCount` — nhánh dự
+        // phòng cũ chỉ đọc `totalPages` nên không bao giờ khớp, luôn rơi về 1
+        // và làm tầng trên tưởng "có 1 trang" ngay cả khi không có kết quả nào.
+        const totalPages = totalCount
+          ? Math.ceil(totalCount / pageSize)
+          : (raw?.totalPages ?? raw?.pageCount ?? (items.length ? 1 : 0));
         return { data: items, totalPages, totalCount };
       })
+    );
+  }
+
+  /**
+   * Chức năng: lấy id một truyện ngẫu nhiên. `filter-manga` không có chế độ
+   * random nên phải 2 nhịp: nhịp đầu xin 1 bản ghi chỉ để biết `totalCount`,
+   * nhịp sau nhảy tới một trang ngẫu nhiên với `pageSize = 1`.
+   * Yêu cầu: không.
+   * Kết quả trả về: Observable emit id truyện rồi complete; emit `null` khi kho
+   * truyện rỗng hoặc API lỗi.
+   * Exception: không ném — mọi lỗi quy về `null` để nơi gọi chỉ cần báo toast.
+   */
+  getRandomMangaId(): Observable<string | null> {
+    return this.filterPaginated({ pageNo: 1, pageSize: 1 }).pipe(
+      switchMap(first => {
+        const total = first.totalCount ?? 0;
+        if (!total) return of(null);
+        const page = Math.floor(Math.random() * total) + 1;
+        return this.filterPaginated({ pageNo: page, pageSize: 1 }).pipe(
+          map(r => r.data?.[0]?.id ?? null)
+        );
+      }),
+      catchError(() => of(null))
     );
   }
 

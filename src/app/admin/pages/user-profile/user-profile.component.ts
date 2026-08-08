@@ -27,7 +27,17 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   mangaLoading = true;
   totalCount = 0;
   pageIndex = 0;
-  pageSize = 12;
+  /**
+   * 16 = 2 hàng × 8 cột của lưới desktop. Lưới để CỐ ĐỊNH số cột (không dùng
+   * auto-fill) nên con số này luôn lấp đúng 2 hàng, không còn hàng cuối lẻ loi.
+   */
+  pageSize = 16;
+
+  /** 'grid' = lưới bìa; 'list' = mỗi truyện một hàng. Khớp với /admin/manga. */
+  viewMode: 'grid' | 'list' = 'grid';
+
+  /** Ô "nhảy tới trang" — giữ dạng chuỗi vì input số trả về chuỗi. */
+  jumpTo = '';
 
   private destroy$ = new Subject<void>();
 
@@ -124,6 +134,26 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   /** Tổng lượt xem của mọi truyện TRONG TRANG hiện tại. */
   get viewsOnPage(): number {
     return this.mangas.reduce((sum, m) => sum + (m.totalViews || 0), 0);
+  }
+
+  setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode = mode;
+  }
+
+  /**
+   * Chức năng: Nhảy tới trang người dùng gõ trong ô. Người dùng đếm từ 1, nội
+   *   bộ đếm từ 0 nên phải trừ đi 1.
+   * Yêu cầu: `jumpTo` là chuỗi số; ngoài khoảng hợp lệ thì bỏ qua.
+   * Kết quả trả về: không (đổi trang rồi xoá ô nhập).
+   * Exception: không ném — nhập bậy thì không làm gì.
+   */
+  jumpToPage(): void {
+    const n = Number(this.jumpTo);
+    if (!Number.isFinite(n)) return;
+    const index = Math.trunc(n) - 1;
+    if (index < 0 || index >= this.totalPages) return;
+    this.jumpTo = '';
+    this.goPage(index);
   }
 
   get totalPages(): number {

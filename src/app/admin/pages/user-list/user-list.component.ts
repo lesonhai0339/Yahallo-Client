@@ -1,8 +1,6 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSort } from '@angular/material/sort';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Subject, takeUntil } from 'rxjs';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AdminService } from '../../services/admin.service';
@@ -19,9 +17,13 @@ import { environment } from '../../../../environments/environment';
   templateUrl: './user-list.component.html',
   styleUrls: ['./user-list.component.scss']
 })
-export class UserListComponent implements OnInit, AfterViewInit {
-  displayedColumns = ['avatar', 'name', 'email', 'roles', 'actions'];
-  dataSource = new MatTableDataSource<any>([]);
+export class UserListComponent implements OnInit, OnDestroy {
+  /** Một trang người dùng đang hiển thị — mảng thường, không còn MatTableDataSource. */
+  items: any[] = [];
+  /** 'grid' = nhiều cột; 'list' = mỗi người một hàng. Khớp với /admin/manga. */
+  viewMode: 'grid' | 'list' = 'grid';
+  /** Ô tìm kiếm — lọc TẠI CHỖ trong trang hiện tại (endpoint chưa nhận tham số tìm). */
+  searchTerm = '';
   totalCount = 0;
   pageSize = 20;
   pageIndex = 0;
@@ -30,8 +32,7 @@ export class UserListComponent implements OnInit, AfterViewInit {
   detailLoading = false;
   readonly imgBase = environment.serviceApi;
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private adminService: AdminService,
@@ -45,22 +46,32 @@ export class UserListComponent implements OnInit, AfterViewInit {
     this.loadUsers();
   }
 
-  ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
+  /**
+   * Chức năng: Tải một trang người dùng từ endpoint admin (AdminUserDto).
+   * Yêu cầu: `pageIndex` / `pageSize` đã đặt.
+   * Kết quả trả về: không (cập nhật `items`, `totalCount`, `loading`).
+   * Exception: không ném — lỗi API thì chỉ tắt `loading`.
+   */
   loadUsers(): void {
     this.loading = true;
-    this.adminService.getAllUsers(this.pageIndex + 1, this.pageSize).subscribe({
+    this.adminService.getAllUsers(this.pageIndex + 1, this.pageSize).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
         const d = res?.value ?? res;
         const items = d?.data ?? d?.items ?? (Array.isArray(d) ? d : []);
         this.totalCount = d?.totalCount ?? items.length;
-        this.dataSource.data = items.map((u: any) => ({
+        // AdminUserDto: DisplayName / Avatar / PhoneNumber / Status / Level / Roles.
+        // `roleList` trước đây luôn rỗng vì endpoint cũ không trả roles.
+        this.items = items.map((u: any) => ({
           ...u,
           name: u.displayName ?? u.name ?? u.userName,
-          avatarUrl:  u.avatar ?? null,
-          roleList: []
+          avatarUrl: u.avatar ?? null,
+          phone: u.phoneNumber ?? u.phone ?? null,
+          roleList: Array.isArray(u.roles) ? u.roles : (u.roles ? [u.roles] : []),
         }));
         this.loading = false;
       },
@@ -68,15 +79,41 @@ export class UserListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  onPageChange(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
+  /** Lọc tại chỗ theo tên / email — endpoint chưa nhận tham số tìm kiếm. */
+  get visibleUsers(): any[] {
+    const q = this.searchTerm.trim().toLowerCase();
+    if (!q) return this.items;
+    return this.items.filter(u =>
+      String(u.name ?? '').toLowerCase().includes(q) ||
+      String(u.email ?? '').toLowerCase().includes(q));
+  }
+
+  get totalPages(): number {
+    return this.pageSize > 0 ? Math.ceil(this.totalCount / this.pageSize) : 1;
+  }
+
+  goPage(index: number): void {
+    if (index < 0 || index >= this.totalPages || index === this.pageIndex) return;
+    this.pageIndex = index;
     this.loadUsers();
   }
 
-  applyFilter(event: Event): void {
-    this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
+  setPageSize(size: number): void {
+    if (size === this.pageSize) return;
+    this.pageSize = size;
+    this.pageIndex = 0;
+    this.loadUsers();
   }
+
+  setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode = mode;
+  }
+
+  /** Mở hồ sơ người dùng — tương ứng nút "Chi tiết" của /admin/manga. */
+  goProfile(user: any): void {
+    this.router.navigate(['/admin/users', user.id]);
+  }
+
 
   selectUser(user: any): void {
     if (this.selectedUser?.id === user.id) { this.selectedUser = null; return; }

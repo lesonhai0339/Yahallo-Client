@@ -85,21 +85,7 @@
   &__search-input { width: 100%; padding: 8px 12px 8px 36px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.88rem; &:focus { outline: none; border-color: var(--accent-primary); } &::placeholder { color: var(--text-muted); } }
 }
 
-// ── Loading / Empty ─────────────────────────────────────────────────────────
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 40px;
-  color: var(--text-muted);
-  font-size: 0.88rem;
-
-  &--sm { padding: 20px; font-size: 0.82rem; }
-}
-
-.spinner { width: 22px; height: 22px; border: 2px solid var(--border-light); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+// ── Empty ───────────────────────────────────────────────────────────────────
 
 .empty-state {
   display: flex;
@@ -534,4 +520,48 @@
   font-size: 0.82rem;
 
   .material-icons { font-size: 1rem !important; }
+}
+
+// ── Responsive ──────────────────────────────────────────────────────────────
+// Bố cục 2 cột (danh sách 380px + chi tiết) chỉ hợp lý từ tablet ngang trở lên.
+// Dưới ngưỡng đó xếp dọc: danh sách trên, panel chi tiết dưới và bỏ `sticky`
+// (sticky trong flow một cột chỉ làm panel dính lơ lửng, che nội dung).
+@media (max-width: 1024px) {
+  .page-layout,
+  .page-layout--has-detail { grid-template-columns: 1fr; gap: 18px; }
+
+  .page-detail { position: static; }
+  .detail-panel { max-height: none; }
+}
+
+@media (max-width: 768px) {
+  .page-header { flex-direction: column; align-items: stretch; gap: 12px; }
+  .btn-create { justify-content: center; }
+
+  // Thanh chip cuộn ngang thay vì xuống dòng thành nhiều hàng chiếm hết màn hình.
+  .category-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+  .cat-chip { flex: none; }
+
+  .toolbar__search { max-width: none; }
+
+  .topic-card { padding: 12px; }
+  .topic-card__title { font-size: 0.92rem; }
+  .topic-card__meta { flex-wrap: wrap; gap: 8px; }
+
+  .detail-header { padding: 14px 14px 12px; }
+  .detail-actions { flex-wrap: wrap; }
+  .d-act { flex: 1 1 auto; justify-content: center; }
+
+  .reply-item { gap: 8px; }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 { font-size: 1.25rem; }
+  .topic-card__footer { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .detail-title { font-size: 1rem; }
 }

@@ -8,6 +8,9 @@ import { ArtistService } from '../../../core/services/artist.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { Manga, Tag } from '../../../core/models/interfaces';
 import { MangaSortBy } from '../../../core/models/manga.interface';
+import {
+  MANGA_STATUS_OPTIONS, MANGA_TYPE_OPTIONS, COUNTRY_OPTIONS, EnumOption, enumLabel,
+} from '../../../core/models/manga-enums';
 
 export interface RecommendItem {
   id: string;
@@ -37,6 +40,12 @@ export interface MangaSearchCriteria {
   authorId?: string;
   artistId?: string;
   season?: number;
+  /** `MangaStatus` — đang ra / tạm ngưng / hoàn thành. */
+  status?: number;
+  /** `MangaType` — oneshot / OVA / doujinshi / nhiều chương. */
+  type?: number;
+  /** `CountriesEnum` — nước xuất xứ (Nhật/Hàn/Trung…). */
+  countries?: number;
   sortBy?: MangaSortBy;
   reverseSort?: boolean;
 }
@@ -63,6 +72,20 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   tags: Tag[] = [];
   selectedCategories: string[] = [];
   selectedYear: number | null = null;
+
+  // Bộ lọc trạng thái / hình thức / xuất xứ — `filter-manga` đã nhận sẵn 3 param
+  // này, trước đây client chỉ không gửi lên. Giá trị là số đúng enum backend.
+  selectedStatus: number | null = null;
+  selectedType: number | null = null;
+  selectedCountry: number | null = null;
+
+  readonly statusOptions = MANGA_STATUS_OPTIONS;
+  readonly typeOptions = MANGA_TYPE_OPTIONS;
+  readonly countryOptions = COUNTRY_OPTIONS;
+
+  statusOpen = false;
+  typeOpen = false;
+  countryOpen = false;
   yearOpen = false;
   readonly years: number[] = Array.from(
     { length: new Date().getFullYear() - 1989 },
@@ -245,7 +268,8 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
 
   /** Có param nào đáng phục hồi vào bộ lọc không? */
   private hasRestorableParams(params: any): boolean {
-    return ['q', 'prefix', 'tagId', 'tags', 'author', 'artist', 'year', 'page', 'sort', 'asc']
+    return ['q', 'prefix', 'tagId', 'tags', 'author', 'artist', 'year', 'page', 'sort', 'asc',
+            'status', 'type', 'country']
       .some(k => params?.[k] != null);
   }
 
@@ -280,6 +304,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       const y = Number(params['year']);
       if (!Number.isNaN(y)) this.selectedYear = y;
     }
+    // Chỉ nhận giá trị CÓ trong bảng lựa chọn — URL do người dùng sửa được, số
+    // lạ lọt xuống API sẽ thành lỗi 400 thay vì im lặng bỏ qua bộ lọc.
+    this.selectedStatus = this.parseEnumParam(params['status'], this.statusOptions);
+    this.selectedType = this.parseEnumParam(params['type'], this.typeOptions);
+    this.selectedCountry = this.parseEnumParam(params['country'], this.countryOptions);
     if (params['sort']) {
       const s = this.sortOptions.find(o => o.value === params['sort']);
       if (s) this.sortBy = s.value;
@@ -320,6 +349,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     if (!target.closest('.year-dd')) {
       this.yearOpen = false;
     }
+    if (!target.closest('.status-dd')) this.statusOpen = false;
+    if (!target.closest('.type-dd')) this.typeOpen = false;
+    if (!target.closest('.country-dd')) this.countryOpen = false;
   }
 
   selectYear(y: number | null): void {
@@ -328,6 +360,69 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     this.selectedYear = y;
     this.onYearChange();
   }
+
+  /**
+   * Chức năng: chọn trạng thái ra chương rồi chạy lại tìm kiếm.
+   * Yêu cầu: `s` — giá trị `MangaStatus`, `null` để bỏ lọc.
+   * Kết quả trả về: không (đổi `selectedStatus`, gọi lại API qua afterCriteriaChange).
+   * Exception: không ném — chọn lại đúng giá trị cũ thì bỏ qua, không gọi API thừa.
+   */
+  selectStatus(s: number | null): void {
+    this.statusOpen = false;
+    if (this.selectedStatus === s) return;
+    this.selectedStatus = s;
+    this.afterCriteriaChange();
+  }
+
+  /**
+   * Chức năng: chọn hình thức phát hành (oneshot/OVA/doujinshi/nhiều chương).
+   * Yêu cầu: `t` — giá trị `MangaType`, `null` để bỏ lọc.
+   * Kết quả trả về: không (đổi `selectedType`, gọi lại API).
+   * Exception: không ném — trùng giá trị cũ thì bỏ qua.
+   */
+  selectType(t: number | null): void {
+    this.typeOpen = false;
+    if (this.selectedType === t) return;
+    this.selectedType = t;
+    this.afterCriteriaChange();
+  }
+
+  /**
+   * Chức năng: chọn nước xuất xứ.
+   * Yêu cầu: `c` — giá trị `CountriesEnum`, `null` để bỏ lọc.
+   * Kết quả trả về: không (đổi `selectedCountry`, gọi lại API).
+   * Exception: không ném — trùng giá trị cũ thì bỏ qua.
+   */
+  selectCountry(c: number | null): void {
+    this.countryOpen = false;
+    if (this.selectedCountry === c) return;
+    this.selectedCountry = c;
+    this.afterCriteriaChange();
+  }
+
+  /**
+   * Chức năng: đọc một query param enum từ URL, chỉ chấp nhận giá trị có thật
+   * trong bảng lựa chọn.
+   * Yêu cầu: `raw` — giá trị thô từ URL; `options` — bảng lựa chọn hợp lệ.
+   * Kết quả trả về: số enum hợp lệ, hoặc `null` nếu thiếu / không phải số /
+   * không nằm trong bảng.
+   * Exception: không ném — giá trị rác coi như không lọc.
+   */
+  private parseEnumParam(raw: any, options: EnumOption<number>[]): number | null {
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    if (Number.isNaN(n)) return null;
+    return options.some(o => o.value === n) ? n : null;
+  }
+
+  clearStatus(): void { this.selectStatus(null); }
+  clearType(): void { this.selectType(null); }
+  clearCountry(): void { this.selectCountry(null); }
+
+  /** Nhãn đang chọn để hiện trên nút dropdown; `null` khi chưa lọc. */
+  get statusLabel(): string | null { return enumLabel(this.statusOptions, this.selectedStatus); }
+  get typeLabel(): string | null { return enumLabel(this.typeOptions, this.selectedType); }
+  get countryLabel(): string | null { return enumLabel(this.countryOptions, this.selectedCountry); }
 
   /**
    * Tier 1 — đổi đối tượng tìm kiếm. Hiện chỉ Manga hoạt động đầy đủ (list manga
@@ -542,6 +637,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       authorId: this.selectedAuthor?.id,
       artistId: this.selectedArtist?.id,
       season: this.selectedYear ?? undefined,
+      status: this.selectedStatus ?? undefined,
+      type: this.selectedType ?? undefined,
+      countries: this.selectedCountry ?? undefined,
       sortBy: this.sortBy ?? undefined,
       reverseSort: this.sortBy ? this.reverseSort : undefined,
     };
@@ -608,6 +706,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
       authorId: c.authorId,
       artistId: c.artistId,
       season: c.season,
+      status: c.status,
+      type: c.type,
+      countries: c.countries,
       sortBy: c.sortBy,
       reverseSort: c.reverseSort,
       pageNo: page,
@@ -623,7 +724,11 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   private applyResult(r: { data: Manga[]; totalPages: number; totalCount: number }): void {
     this.results = r.data;
     this.totalPages = r.totalPages;
-    this.totalCount = r.totalCount || r.totalPages * this.pageSize;
+    // KHÔNG suy ra từ `totalPages * pageSize`: đó là con số bịa, và với `||` thì
+    // `totalCount = 0` hợp lệ (đối tượng chưa có truyện nào) cũng bị coi là
+    // thiếu dữ liệu rồi hiện thành đúng một trang đầy — "(20)" dù chẳng có gì.
+    // Thiếu thật thì lấy số mục đang cầm trên tay, ít nhất nó đúng.
+    this.totalCount = r.totalCount || this.results.length;
     this.hasSearched = true;
   }
 
@@ -655,6 +760,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     if (this.selectedAuthor) qp.author = this.selectedAuthor.id;
     if (this.selectedArtist) qp.artist = this.selectedArtist.id;
     if (this.selectedYear != null) qp.year = this.selectedYear;
+    if (this.selectedStatus != null) qp.status = this.selectedStatus;
+    if (this.selectedType != null) qp.type = this.selectedType;
+    if (this.selectedCountry != null) qp.country = this.selectedCountry;
     if (this.sortBy) qp.sort = this.sortBy;
     if (this.sortBy && !this.reverseSort) qp.asc = 1;
     if (this.currentPage > 1) qp.page = this.currentPage;
@@ -964,6 +1072,9 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   get hasActiveFilter(): boolean {
     return this.selectedCategories.length > 0
         || this.selectedYear != null
+        || this.selectedStatus != null
+        || this.selectedType != null
+        || this.selectedCountry != null
         || !!this.selectedAuthor
         || !!this.selectedArtist;
   }

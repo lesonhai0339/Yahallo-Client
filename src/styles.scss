@@ -375,6 +375,9 @@ a {
     position: absolute;
     bottom: 8px;
     left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
     border: none;
     border-radius: 4px;
@@ -420,6 +423,9 @@ a {
     overflow: hidden;
 
     .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       color: var(--text-secondary);

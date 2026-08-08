@@ -7,7 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "dev:ssr": "ng run yahallo-client-refactor:serve-ssr",
+    "dev:ssr": "node scripts/with-dev-cert.js ng run yahallo-client-refactor:serve-ssr",
     "serve:ssr": "node dist/yahallo-client-refactor/server/main.js",
     "build:ssr": "ng build && ng run yahallo-client-refactor:server",
     "prerender": "ng run yahallo-client-refactor:prerender"
@@ -43,7 +43,7 @@
     "ngx-toastr": "^18.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.14.10"
+    "zone.js": "^0.15.1"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^17.3.17",

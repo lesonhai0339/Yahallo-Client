@@ -1,4 +1,5 @@
-import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, Renderer2 } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, Renderer2, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { Manga } from '../../../core/models/interfaces';
 import { MangaSumaryDto, TagDto } from '../../../core/models/manga.interface';
@@ -17,16 +18,33 @@ export class MangaSumaryCardComponent implements OnInit, AfterViewInit, OnDestro
   sortedTags: TagDto[] = [];
   private resizeObserver?: ResizeObserver;
 
-  constructor(private router: Router, private renderer: Renderer2) {}
+  constructor(
+    private router: Router,
+    private renderer: Renderer2,
+    @Inject(PLATFORM_ID) private platformId: Object,
+  ) {}
 
   ngOnInit(): void {
-    const tags = this.manga.tags ?? [];
+    const tags = this.manga?.tags ?? [];
     this.sortedTags = [...tags]
       .sort((a: any, b: any) => a.name.length - b.name.length)
       .slice(0, 6);
   }
 
+  /**
+   * Chức năng: Cắt bớt chip thể loại cho vừa một hàng, và theo dõi đổi kích
+   *   thước để cắt lại. Toàn bộ phải nằm sau guard: `requestAnimationFrame` và
+   *   `ResizeObserver` không tồn tại trên Node, ném lỗi ở đây sẽ **ngắt luôn
+   *   quá trình render danh sách** — các thẻ phía sau đứng lại ở dạng vỏ rỗng,
+   *   SSR trả về HTML thiếu hầu hết truyện.
+   * Yêu cầu: không.
+   * Kết quả trả về: không (đăng ký `resizeObserver`).
+   * Exception: không ném — ở server thoát sớm, việc cắt chip để client làm sau
+   *   khi hydrate (kích thước chỉ đo được khi có layout thật).
+   */
   ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     requestAnimationFrame(() => this.trimTags());
     if (this.tagsContainer) {
       this.resizeObserver = new ResizeObserver(() => this.trimTags());
@@ -89,9 +107,17 @@ export class MangaSumaryCardComponent implements OnInit, AfterViewInit, OnDestro
     return views.toString();
   }
 
+  /**
+   * Chỉ số chương mới nhất, `null` khi truyện chưa có chương nào. Tách riêng để
+   * template ẩn hẳn nút chương thay vì hiện "Chương N/A" — nút bấm vào không đi
+   * đâu thì không nên có mặt. Trả `null` chứ không `0`: chương 0 là hợp lệ.
+   */
+  get latestChapterIndex(): number | null {
+    return this.manga?.lastChapterIndex ?? this.manga?.lastestChapter?.index ?? null;
+  }
+
   getLatestChapter(): string {
-    const idx = this.manga.lastChapterIndex ?? this.manga.lastestChapter?.index;
-    return `Chương ${idx ?? 'N/A'}`;
+    return `Chương ${this.latestChapterIndex ?? 'N/A'}`;
   }
 
   getLastChapterUpdate(): string | null {

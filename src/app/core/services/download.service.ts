@@ -219,7 +219,7 @@ export class DownloadService {
       const lists: ChapterImage[][] = [];
       for (let ci = 0; ci < job.chapters.length; ci++) {
         this.ensureAlive(aborter);
-        const imgs = (await firstValueFrom(this.manga.getChapterImages(job.chapters[ci].chapterId))) || [];
+        const imgs = (await firstValueFrom(this.manga.getChapterImages(job.mangaId!, job.chapters[ci].chapterId))) || [];
         const sorted = [...imgs].sort((a, b) => a.index - b.index);
         lists.push(sorted);
         this.patchChapter(jobId, ci, c => ({ ...c, total: sorted.length }));

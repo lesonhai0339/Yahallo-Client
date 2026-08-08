@@ -14,9 +14,17 @@ export class AdminService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Chức năng: Danh sách người dùng cho khu quản trị. Dùng endpoint riêng của
+   *   admin (`user/admin/get-all-pagination` → AdminUserDto) vì bản công khai
+   *   không trả `roles`, `status`, `level` — những thứ trang quản trị cần.
+   * Yêu cầu: `page` bắt đầu từ 1.
+   * Kết quả trả về: Observable phát nguyên response phân trang.
+   * Exception: không bắt — để tầng gọi xử lý.
+   */
   getAllUsers(page = 1, pageSize = 50): Observable<any> {
     const params = new HttpParams().set('PageNo', page).set('PageSize', pageSize);
-    return this.http.get(`${this.userBase}/get-all-pagination`, { params });
+    return this.http.get(`${this.userBase}/admin/get-all-pagination`, { params });
   }
 
   getUserById(id: string): Observable<any> {

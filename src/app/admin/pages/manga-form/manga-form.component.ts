@@ -4,6 +4,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AdminMangaService } from '../../services/admin-manga.service';
+import {
+  MANGA_STATUS_OPTIONS, MANGA_TYPE_OPTIONS, MANGA_LEVEL_OPTIONS, COUNTRY_OPTIONS,
+  MangaStatus, MangaType, MangaLevel, Countries,
+} from '../../../core/models/manga-enums';
 
 @Component({
   selector: 'app-manga-form',
@@ -36,32 +40,12 @@ export class MangaFormComponent implements OnInit {
   // Linked series/seasons — managed by RelatedMangaSelectorComponent
   linkedMangas: any[] = [];
 
-  statusOptions = [
-    { value: 'Ongoing', label: 'Đang ra' },
-    { value: 'Completed', label: 'Hoàn thành' },
-    { value: 'Hiatus', label: 'Tạm dừng' },
-    { value: 'Hidden', label: 'Ẩn' },
-  ];
-
-  typeOptions = [
-    { value: 'Manga', label: 'Manga (Nhật)' },
-    { value: 'Manhwa', label: 'Manhwa (Hàn)' },
-    { value: 'Manhua', label: 'Manhua (Trung)' },
-  ];
-
-  levelOptions = [
-    { value: '0', label: 'Mọi độ tuổi' },
-    { value: '1', label: '13+' },
-    { value: '2', label: '16+' },
-    { value: '3', label: '18+' },
-  ];
-
-  countriesOptions = [
-    { value: '0', label: 'Nhật Bản' },
-    { value: '1', label: 'Hàn Quốc' },
-    { value: '2', label: 'Trung Quốc' },
-    { value: '3', label: 'Khác' },
-  ];
+  // Lấy từ core/models/manga-enums.ts — phản chiếu enum thật của backend.
+  // Danh sách tự chế trước đây gửi lên giá trị không parse được (xem file đó).
+  statusOptions = MANGA_STATUS_OPTIONS;
+  typeOptions = MANGA_TYPE_OPTIONS;
+  levelOptions = MANGA_LEVEL_OPTIONS;
+  countriesOptions = COUNTRY_OPTIONS;
 
   constructor(
     private fb: FormBuilder,
@@ -75,10 +59,11 @@ export class MangaFormComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', Validators.required],
       description: [''],
-      type: ['Manga'],
-      status: ['Ongoing'],
-      level: ['0'],
-      countries: ['0'],
+      // Giá trị SỐ đúng enum backend, không phải chuỗi tên tự đặt.
+      type: [MangaType.Series],
+      status: [MangaStatus.Active],
+      level: [MangaLevel.Normal],
+      countries: [Countries.JP],
       season: [1, [Validators.min(1)]],
     });
 
@@ -114,10 +99,12 @@ export class MangaFormComponent implements OnInit {
           this.form.patchValue({
             name: m.name,
             description: m.description,
-            type: m.type,
-            status: m.status,
-            level: String(m.level ?? '0'),
-            countries: String(m.countries ?? '0'),
+            // API trả số (hoặc chuỗi số) — ép về number để khớp [value] của
+            // <option>, nếu không select sẽ không chọn đúng mục nào.
+            type: Number(m.type ?? MangaType.Series),
+            status: Number(m.status ?? MangaStatus.Active),
+            level: Number(m.level ?? MangaLevel.Normal),
+            countries: Number(m.countries ?? Countries.JP),
             season: m.season ?? 1,
           });
           // Populate multi-select selections
@@ -152,10 +139,11 @@ export class MangaFormComponent implements OnInit {
     const v = this.form.value;
     fd.append('Name', v.name);
     fd.append('Description', v.description ?? '');
-    fd.append('Type', v.type);
-    fd.append('Status', v.status);
-    fd.append('Level', v.level);
-    fd.append('Countries', v.countries);
+    // Enum backend nhận số — String() ở đây chỉ là yêu cầu của FormData.
+    fd.append('Type', String(v.type));
+    fd.append('Status', String(v.status));
+    fd.append('Level', String(v.level));
+    fd.append('Countries', String(v.countries));
     fd.append('Season', String(v.season ?? 1));
     this.selectedTagIds.forEach(id    => fd.append('TagIds',    id));
     this.selectedAuthorIds.forEach(id => fd.append('AuthorIds', id));
@@ -183,7 +171,7 @@ export class MangaFormComponent implements OnInit {
           });
         }
         this.toastr.success(this.isEdit ? 'Cập nhật thành công' : 'Tạo truyện thành công');
-        this.router.navigate(['/admin/manga']);
+        this.backToOrigin(newId);
       },
       error: () => {
         this.toastr.error('Có lỗi xảy ra');
@@ -193,6 +181,20 @@ export class MangaFormComponent implements OnInit {
   }
 
   cancel(): void {
-    this.router.navigate(['/admin/manga']);
+    this.backToOrigin();
+  }
+
+  /**
+   * Chức năng: Rời form về đúng nơi hợp lý — sửa truyện thì về trang thông tin
+   *   của chính truyện đó, tạo mới thì về trang thông tin của truyện vừa tạo,
+   *   không có id nào thì về danh sách.
+   * Yêu cầu: `id` là id truyện vừa tạo (chỉ truyền khi lưu xong).
+   * Kết quả trả về: không (điều hướng).
+   * Exception: không ném.
+   */
+  private backToOrigin(id?: string | null): void {
+    const target = id ?? this.mangaId;
+    if (target) this.router.navigate(['/admin/manga', target, 'info']);
+    else this.router.navigate(['/admin/manga']);
   }
 }

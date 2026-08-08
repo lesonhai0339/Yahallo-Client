@@ -44,7 +44,10 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  align-self: start; // hug content (như filter-section cũ)
+  // Kéo hết chiều cao của .search-layout thay vì ôm sát nội dung: trước đây
+  // `align-self: start` làm panel lúc dài lúc ngắn theo bộ lọc đang mở, nhìn
+  // nhấp nhô so với cột kết quả bên phải.
+  align-self: stretch;
 }
 
 // Tier-1 object selector — tab dính liền panel bên dưới.
@@ -98,7 +101,13 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: visible; // để year-dd overlay ra ngoài
+  // Lấp đầy cột trái; nội dung dài hơn thì CHÍNH panel cuộn, không đẩy layout dài ra.
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 
   // filter-section bên trong không cần card riêng nữa (panel đã là card).
   .filter-section {
@@ -154,6 +163,9 @@
     flex: 1 0 auto;
   }
   .results-section { overflow: visible; }
+  // Mobile chỉ có một cột và cả trang cuộn tự nhiên — panel không được tự cuộn
+  // riêng, không thì thành hai vùng cuộn lồng nhau.
+  .search-left__panel { overflow: visible; flex: 0 0 auto; }
 }
 
 // ── Search Input ─────────────────────────────────────────────────────────────
@@ -408,10 +420,10 @@
   // `visible` so the year dropdown can overlay outside the section (its own
   // panel scrolls); inner tag/author/artist grids scroll on their own.
   overflow: visible;
-  // Always hug content height instead of being stretched to the results
-  // column: collapsed = title only, expanded = down to the 3 buttons, and it
-  // only grows further when a tag/author/artist grid is opened.
-  align-self: start;
+  // Panel cha đã lo chiều cao và cuộn, nên khối này chỉ cần ôm nội dung theo
+  // trục dọc của flex column — không đặt `align-self: start` nữa vì nó làm
+  // chiều cao nhấp nhô theo bộ lọc đang mở.
+  align-self: stretch;
 
   &::-webkit-scrollbar { width: 3px; }
   &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
@@ -439,14 +451,27 @@
 }
 
 // ── Simple category chips ────────────────────────────────────────────────────
+// 4 bộ lọc dropdown (năm / trạng thái / hình thức / xuất xứ). Xếp lưới 2 cột
+// cho đỡ tốn chiều dọc; cột trái vốn đã hẹp nên không để 4 cột.
 .filter-year-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-bottom: 12px;
   min-width: 0;
 
   label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .filter-year-row { grid-template-columns: 1fr; gap: 8px; }
 }
 
 .year-dd {
@@ -476,13 +501,11 @@
   }
   &--open &__trigger { border-color: var(--accent-primary); i { transform: rotate(180deg); } }
 
-  // Compact scrollable panel — its own scrollbar, never the filter-section's.
+  // Nằm TRONG luồng (không `absolute`) nên nó nở ra bên trong panel bộ lọc và
+  // đẩy nội dung phía dưới xuống, thay vì phủ đè ra ngoài rồi bị cắt khi panel
+  // cuộn. Panel cha tự cuộn nên danh sách dài vẫn với tới được.
   &__panel {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    z-index: 30;
+    margin-top: 4px;
     max-height: 168px;
     overflow-y: auto;
     background: var(--bg-card);

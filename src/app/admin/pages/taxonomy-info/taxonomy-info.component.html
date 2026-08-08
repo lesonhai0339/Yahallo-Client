@@ -1,0 +1,115 @@
+<div class="taxonomy-info-page">
+
+  <a class="back-link" (click)="goBack()">
+    <span class="material-icons">arrow_back</span> Quay lại
+  </a>
+
+  <div class="tax-skeleton" *ngIf="entityLoading">
+    <div class="skeleton tax-skeleton__line tax-skeleton__line--name"></div>
+    <div class="skeleton tax-skeleton__line tax-skeleton__line--meta"></div>
+  </div>
+
+  <div class="empty-state" *ngIf="!entityLoading && notFound">
+    <span class="material-icons">search_off</span>
+    <p>Không tìm thấy {{ kindLabel }} này</p>
+  </div>
+
+  <ng-container *ngIf="!entityLoading && entity">
+    <!-- Hero -->
+    <section class="tax-hero">
+      <div class="tax-hero__icon"><span class="material-icons">{{ kindIcon }}</span></div>
+
+      <div class="tax-hero__body">
+        <h1 class="tax-hero__name">{{ entity.name }}</h1>
+        <p class="tax-hero__desc">{{ entity.description || 'Không có mô tả' }}</p>
+        <div class="tax-hero__id">ID: {{ entity.id }}</div>
+      </div>
+
+      <div class="tax-hero__actions">
+        <button class="btn" (click)="goAllManga()">
+          <span class="material-icons">filter_list</span> Lọc trong danh sách
+        </button>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stat-row">
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ totalCount | number }}</div>
+        <div class="stat-tile__label">Truyện liên quan</div>
+      </div>
+    </section>
+
+    <!-- Manga -->
+    <section class="works">
+      <div class="works__head">
+        <h2>Truyện <span class="works__count">({{ totalCount | number }})</span></h2>
+
+        <div class="view-toggle">
+          <button class="view-toggle__btn" [class.active]="viewMode === 'grid'"
+            (click)="setViewMode('grid')" title="Dạng lưới">
+            <span class="material-icons">grid_view</span>
+          </button>
+          <button class="view-toggle__btn" [class.active]="viewMode === 'list'"
+            (click)="setViewMode('list')" title="Dạng danh sách">
+            <span class="material-icons">view_list</span>
+          </button>
+        </div>
+      </div>
+      <div class="manga-grid" [class.manga-grid--list]="viewMode === 'list'" *ngIf="mangaLoading">
+        <div class="mg-card mg-card--sk" *ngFor="let i of [1,2,3,4,5,6]">
+          <div class="skeleton mg-card__cover"></div>
+          <div class="skeleton mg-card__skline"></div>
+        </div>
+      </div>
+
+      <div class="manga-grid" [class.manga-grid--list]="viewMode === 'list'" *ngIf="!mangaLoading && mangas.length">
+        <button type="button" class="mg-card" *ngFor="let m of mangas" (click)="goManga(m)">
+          <img *ngIf="m.thumbnail" [src]="m.thumbnail" [alt]="m.name" class="mg-card__cover" loading="lazy" />
+          <div *ngIf="!m.thumbnail" class="mg-card__cover mg-card__cover--ph">?</div>
+
+          <div class="mg-card__body">
+            <div class="mg-card__name" [title]="m.name">{{ m.name }}</div>
+            <div class="mg-card__meta">
+              <span><span class="material-icons">menu_book</span>{{ m.totalChapters }}</span>
+              <span><span class="material-icons">visibility</span>{{ m.totalViews | number }}</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="empty-state" *ngIf="!mangaLoading && !mangas.length">
+        <span class="material-icons">library_books</span>
+        <p>Chưa có truyện nào của {{ kindLabel }} này</p>
+      </div>
+
+      <div class="pager" *ngIf="!mangaLoading && totalPages > 1">
+        <div class="pager__nav">
+          <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(0)" title="Trang đầu">
+            <span class="material-icons">first_page</span>
+          </button>
+          <button class="pager__btn" [disabled]="pageIndex === 0" (click)="goPage(pageIndex - 1)" title="Trang trước">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="pager__info">Trang {{ pageIndex + 1 }} / {{ totalPages }}</span>
+          <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(pageIndex + 1)" title="Trang sau">
+            <span class="material-icons">chevron_right</span>
+          </button>
+          <button class="pager__btn" [disabled]="pageIndex + 1 >= totalPages" (click)="goPage(totalPages - 1)" title="Trang cuối">
+            <span class="material-icons">last_page</span>
+          </button>
+        </div>
+
+        <!-- Nhảy thẳng tới một trang: danh sách dài thì bấm mũi tên từng trang rất mệt -->
+        <form class="pager__jump" (ngSubmit)="jumpToPage()">
+          <span>Tới trang</span>
+          <!-- type="text" chứ không phải "number": number kèm hai nút tăng/giảm
+               thừa thãi. `inputmode="numeric"` vẫn cho bàn phím số trên mobile. -->
+          <input type="text" inputmode="numeric" [(ngModel)]="jumpTo"
+            [ngModelOptions]="{ standalone: true }" class="pager__jumpinput" placeholder="…" />
+          <button type="submit" class="pager__jumpbtn" [disabled]="!jumpTo">Đi</button>
+        </form>
+      </div>
+    </section>
+  </ng-container>
+</div>

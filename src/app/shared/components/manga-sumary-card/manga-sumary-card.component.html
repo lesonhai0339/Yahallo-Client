@@ -5,7 +5,7 @@
     <span class="manga-card__update-time" *ngIf="getLastChapterUpdate()">
       <i class="fa-regular fa-clock me-1"></i>{{ getTimeAgo(getLastChapterUpdate()!) }}
     </span>
-    <button class="manga-card__chapter" (click)="goToChapter($event)" *ngIf="manga">
+    <button class="manga-card__chapter" (click)="goToChapter($event)" *ngIf="latestChapterIndex !== null">
       <i class="fa-solid fa-book-open me-1" style="font-size:0.7rem"></i>{{ getLatestChapter() }}
     </button>
   </div>

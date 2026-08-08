@@ -12,7 +12,7 @@ import { MangaSumaryDto, MangaSortBy } from '../../../core/models/manga.interfac
  * cùng giao diện đó nhưng lọc theo một đối tượng (link "xem thêm" ở trang
  * /author/:id, /artist/:id, /tag/:id).
  */
-type ListMode = 'latest' | 'popular' | 'author' | 'artist' | 'tag';
+type ListMode = 'latest' | 'new' | 'popular' | 'author' | 'artist' | 'tag';
 
 @Component({
   selector: 'app-manga-list-page',
@@ -102,7 +102,10 @@ export class MangaListPageComponent implements OnInit, OnDestroy {
 
   loadPage(): void {
     this.isLoading = true;
-    const sortBy = this.mode === 'popular' ? MangaSortBy.ViewCount : MangaSortBy.LastUpdate;
+    // 'new' = mới THÊM vào site (CreateDate), khác 'latest' = mới RA CHƯƠNG (LastUpdate).
+    const sortBy = this.mode === 'popular' ? MangaSortBy.ViewCount
+      : this.mode === 'new' ? MangaSortBy.CreateDate
+      : MangaSortBy.LastUpdate;
     const filters = this.mode === 'author' ? { authorId: this.entityId }
       : this.mode === 'artist' ? { artistId: this.entityId }
       : this.mode === 'tag' ? { tagIds: [this.entityId] }

@@ -39,6 +39,7 @@ import { SessionExpiredDialogComponent } from './shared/components/session-expir
 
 // Features
 import { HomeComponent } from './features/home/home.component';
+import { NewMangaStripComponent } from './features/home/new-manga-strip/new-manga-strip.component';
 import { MangaDetailComponent } from './features/manga/manga-detail/manga-detail.component';
 import { MangaReaderComponent } from './features/manga/manga-reader/manga-reader.component';
 import { MangaSearchComponent } from './features/manga/manga-search/manga-search.component';
@@ -51,7 +52,7 @@ import { SettingsComponent } from './features/user/settings/settings.component';
 import { AvatarFramesComponent } from './features/user/avatar-frames/avatar-frames.component';
 import { TopMangaComponent } from './features/manga/top-manga/top-manga.component';
 import { MangaListPageComponent } from './features/manga/manga-list-page/manga-list-page.component';
-import { ServerErrorComponent } from './features/error/server-error.component';
+import { ErrorPageComponent } from './features/error/error-page.component';
 import { OfflineReaderComponent } from './features/offline-reader/offline-reader.component';
 import { PersonDetailComponent } from './features/person/person-detail/person-detail.component';
 
@@ -92,6 +93,7 @@ export function initTranslations(translation: TranslationService) {
     ImageCropDialogComponent,
     DownloadTrayComponent,
     HomeComponent,
+    NewMangaStripComponent,
     MangaDetailComponent,
     MangaReaderComponent,
     MangaSearchComponent,
@@ -104,7 +106,7 @@ export function initTranslations(translation: TranslationService) {
     NotificationsComponent,
     TopMangaComponent,
     MangaListPageComponent,
-    ServerErrorComponent,
+    ErrorPageComponent,
     OfflineReaderComponent,
     SessionExpiredDialogComponent,
     PersonDetailComponent,

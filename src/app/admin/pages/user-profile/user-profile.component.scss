@@ -307,3 +307,111 @@
     &__chips { justify-content: center; }
   }
 }
+
+
+// ── Lưới 6 cột cố định + chế độ danh sách ────────────────────────────────────
+// Cố định số cột (không dùng auto-fill) để `pageSize = 16` luôn lấp đúng 2 hàng.
+.manga-grid {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 10px;
+
+  &--list {
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    .mg-card {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      padding: 8px;
+    }
+
+    .mg-card__cover { width: 52px; height: 74px; flex-shrink: 0; }
+    .mg-card__body { flex: 1; min-width: 0; }
+    .mg-card__name { -webkit-line-clamp: 1; }
+  }
+}
+
+@media (max-width: 1500px) { .manga-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 1200px) { .manga-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 980px)  { .manga-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 720px)  { .manga-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 480px)  { .manga-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px)  { .manga-grid--list, .manga-grid--list.manga-grid { grid-template-columns: 1fr; } }
+
+// Nút đổi cách xem
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    .material-icons { font-size: 1rem !important; }
+    &.active { background: var(--accent-primary); color: #fff; }
+  }
+}
+
+// ── Phân trang: điều hướng + ô nhảy trang ───────────────────────────────────
+.pager {
+  flex-wrap: wrap;
+  justify-content: center;
+
+  &__nav { display: flex; align-items: center; gap: 6px; }
+
+  &__jump {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  &__jumpinput {
+    width: 62px;
+    padding: 5px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    text-align: center;
+
+    &:focus { outline: none; border-color: var(--accent-primary); }
+  }
+
+  &__jumpbtn {
+    padding: 5px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+    &:disabled { opacity: 0.45; cursor: default; }
+  }
+}
+
+
+// Thẻ nhỏ lại cho khớp lưới 8 cột — chữ và khoảng đệm đều giảm.
+.manga-grid:not(.manga-grid--list) .mg-card {
+  &__body { padding: 7px 8px 9px; }
+  &__name { font-size: 0.76rem; line-height: 1.35; }
+  &__meta { font-size: 0.66rem; gap: 8px; }
+  &__meta .material-icons { font-size: 0.8rem !important; }
+  &__date { font-size: 0.62rem; }
+  &__cover--ph { font-size: 1.2rem; }
+}

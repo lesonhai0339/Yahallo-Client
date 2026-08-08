@@ -9,7 +9,7 @@
     </div>
   </div>
 
-  <div *ngIf="loading" class="form-loading">Đang tải dữ liệu...</div>
+  <app-form-skeleton *ngIf="loading" [sections]="4" [fields]="3"></app-form-skeleton>
 
   <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading">
     <div class="form-layout">

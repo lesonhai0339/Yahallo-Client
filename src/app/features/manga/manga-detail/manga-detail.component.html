@@ -1,4 +1,15 @@
-<div class="detail-page" *ngIf="!isLoading && manga"
+<div *ngIf="notFound" >
+  <app-error-page *ngIf="notFound"
+      code="404"
+      titleKey="ERROR.MANGA_NOT_FOUND"
+      descKey="ERROR.MANGA_NOT_FOUND_DESC"
+      icon="fa-solid fa-book-open"
+      [showRetry]="false">
+  </app-error-page>
+</div>
+
+<div *ngIf="!notFound">
+  <div class="detail-page" *ngIf="!isLoading && manga"
      [style.backgroundImage]="'url('+manga.mangaThumbnail+')'">
 
   <!-- Hero Banner -->
@@ -297,6 +308,29 @@
           </div>
         </div>
 
+        <!-- Truyện tương tự (xếp theo số thể loại trùng) -->
+        <div class="card side-card mb-3" *ngIf="similarLoading || similarManga.length > 0">
+          <div class="card-body">
+            <div class="side-card__header">
+              <h4 class="side-card__title">
+                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>{{ 'MANGA.SIMILAR' | translate }}
+              </h4>
+            </div>
+
+            <div class="side-card__list" *ngIf="similarLoading">
+              <span class="skeleton side-manga-skel" *ngFor="let s of [1,2,3,4]"></span>
+            </div>
+
+            <div class="side-card__list" *ngIf="!similarLoading">
+              <a class="side-manga-item" *ngFor="let m of similarManga"
+                 [routerLink]="['/manga', m.id]">
+                <img [src]="m.mangaThumbnail" [alt]="m.displayName" appImageFallback loading="lazy">
+                <span class="side-manga-item__name">{{ m.displayName }}</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
       </aside>
     </div>
   </div>
@@ -326,4 +360,6 @@
       <span class="skeleton ds-row" *ngFor="let r of [1,2,3,4,5,6]"></span>
     </div>
   </div>
+</div>
+
 </div>

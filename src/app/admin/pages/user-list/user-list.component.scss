@@ -41,8 +41,13 @@ $radius-md: var(--radius-md);
 
 // ── Toolbar ──────────────────────────────────────────────────────────────────
 .toolbar {
+  // Phải là flex thì `margin-left: auto` của .view-toggle mới đẩy được sang phải.
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 16px;
-  &__search { position: relative; max-width: 320px; }
+  &__search { position: relative; flex: 1 1 240px; max-width: 320px; }
   &__search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: $text-muted; font-size: 1rem !important; pointer-events: none; }
   &__search-input {
     width: 100%;
@@ -479,4 +484,264 @@ $radius-md: var(--radius-md);
 
   &.status--active { background: rgba(40, 167, 69, 0.15); color: #28a745; }
   &.status--locked { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
+}
+
+
+// ── Lưới thẻ người dùng (thay cho mat-table) — cùng khuôn với /admin/manga ────
+.ulist { position: relative; }
+
+.ugrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+
+  // Dạng danh sách: mỗi người một hàng đầy chiều ngang.
+  &--list { grid-template-columns: 1fr; }
+}
+
+.ugrid-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.utile {
+  // Cột dọc, hàng nút neo ở ĐÁY để mọi thẻ trên một hàng thẳng nhau.
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover { border-color: var(--accent-primary); }
+
+  &--selected {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px var(--accent-primary) inset;
+  }
+
+  &__main {
+    display: flex;
+    gap: 12px;
+    min-width: 0;
+    flex: 1 1 auto;
+    margin-bottom: 10px;
+  }
+
+  &__avatar {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+
+    &--ph {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent-primary), #b3324a);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+  }
+
+  &__body { flex: 1; min-width: 0; }
+
+  &__name {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__badges,
+  &__roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 8px;
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .material-icons { font-size: 0.9rem !important; color: var(--text-muted); flex-shrink: 0; }
+  }
+
+  // Hàng nút: chiều cao cố định, neo đáy, không xuống dòng.
+  &__actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    height: 48px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+    box-sizing: border-box;
+    overflow: hidden;
+
+    .action-btn {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      .material-icons { font-size: 1rem !important; }
+    }
+  }
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 600;
+
+  &--admin { color: #d9534f; border-color: rgba(217, 83, 79, 0.45); }
+  &--mod   { color: #3d7fd1; border-color: rgba(61, 127, 209, 0.45); }
+  &--user  { color: var(--text-muted); }
+}
+
+// Có `color` mà thiếu `:hover { background }` thì nút không phản hồi khi rê chuột
+// — trước đây chỉ "thống kê" và "phân quyền" có, nên hai nút này trông như chết.
+.action-btn--info   { color: var(--accent-primary); &:hover { background: rgba(233, 69, 96, 0.12); } }
+.action-btn--notify { color: #8b5cf6; &:hover { background: rgba(139, 92, 246, 0.12); } }
+.action-btn--msg    { color: #0ea5e9; &:hover { background: rgba(14, 165, 233, 0.12); } }
+
+// Nút đổi cách xem — đẩy sang phải cho khớp /admin/manga
+.view-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: none;
+    border: 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    .material-icons { font-size: 1.05rem !important; }
+
+    &.active { background: var(--accent-primary); color: #fff; }
+  }
+}
+
+// ── Phân trang tự viết ───────────────────────────────────────────────────────
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+
+  &__size { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); }
+
+  &__sizebtn {
+    min-width: 30px;
+    padding: 3px 8px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    cursor: pointer;
+
+    &.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+  }
+
+  &__nav { display: flex; align-items: center; gap: 4px; }
+  &__info { padding: 0 10px; font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap; }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    .material-icons { font-size: 1.05rem !important; }
+
+    &:hover:not(:disabled) { border-color: var(--accent-primary); color: var(--accent-primary); }
+    &:disabled { opacity: 0.4; cursor: default; }
+  }
+}
+
+@media (max-width: 1200px) {
+  .ugrid { grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .utile__actions {
+    height: 44px;
+    gap: 5px;
+
+    .action-btn { width: 28px; height: 28px; flex-basis: 28px; }
+  }
+
+  .utile__avatar { width: 48px; height: 48px; }
+}
+
+@media (max-width: 640px) {
+  .ugrid,
+  .ugrid--list { grid-template-columns: 1fr; }
+
+  .utile__actions {
+    height: 42px;
+
+    .action-btn { width: 26px; height: 26px; flex-basis: 26px; }
+  }
+
+  .utile__roles { display: none; }
+  .view-toggle { display: none; }
 }

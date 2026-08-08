@@ -52,7 +52,10 @@
       </div>
     </div>
 
-    <div class="charts-grid">
+    <app-analytics-skeleton *ngIf="chartsLoading"
+      [statRows]="0" [charts]="perm.canManageUsers() ? 2 : 1" [chartCols]="2"></app-analytics-skeleton>
+
+    <div class="charts-grid" *ngIf="!chartsLoading">
       <!-- Registration chart -->
       <div class="chart-card" *ngIf="perm.canManageUsers()">
         <div class="chart-card__header">
@@ -109,9 +112,8 @@
         </button>
       </div>
       <div class="detail-panel__body">
-        <div *ngIf="detailPanel.loading" class="detail-loading">
-          <div class="spinner"></div><span>Đang tải...</span>
-        </div>
+        <app-table-skeleton *ngIf="detailPanel.loading"
+          leading="avatar" [rows]="5" [cols]="2" [showActions]="false"></app-table-skeleton>
         <ng-container *ngIf="!detailPanel.loading && detailPanel.detail">
           <div class="detail-panel__count">{{ detailPanel.detail.total }} mục</div>
           <div class="detail-list">

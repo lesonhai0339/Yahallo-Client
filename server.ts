@@ -8,6 +8,7 @@ import express from 'express';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import AppServerModule from './src/main.server';
+import { RESPONSE_CONTEXT, ResponseContext } from './src/app/core/tokens/response-context';
 
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
@@ -38,15 +39,23 @@ export function app(): express.Express {
   server.get('*', (req, res, next) => {
     const { protocol, originalUrl, baseUrl, headers } = req;
 
+    // Object MỚI cho mỗi request. Dùng chung một object cho cả tiến trình Node
+    // sẽ rò status của người này sang người khác. ErrorPageComponent ghi vào
+    // đây trong lúc render; đọc lại sau khi render xong.
+    const responseContext: ResponseContext = { status: 200 };
+
     commonEngine
       .render({
         bootstrap: AppServerModule,
         documentFilePath: indexHtml,
         url: `${protocol}://${headers.host}${originalUrl}`,
         publicPath: distFolder,
-        providers: [{ provide: APP_BASE_HREF, useValue: baseUrl }],
+        providers: [
+          { provide: APP_BASE_HREF, useValue: baseUrl },
+          { provide: RESPONSE_CONTEXT, useValue: responseContext },
+        ],
       })
-      .then((html) => res.send(html))
+      .then((html) => res.status(responseContext.status).send(html))
       .catch((err) => next(err));
   });
 

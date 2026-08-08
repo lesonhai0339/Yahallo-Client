@@ -48,6 +48,8 @@ export interface TopMangaDto {
 }
 
 export interface HomepageDto {
+    /** 6 truyện mới thêm gần đây — server trả sẵn, không phải gọi API riêng. */
+    newManga: MangaSumaryDto[];
     lastUpdate: MangaSumaryDto[];
     popular: MangaSumaryDto[];
     tags: TagDto[];

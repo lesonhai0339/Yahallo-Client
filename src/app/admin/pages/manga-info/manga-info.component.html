@@ -1,0 +1,337 @@
+<div class="manga-info-page">
+
+  <a class="back-link" (click)="goBack()">
+    <span class="material-icons">arrow_back</span> Quay lại
+  </a>
+
+  <!-- Loading -->
+  <div class="info-skeleton" *ngIf="loading">
+    <div class="skeleton info-skeleton__cover"></div>
+    <div class="info-skeleton__body">
+      <div class="skeleton info-skeleton__line info-skeleton__line--name"></div>
+      <div class="skeleton info-skeleton__line info-skeleton__line--meta"></div>
+      <div class="skeleton info-skeleton__line info-skeleton__line--meta"></div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && notFound">
+    <span class="material-icons">menu_book</span>
+    <p>Không tìm thấy truyện này</p>
+  </div>
+
+  <ng-container *ngIf="!loading && manga">
+    <!-- Hero -->
+    <section class="info-hero">
+      <img *ngIf="manga.thumbnail" [src]="manga.thumbnail" [alt]="manga.name" class="info-hero__cover" />
+      <div *ngIf="!manga.thumbnail" class="info-hero__cover info-hero__cover--ph">?</div>
+
+      <div class="info-hero__body">
+        <h1 class="info-hero__name">{{ manga.name }}</h1>
+
+        <div class="info-hero__chips">
+          <span class="type-badge">{{ getTypeLabel(manga.type) }}</span>
+          <span class="status-badge" [ngClass]="getStatusClass(manga.status)">{{ getStatusLabel(manga.status) }}</span>
+          <span class="status-badge status-badge--hidden" *ngIf="isHidden()">Đã ẩn</span>
+        </div>
+
+        <div class="info-hero__chips">
+          <span class="chip" *ngIf="manga.ownerName || manga.ownerId">
+            <span class="material-icons">person</span>
+            <button type="button" class="owner-link" (click)="goOwner()" *ngIf="manga.ownerId; else ownerPlain">
+              {{ manga.ownerName || 'Không tên' }}
+            </button>
+            <ng-template #ownerPlain>{{ manga.ownerName || '—' }}</ng-template>
+          </span>
+          <span class="chip" *ngIf="manga.createDate">
+            <span class="material-icons">calendar_today</span>Tạo {{ manga.createDate | date:'dd/MM/yyyy' }}
+          </span>
+          <span class="chip" *ngIf="manga.updateDate">
+            <span class="material-icons">schedule</span>Cập nhật {{ manga.updateDate | date:'dd/MM/yyyy' }}
+          </span>
+        </div>
+
+        <div class="info-hero__id">ID: {{ manga.id || mangaId }}</div>
+      </div>
+
+      <div class="info-hero__actions">
+        <button class="btn" (click)="goPublic()">
+          <span class="material-icons">open_in_new</span> Xem trang truyện
+        </button>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stat-row">
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ statsLoading ? '…' : ((stats?.totalViews ?? manga.totalViews ?? 0) | number) }}</div>
+        <div class="stat-tile__label">Lượt xem</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ statsLoading ? '…' : ((stats?.totalFollows ?? 0) | number) }}</div>
+        <div class="stat-tile__label">Lượt theo dõi</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ statsLoading ? '…' : ((stats?.totalChapters ?? manga.totalChapters ?? 0) | number) }}</div>
+        <div class="stat-tile__label">Số chương</div>
+      </div>
+      <!-- /manga/status không trả số bình luận, nhưng payload admin có `totalComment`. -->
+      <div class="stat-tile">
+        <div class="stat-tile__val">{{ (manga.totalComments ?? 0) | number }}</div>
+        <div class="stat-tile__label">Bình luận</div>
+      </div>
+    </section>
+
+    <div class="stat-row__more">
+      <button class="btn btn-ghost" (click)="goAnalytics()">
+        <span class="material-icons">bar_chart</span> Xem thống kê chi tiết
+        <span class="material-icons">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- Thông tin -->
+    <section class="info-block">
+      <h2>Thông tin</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="material-icons">person</span>
+          <div class="info-item__body">
+            <span class="info-item__label">Tác giả</span>
+            <span class="info-item__val">{{ names(manga.authors) || '—' }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <span class="material-icons">brush</span>
+          <div class="info-item__body">
+            <span class="info-item__label">Hoạ sĩ</span>
+            <span class="info-item__val">{{ names(manga.artists) || '—' }}</span>
+          </div>
+        </div>
+        <div class="info-item info-item--full">
+          <span class="material-icons">label</span>
+          <div class="info-item__body">
+            <span class="info-item__label">Thể loại</span>
+            <div class="tag-row" *ngIf="manga.tags?.length; else noTags">
+              <button type="button" class="tag-chip" *ngFor="let t of manga.tags"
+                (click)="goTag(t)" [title]="'Xem truyện thuộc ' + t.name">{{ t.name }}</button>
+            </div>
+            <ng-template #noTags><span class="info-item__val">—</span></ng-template>
+          </div>
+        </div>
+        <div class="info-item info-item--full">
+          <span class="material-icons">notes</span>
+          <div class="info-item__body">
+            <span class="info-item__label">Mô tả</span>
+            <span class="info-item__val info-item__val--desc">{{ manga.description || '—' }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Người theo dõi — xổ xuống ngay tại chỗ, KHÔNG điều hướng đi đâu. -->
+    <section class="drawer" [class.drawer--open]="followOpen">
+      <button type="button" class="drawer__head" (click)="toggleFollows()">
+        <span class="material-icons drawer__icon">favorite</span>
+        <span class="drawer__title">Người theo dõi</span>
+        <span class="drawer__count" *ngIf="followLoaded">{{ followTotal | number }}</span>
+        <span class="material-icons drawer__chev">{{ followOpen ? 'expand_less' : 'expand_more' }}</span>
+      </button>
+
+      <div class="drawer__body" *ngIf="followOpen">
+        <!-- Bộ lọc — KHÔNG có ô chọn truyện: luôn ghim theo truyện đang mở. -->
+        <form class="dfilter" (ngSubmit)="applyFollowFilter()">
+          <div class="dfilter__field">
+            <label>Người dùng (ID)</label>
+            <input type="text" class="dfilter__input" placeholder="Mọi người"
+              [(ngModel)]="followFilter.userId" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Từ ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="followFilter.from" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Đến ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="followFilter.to" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Thứ tự</label>
+            <select class="dfilter__select"
+              [(ngModel)]="followFilter.reverseSort" [ngModelOptions]="{ standalone: true }">
+              <option [ngValue]="true">Mới nhất trước</option>
+              <option [ngValue]="false">Cũ nhất trước</option>
+            </select>
+          </div>
+          <label class="dfilter__check">
+            <input type="checkbox" [(ngModel)]="followFilter.isDeleted" [ngModelOptions]="{ standalone: true }" />
+            Đã bỏ theo dõi
+          </label>
+
+          <div class="dfilter__actions">
+            <button type="button" class="dfilter__btn" (click)="resetFollowFilter()">Xoá lọc</button>
+            <button type="submit" class="dfilter__btn dfilter__btn--primary">Lọc</button>
+          </div>
+        </form>
+
+        <app-interaction-skeleton *ngIf="followLoading"
+          variant="follow" [rows]="followSkeletonRows"></app-interaction-skeleton>
+
+        <div class="drawer__empty" *ngIf="!followLoading && !follows.length">
+          Chưa có ai theo dõi truyện này
+        </div>
+
+        <!-- Chiều cao chốt theo TRANG 1 (xem `reserveHeight`): trang cuối thiếu mục
+             thì phần dưới để TRỐNG, không chèn dòng giả (chèn thì kéo theo đường kẻ). -->
+        <ul class="ilist" [style.min-height.px]="followMinHeight"
+          *ngIf="!followLoading && follows.length">
+          <li class="ilist__row" *ngFor="let f of follows">
+            <img *ngIf="f.userAvatar" [src]="f.userAvatar" [alt]="f.userName" class="ilist__avatar" loading="lazy" />
+            <div *ngIf="!f.userAvatar" class="ilist__avatar ilist__avatar--ph">{{ initials(f.userName) }}</div>
+
+            <div class="ilist__body">
+              <button type="button" class="ilist__name" (click)="goUser(f.userId)"
+                [title]="'Xem hồ sơ ' + (f.userName || f.userId)">
+                {{ f.userName || 'Không tên' }}
+              </button>
+              <div class="ilist__id">{{ f.userId }}</div>
+            </div>
+
+            <div class="ilist__meta">
+              {{ f.createDate ? (f.createDate | date:'HH:mm dd/MM/yyyy') : '—' }}
+            </div>
+          </li>
+        </ul>
+
+        <!-- Không ẩn khi đang tải: ẩn đi là mất một dòng, layout lại nhảy. -->
+        <div class="drawer__pager" *ngIf="followPages > 1">
+          <button class="pager__btn" [disabled]="followPage === 0 || followLoading" (click)="loadFollows(followPage - 1)">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="pager__info">Trang {{ followPage + 1 }} / {{ followPages }}</span>
+          <button class="pager__btn" [disabled]="followPage + 1 >= followPages || followLoading" (click)="loadFollows(followPage + 1)">
+            <span class="material-icons">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bình luận -->
+    <section class="drawer" [class.drawer--open]="commentOpen">
+      <button type="button" class="drawer__head" (click)="toggleComments()">
+        <span class="material-icons drawer__icon">chat_bubble_outline</span>
+        <span class="drawer__title">Bình luận</span>
+        <span class="drawer__count" *ngIf="commentLoaded">{{ commentTotal | number }}</span>
+        <span class="material-icons drawer__chev">{{ commentOpen ? 'expand_less' : 'expand_more' }}</span>
+      </button>
+
+      <div class="drawer__body" *ngIf="commentOpen">
+        <form class="dfilter" (ngSubmit)="applyCommentFilter()">
+          <div class="dfilter__field">
+            <label>Người dùng (ID)</label>
+            <input type="text" class="dfilter__input" placeholder="Mọi người"
+              [(ngModel)]="commentFilter.userId" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Chương (ID)</label>
+            <input type="text" class="dfilter__input" placeholder="Mọi chương"
+              [(ngModel)]="commentFilter.chapterId" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Từ ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="commentFilter.from" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Đến ngày</label>
+            <input type="date" class="dfilter__input"
+              [(ngModel)]="commentFilter.to" [ngModelOptions]="{ standalone: true }" />
+          </div>
+          <div class="dfilter__field">
+            <label>Thứ tự</label>
+            <select class="dfilter__select"
+              [(ngModel)]="commentFilter.reverseSort" [ngModelOptions]="{ standalone: true }">
+              <option [ngValue]="true">Mới nhất trước</option>
+              <option [ngValue]="false">Cũ nhất trước</option>
+            </select>
+          </div>
+          <label class="dfilter__check">
+            <input type="checkbox" [(ngModel)]="commentFilter.isDeleted" [ngModelOptions]="{ standalone: true }" />
+            Đã xoá
+          </label>
+
+          <div class="dfilter__actions">
+            <button type="button" class="dfilter__btn" (click)="resetCommentFilter()">Xoá lọc</button>
+            <button type="submit" class="dfilter__btn dfilter__btn--primary">Lọc</button>
+          </div>
+        </form>
+
+        <app-interaction-skeleton *ngIf="commentLoading"
+          variant="comment" [rows]="commentSkeletonRows"></app-interaction-skeleton>
+
+        <div class="drawer__empty" *ngIf="!commentLoading && !comments.length">
+          Chưa có bình luận nào
+        </div>
+
+        <ul class="ilist" [style.min-height.px]="commentMinHeight"
+          *ngIf="!commentLoading && comments.length">
+          <li class="ilist__row ilist__row--comment" *ngFor="let c of comments">
+            <img *ngIf="c.avatar" [src]="c.avatar" [alt]="c.displayName" class="ilist__avatar" loading="lazy" />
+            <div *ngIf="!c.avatar" class="ilist__avatar ilist__avatar--ph">{{ initials(c.displayName) }}</div>
+
+            <div class="ilist__body">
+              <div class="ilist__line">
+                <button type="button" class="ilist__name" (click)="goUser(c.userId)"
+                  [title]="'Xem hồ sơ ' + (c.displayName || c.userId)">
+                  {{ c.displayName || 'Không tên' }}
+                </button>
+                <!-- Bình luận ở chương nào — bình luận cấp truyện thì không có -->
+                <span class="ilist__chip" *ngIf="c.chapterId">
+                  <span class="material-icons">menu_book</span>
+                  {{ c.chapterName || ('Chương ' + (c.chapterIndex ?? '?')) }}
+                </span>
+                <span class="ilist__chip ilist__chip--warn" *ngIf="c.isDeleted">Đã xoá</span>
+              </div>
+
+              <p class="ilist__message">{{ c.message || '—' }}</p>
+
+              <div class="ilist__sub">
+                <span>{{ (c.dateTime || c.createDate) ? ((c.dateTime || c.createDate) | date:'HH:mm dd/MM/yyyy') : '—' }}</span>
+                <span *ngIf="c.replyCount"><span class="material-icons">reply</span>{{ c.replyCount }}</span>
+                <span *ngIf="c.like"><span class="material-icons">thumb_up</span>{{ c.like }}</span>
+
+                <!-- Chưa có API báo cáo — nút để sẵn, bấm chỉ hiện thông báo. -->
+                <button type="button" class="ilist__report" (click)="reportComment(c)"
+                  title="Báo cáo bình luận">
+                  <span class="material-icons">flag</span>Báo cáo
+                </button>
+              </div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="drawer__pager" *ngIf="commentPages > 1">
+          <button class="pager__btn" [disabled]="commentPage === 0 || commentLoading" (click)="loadComments(commentPage - 1)">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="pager__info">Trang {{ commentPage + 1 }} / {{ commentPages }}</span>
+          <button class="pager__btn" [disabled]="commentPage + 1 >= commentPages || commentLoading" (click)="loadComments(commentPage + 1)">
+            <span class="material-icons">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Thao tác -->
+    <section class="info-actions">
+      <button class="card-act" *ngIf="perm.canEditManga(manga)" (click)="goEdit()">
+        <span class="material-icons">edit</span> Chỉnh sửa
+      </button>
+      <button class="card-act" *ngIf="perm.canEditManga(manga)" (click)="goChapters()">
+        <span class="material-icons">format_list_numbered</span> Quản lý chương
+      </button>
+      <button class="card-act" (click)="goAnalytics()">
+        <span class="material-icons">bar_chart</span> Thống kê
+      </button>
+    </section>
+  </ng-container>
+</div>

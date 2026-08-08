@@ -6,6 +6,9 @@ import {
 import { Subject } from 'rxjs';
 import { ChapterImage } from '../../../core/models/chapter.interface';
 
+/** Cách ảnh lấp khung đọc. */
+export type ReaderFitMode = 'width' | 'height' | 'both' | 'original';
+
 @Component({
   selector: 'app-reader-viewer',
   templateUrl: './reader-viewer.component.html',
@@ -18,12 +21,29 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   @Input() horizontalDir: 'rtl' | 'ltr' = 'rtl';
   @Input() imageSize = 100;
   @Input() preloadCount = 3;
+  /** Ảnh lấp theo chiều rộng / chiều cao / vừa cả hai / cỡ gốc. */
+  @Input() fitMode: ReaderFitMode = 'width';
+  /** Trang đôi — chỉ có tác dụng ở chế độ ngang (giống sách giấy). */
+  @Input() doublePage = false;
   @Output() pageChange = new EventEmitter<number>();
 
   @ViewChildren('pageRef') pageRefs!: QueryList<ElementRef>;
 
   currentPage = 0;
   visibleIndices = new Set<number>();
+
+  /**
+   * Các trang đang hiện ở chế độ ngang, đã xếp đúng thứ tự nhìn (rtl thì trang
+   * nhỏ hơn nằm bên phải). Là field chứ không phải getter: getter trả mảng mới
+   * mỗi vòng change-detection sẽ khiến `*ngFor` dựng lại ảnh và nháy màn hình.
+   */
+  pagePair: number[] = [0];
+
+  /** Chỉ số ảnh tải lỗi — hiện nút thử lại thay cho ảnh. */
+  failed = new Set<number>();
+
+  /** Token phá cache cho từng ảnh, tăng mỗi lần bấm thử lại. */
+  private retryTokens = new Map<number, number>();
 
   private observer: IntersectionObserver | null = null;
   private visiblePages = new Set<number>();
@@ -50,9 +70,11 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['images']) {
       this.hasScrolledToInitial = false;
-      this.updateVisibleIndices();
+      this.failed.clear();
+      this.retryTokens.clear();
     }
-    if (changes['preloadCount'] || changes['images'] || changes['direction']) {
+    if (changes['preloadCount'] || changes['images'] || changes['direction'] ||
+        changes['doublePage'] || changes['horizontalDir']) {
       this.updateVisibleIndices();
     }
   }
@@ -61,6 +83,65 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     this.observer?.disconnect();
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** Trang đôi chỉ áp dụng ở chế độ ngang — cuộn dọc mà ghép đôi thì vô nghĩa. */
+  get isDouble(): boolean {
+    return this.doublePage && this.direction === 'horizontal';
+  }
+
+  /** Số trang lật mỗi lần: 2 khi đang xem trang đôi. */
+  private get step(): number {
+    return this.isDouble ? 2 : 1;
+  }
+
+  get canGoPrev(): boolean { return this.currentPage > 0; }
+
+  get canGoNext(): boolean {
+    return this.currentPage + this.step <= this.images.length - 1;
+  }
+
+  /** Nhãn trang dưới góc ảnh: "3-4" khi xem trang đôi, "3" khi xem đơn. */
+  get pageLabel(): string {
+    if (!this.isDouble || this.pagePair.length < 2) return String(this.currentPage + 1);
+    const nums = this.pagePair.map(p => p + 1).sort((a, b) => a - b);
+    return `${nums[0]}-${nums[nums.length - 1]}`;
+  }
+
+  /**
+   * Chức năng: dựng URL ảnh, kèm token phá cache nếu trang này từng bấm thử lại
+   * (không có token thì trình duyệt trả lại đúng bản lỗi trong cache).
+   * Yêu cầu: `index` — vị trí ảnh trong `images`.
+   * Kết quả trả về: URL đầy đủ; chuỗi rỗng nếu không có ảnh ở vị trí đó.
+   * Exception: không ném — index sai trả chuỗi rỗng.
+   */
+  srcFor(index: number): string {
+    const url = this.images[index]?.cloudUrl;
+    if (!url) return '';
+    const token = this.retryTokens.get(index);
+    if (!token) return url;
+    return url + (url.includes('?') ? '&' : '?') + '_retry=' + token;
+  }
+
+  /**
+   * Chức năng: đánh dấu ảnh tải lỗi để template đổi sang khối "thử lại".
+   * Yêu cầu: `index` — vị trí ảnh trong `images`.
+   * Kết quả trả về: không (thêm vào `failed`).
+   * Exception: không ném.
+   */
+  onImgError(index: number): void {
+    this.failed.add(index);
+  }
+
+  /**
+   * Chức năng: tải lại một ảnh lỗi — tăng token phá cache rồi bỏ khỏi `failed`.
+   * Yêu cầu: `index` — vị trí ảnh trong `images`.
+   * Kết quả trả về: không (cập nhật `retryTokens` và `failed` tại chỗ).
+   * Exception: không ném — lỗi lần nữa thì `onImgError` lại đánh dấu.
+   */
+  retry(index: number): void {
+    this.retryTokens.set(index, (this.retryTokens.get(index) ?? 0) + 1);
+    this.failed.delete(index);
   }
 
   private setupObserver(): void {
@@ -102,6 +183,22 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     for (let i = start; i <= end; i++) {
       this.visibleIndices.add(i);
     }
+    this.rebuildPagePair();
+  }
+
+  /**
+   * Chức năng: dựng lại danh sách trang đang hiện ở chế độ ngang, xếp đúng thứ
+   * tự nhìn — rtl thì trang nhỏ hơn nằm bên phải nên phải đảo mảng.
+   * Yêu cầu: `currentPage`, `isDouble`, `horizontalDir` đã ở giá trị mới.
+   * Kết quả trả về: không (gán lại `pagePair`).
+   * Exception: không ném — hết ảnh thì cặp chỉ còn 1 phần tử.
+   */
+  private rebuildPagePair(): void {
+    const pair = [this.currentPage];
+    if (this.isDouble && this.currentPage + 1 <= this.images.length - 1) {
+      pair.push(this.currentPage + 1);
+    }
+    this.pagePair = this.horizontalDir === 'rtl' ? pair.reverse() : pair;
   }
 
   shouldLoad(index: number): boolean {
@@ -116,7 +213,7 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   get preloadIndices(): number[] {
     const result: number[] = [];
     this.visibleIndices.forEach(i => {
-      if (i !== this.currentPage && i >= 0 && i < this.images.length) result.push(i);
+      if (!this.pagePair.includes(i) && i >= 0 && i < this.images.length) result.push(i);
     });
     return result;
   }
@@ -160,8 +257,8 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
 
   goToPage(direction: 'prev' | 'next'): void {
     const target = direction === 'prev'
-      ? Math.max(0, this.currentPage - 1)
-      : Math.min(this.images.length - 1, this.currentPage + 1);
+      ? Math.max(0, this.currentPage - this.step)
+      : Math.min(this.images.length - 1, this.currentPage + this.step);
     if (this.direction === 'horizontal') {
       this.currentPage = target;
       this.pageChange.emit(target);
