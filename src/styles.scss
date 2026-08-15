@@ -145,7 +145,11 @@ body.has-bg-image::after {      // theme-tint overlay for readability
 // (manga-detail is excluded — it has its own backdrop.)
 body.has-bg-image:not(.bg-cover-main) {
   .home-page .main-layout,
-  .top-manga-page > .container-fluid,
+  // Trang top-manga bọc nội dung bằng `.top-manga-container`, KHÔNG phải
+  // `.container-fluid` như /latest và /popular. Trước đây selector ở đây ghi
+  // `.container-fluid` nên không khớp gì cả, và trang này là trang public duy
+  // nhất bị ảnh nền phủ thẳng lên nội dung.
+  .top-manga-page > .top-manga-container,
   .list-page > .container-fluid {
     background-color: var(--bg-primary);
     // Render as a rounded, padded panel floating on the image rather than a
@@ -177,6 +181,18 @@ body.has-bg-image.bg-cover-main {
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
   }
+  // Dải "Truyện mới" là NGOẠI LỆ của câu "the others have no default background":
+  // nó nằm ngoài `.main-layout` (để chiếm trọn chiều ngang) và tự sơn `--bg-card`
+  // kèm viền trong SCSS riêng của component. Nên khi `.main-layout` trong suốt
+  // thì riêng nó vẫn đục, cắt một khoang chắn ngang ảnh nền ở đầu trang.
+  //
+  // Selector toàn cục vẫn với tới được style của component con: style component
+  // mang thêm thuộc tính `[_ngcontent-*]` (1 class + 1 attribute), còn selector
+  // này là 3 class + 1 phần tử nên thắng về độ ưu tiên.
+  .home-page .new-strip {
+    background-color: transparent;
+    border-color: transparent;
+  }
   // The others have no default background, so they're already transparent.
 }
 
@@ -202,6 +218,16 @@ html, body {
   scroll-behavior: smooth;
 }
 
+// === Trang tìm kiếm: khoá đúng một khung nhìn, không sinh thanh cuộn trang ===
+// Bố cục cần đạt: header | search | footer nằm gọn trong 100vh.
+//
+// Không trừ chiều cao footer bằng số cứng vì footer co giãn theo nội dung và
+// xếp lại ở màn hẹp — trừ sai là hụt hoặc thừa. Thay vào đó biến `app-root`
+// thành flex column cao đúng 100vh, footer giữ chiều cao tự nhiên còn `main`
+// nuốt phần dư. Header `position: fixed` nên nằm ngoài luồng, không tính vào đây.
+//
+// Class do `MangaSearchComponent` gắn/gỡ theo vòng đời — cùng lối `body.header-hidden`
+// của trang đọc. Quên gỡ là cả site mất thanh cuộn, nên `ngOnDestroy` bắt buộc gỡ.
 // === Header hide on scroll (reader page) ===
 body.header-hidden .site-header {
   transform: translateY(-100%);
@@ -529,6 +555,24 @@ a {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
+}
+
+// === Nút "Xem thêm" ở đầu mỗi khối ===
+// Để TOÀN CỤC chứ không nằm trong `home.component.scss`: dải "Truyện mới" là một
+// component riêng (`app-new-manga-strip`), mà style của component cha không xuyên
+// qua được ranh giới encapsulation — trước đây nút ở đó có đúng markup nhưng
+// không ăn style nào cả. Chép CSS sang từng component thì sớm muộn cũng lệch nhau.
+.see-more-link {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: var(--transition);
+
+  &:hover { color: var(--accent-primary); }
+
+  i { font-size: 0.65rem; }
 }
 
 // === Tag Chip ===

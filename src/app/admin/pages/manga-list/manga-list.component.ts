@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { ToastrService } from 'ngx-toastr';
-import { Subject, debounceTime, takeUntil } from 'rxjs';
+import { Subject, debounceTime, takeUntil, forkJoin, of, map, catchError } from 'rxjs';
 import { AdminMangaService, AdminMangaFilter, DisplayMode } from '../../services/admin-manga.service';
 import { MangaSortBy } from '../../../core/models/manga.interface';
 import { MANGA_LEVEL_OPTIONS } from '../../../core/models/manga-enums';
@@ -18,6 +18,16 @@ import { AuthService } from '../../../core/services/auth.service';
 export class MangaListComponent implements OnInit, OnDestroy {
   /** Một trang truyện đang hiển thị. Mảng thường — không còn MatTableDataSource. */
   items: any[] = [];
+  /**
+   * Id các truyện đang tick để thao tác hàng loạt. Dùng Set thay vì cờ trên từng
+   * phần tử `items`: `loadData()` thay cả mảng mỗi lần tải, cờ gắn trên phần tử
+   * sẽ mất sạch sau mỗi lần lọc/đổi trang.
+   */
+  selectedIds = new Set<string>();
+  /** Đang chạy một lượt thao tác hàng loạt — khoá nút để không bấm chồng. */
+  bulkBusy = false;
+  /** Phơi enum ra cho template — template không đọc được import của file .ts. */
+  readonly DisplayMode = DisplayMode;
   totalCount = 0;
   pageSize = 20;
   pageIndex = 0;
@@ -98,7 +108,6 @@ export class MangaListComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.syncColumns();
     // Tìm theo tên chạy trên SERVER (tham số Name) chứ không lọc tại chỗ như
     // trước — bảng chỉ giữ một trang, lọc tại chỗ sẽ bỏ sót các trang còn lại.
     this.search$.pipe(debounceTime(350), takeUntil(this.destroy$)).subscribe(v => {
@@ -195,6 +204,9 @@ export class MangaListComponent implements OnInit, OnDestroy {
     this.mangaService.filter(this.buildFilter()).subscribe({
       next: (res: any) => {
         const page = res?.value ?? res;
+        // Đổi trang / đổi bộ lọc thì các truyện đã tick không còn trên màn hình
+        // nữa — giữ lại sẽ thành thao tác hàng loạt lên thứ người dùng không thấy.
+        this.selectedIds.clear();
         let items = page?.data ?? page?.items ?? [];
 
         // Chủ sở hữu nằm ở `owner.id` — backend đã bỏ hẳn `userId` ở cấp gốc.
@@ -348,7 +360,6 @@ export class MangaListComponent implements OnInit, OnDestroy {
   applyFilters(): void {
     // Giữ nguyên `name` của ô tìm kiếm — panel lọc không quản lý field đó.
     this.criteria = { ...this.draft, name: this.criteria.name };
-    this.syncColumns();
     this.pageIndex = 0;
     this.showFilters = false;
     this.loadData();
@@ -364,7 +375,6 @@ export class MangaListComponent implements OnInit, OnDestroy {
   clearAll(): void {
     this.criteria = this.emptyCriteria();
     this.draft = this.emptyCriteria();
-    this.syncColumns();
     this.searchTerm = '';
     this.sortBy = this.defaultSort;
     this.reverseSort = true;
@@ -378,7 +388,6 @@ export class MangaListComponent implements OnInit, OnDestroy {
     const name = this.criteria.name;
     this.criteria = { ...this.emptyCriteria(), name };
     this.draft = { ...this.criteria };
-    this.syncColumns();
     this.pageIndex = 0;
     this.loadData();
   }
@@ -479,6 +488,116 @@ export class MangaListComponent implements OnInit, OnDestroy {
     const v = String(manga?.mode ?? manga?.displayMode ?? '');
     if (v === '2' || v === DisplayMode.Disabled) return 'Đã khoá';
     return this.isHidden(manga) ? 'Đã ẩn' : 'Đang hiện';
+  }
+
+  // ── Thao tác hàng loạt ──────────────────────────────────────────────────────
+  isSelected(id: string): boolean {
+    return this.selectedIds.has(id);
+  }
+
+  /**
+   * Chức năng: tick/bỏ tick một truyện.
+   * Yêu cầu: `id` — id truyện; `event` — để chặn nổi bọt, không thì bấm ô tick sẽ
+   *   kích hoạt luôn `selectManga()` của cả thẻ và mở panel chi tiết bên phải.
+   * Kết quả trả về: không (đổi `selectedIds`).
+   * Exception: không ném.
+   */
+  toggleSelect(id: string, event: Event): void {
+    event.stopPropagation();
+    if (this.selectedIds.has(id)) this.selectedIds.delete(id);
+    else this.selectedIds.add(id);
+  }
+
+  /** Đã tick hết các truyện của TRANG hiện tại chưa (trang khác không tính). */
+  get allOnPageSelected(): boolean {
+    return this.items.length > 0 && this.items.every(m => this.selectedIds.has(m.id));
+  }
+
+  toggleSelectAll(): void {
+    if (this.allOnPageSelected) this.items.forEach(m => this.selectedIds.delete(m.id));
+    else this.items.forEach(m => this.selectedIds.add(m.id));
+  }
+
+  clearSelection(): void {
+    this.selectedIds.clear();
+  }
+
+  /**
+   * Chức năng: đổi chế độ hiển thị cho tất cả truyện đang tick.
+   *
+   *   Gọi lặp `manga/update` từng truyện chứ không có API hàng loạt — backend
+   *   không có endpoint đó, và đây là phần làm được mà không đụng tới backend.
+   *   `forkJoin` bắn song song; mỗi lời gọi tự nuốt lỗi để MỘT truyện hỏng không
+   *   huỷ cả lượt, rồi đếm lại số thành công/thất bại ở cuối.
+   * Yêu cầu: `mode` — giá trị `DisplayMode`; phải có ít nhất một truyện được tick.
+   * Kết quả trả về: không (cập nhật `items` tại chỗ, xoá tick, hiện toast tổng kết).
+   * Exception: không ném — truyện lỗi được đếm vào phần thất bại.
+   */
+  bulkSetDisplayMode(mode: DisplayMode): void {
+    const ids = [...this.selectedIds];
+    if (!ids.length || this.bulkBusy) return;
+
+    this.bulkBusy = true;
+    const calls = ids.map(id =>
+      this.mangaService.updateDisplayMode({ id }, mode).pipe(
+        map(() => ({ id, ok: true })),
+        catchError(() => of({ id, ok: false })),
+      ));
+
+    forkJoin(calls).pipe(takeUntil(this.destroy$)).subscribe(results => {
+      const ok = results.filter(r => r.ok);
+      // Sửa tại chỗ thay vì `loadData()`: giữ nguyên trang, bộ lọc và vị trí cuộn.
+      for (const r of ok) {
+        const item = this.items.find(m => m.id === r.id);
+        if (item) { item.mode = mode; item.displayMode = mode; }
+      }
+      const failed = results.length - ok.length;
+      if (ok.length) this.toastr.success(`Đã cập nhật ${ok.length} truyện`);
+      if (failed) this.toastr.error(`${failed} truyện không cập nhật được`);
+      this.clearSelection();
+      this.bulkBusy = false;
+    });
+  }
+
+  /**
+   * Chức năng: xoá mềm tất cả truyện đang tick, có hỏi xác nhận.
+   * Yêu cầu: phải có ít nhất một truyện được tick.
+   * Kết quả trả về: không (tải lại danh sách vì số bản ghi đã đổi).
+   * Exception: không ném — truyện lỗi được đếm vào phần thất bại.
+   */
+  bulkDelete(): void {
+    const ids = [...this.selectedIds];
+    if (!ids.length || this.bulkBusy) return;
+
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '360px',
+      data: {
+        title: `Xoá ${ids.length} truyện`,
+        message: `Bạn có chắc muốn xoá ${ids.length} truyện đã chọn? Hành động này không thể hoàn tác.`,
+        confirmText: 'Xoá',
+        danger: true,
+      },
+    });
+
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.bulkBusy = true;
+      const calls = ids.map(id => this.mangaService.delete(id).pipe(
+        map(() => true),
+        catchError(() => of(false)),
+      ));
+
+      forkJoin(calls).pipe(takeUntil(this.destroy$)).subscribe(results => {
+        const ok = results.filter(Boolean).length;
+        const failed = results.length - ok;
+        if (ok) this.toastr.success(`Đã xoá ${ok} truyện`);
+        if (failed) this.toastr.error(`${failed} truyện không xoá được`);
+        this.clearSelection();
+        this.bulkBusy = false;
+        // Số bản ghi đổi nên phải tải lại — khác `bulkSetDisplayMode` chỉ sửa cờ.
+        this.loadData();
+      });
+    });
   }
 
   deleteManga(manga: any): void {

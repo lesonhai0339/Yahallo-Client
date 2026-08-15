@@ -696,7 +696,104 @@
   gap: 12px;
 }
 
+// === Thanh thao tác hàng loạt ===
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+
+  &__all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &__count {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    // Đẩy nhóm nút sang phải; xuống hàng ở màn hẹp thì tự về đầu hàng.
+    margin-left: auto;
+  }
+}
+
+.bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  .material-icons { font-size: 1rem !important; }
+
+  &:hover:not(:disabled) { border-color: var(--accent-primary); background: var(--bg-card-hover); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &--danger {
+    color: #ff6b6b;
+    &:hover:not(:disabled) { border-color: #ff6b6b; }
+  }
+
+  &--ghost { background: transparent; color: var(--text-muted); }
+}
+
+@media (max-width: 768px) {
+  .bulk-bar {
+    gap: 8px;
+
+    &__actions { margin-left: 0; width: 100%; }
+  }
+
+  .bulk-btn { flex: 1; justify-content: center; }
+}
+
+// Ô tick trên thẻ — góc trên-trái, nổi trên bìa truyện.
+.mtile__check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: flex;
+  padding: 3px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+
+  input { cursor: pointer; margin: 0; }
+}
+
 .mtile {
+  // Ô tick định vị tuyệt đối theo thẻ.
+  position: relative;
+
+  &--checked {
+    border-color: var(--accent-primary);
+    background: var(--bg-card-hover);
+  }
+
   // Cột dọc: khối thông tin ở trên, hàng nút thao tác neo ở ĐÁY.
   // `height: 100%` để thẻ cao bằng ô lưới (grid mặc định stretch), nhờ đó
   // hàng nút của mọi thẻ trên cùng một hàng luôn thẳng nhau.

@@ -1,7 +1,8 @@
 .site-footer {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
-  margin-top: 48px;
+  // Không dùng `margin-top`: khoảng đó nằm NGOÀI footer nên lộ nền body thành một
+  // dải trống giữa nội dung và footer. Phần đệm đã nằm sẵn trong `padding` dưới đây.
   padding: 48px 16px 24px;
 
   .footer-inner { max-width: 1200px; margin: 0 auto; }

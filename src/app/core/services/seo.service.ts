@@ -76,9 +76,13 @@ export class SeoService {
   }
 
   setSearchPage(query?: string): void {
+    // Không có từ khoá thì lấy đúng nhãn của trang ("Tìm kiếm nâng cao"), vì thẻ
+    // <h1> trên trang đã bỏ — tiêu đề tab giờ là chỗ duy nhất nói người dùng
+    // đang ở đâu.
+    // Tên site đứng TRƯỚC, khớp `DEFAULT_TITLE` ("Yahallo - Đọc Truyện Tranh Online").
     const title = query
-      ? `Tìm kiếm "${query}" - ${SITE_NAME}`
-      : `Tìm kiếm truyện - ${SITE_NAME}`;
+      ? `${SITE_NAME} - Tìm kiếm "${query}"`
+      : `${SITE_NAME} - Tìm kiếm nâng cao`;
     this.title.setTitle(title);
     this.updateTags({
       description: `Tìm kiếm truyện tranh tại ${SITE_NAME}`,

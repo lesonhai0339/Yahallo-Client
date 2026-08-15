@@ -6,8 +6,14 @@
      (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
   <!-- Vertical mode -->
   <ng-container *ngIf="direction === 'vertical'">
+    <!-- `aspect-ratio` gắn lên THẺ BỌC (không phải khung giữ chỗ) để chiều cao là
+         xác định kể cả khi trình duyệt bỏ qua nội dung bên trong — xem
+         `content-visibility` ở file .scss. Chỉ gắn ở chế độ "vừa chiều rộng":
+         các chế độ còn lại kẹp ảnh theo chiều cao màn hình nên ảnh không lấp
+         hết bề ngang, ép tỉ lệ vào thẻ bọc sẽ chừa khoảng trống thừa. -->
     <div class="reader-page-wrapper" *ngFor="let img of images; let i = index"
          #pageRef [attr.data-page]="i"
+         [style.aspect-ratio]="fitMode === 'width' ? ratioOf(i) : null"
          [style.max-width.%]="imageSize">
       <!-- Ảnh lỗi: hiện nút thử lại thay vì đổi sang ảnh "sorry" — trang truyện
            hỏng thì người đọc cần tải lại đúng trang đó, không phải ảnh thay thế. -->
@@ -19,12 +25,29 @@
         </button>
       </div>
 
-      <img *ngIf="shouldLoad(i) && !failed.has(i)"
-           [src]="srcFor(i)"
-           [alt]="'Page ' + (i + 1)"
-           (error)="onImgError(i)"
-           class="reader-img">
-      <div *ngIf="!shouldLoad(i) && !failed.has(i)" class="reader-img-placeholder"></div>
+      <!-- `width`/`height` là kích thước GỐC của ảnh, không phải cỡ hiển thị: CSS
+           đã ép `width: 100%; height: auto`. Đặt chúng để trình duyệt tự suy ra
+           tỉ lệ và chừa sẵn chỗ trước khi ảnh tải xong.
+           `fetchpriority="high"` cho đúng trang đang xem, để nó không phải xếp
+           hàng sau mấy ảnh preload phía dưới. -->
+      <ng-container *ngIf="!failed.has(i)">
+        <!-- Chưa tới lượt tải: ô xám tĩnh, chỉ để giữ chỗ. -->
+        <div *ngIf="!shouldLoad(i)" class="reader-img-placeholder"></div>
+
+        <!-- Đang tải: skeleton ĐÈ LÊN chỗ đã chừa (position: absolute) nên không
+             cộng thêm chiều cao — hết tải là biến mất, ảnh không nhảy. -->
+        <span *ngIf="shouldLoad(i) && !isLoaded(i)" class="skeleton reader-img-skeleton"></span>
+
+        <img *ngIf="shouldLoad(i)"
+             [src]="srcFor(i)"
+             [alt]="'Page ' + (i + 1)"
+             [attr.width]="img.width || null"
+             [attr.height]="img.height || null"
+             [attr.fetchpriority]="i === currentPage ? 'high' : null"
+             (load)="onImgLoad(i, $any($event.target))"
+             (error)="onImgError(i)"
+             class="reader-img">
+      </ng-container>
       <div class="page-indicator">{{ i + 1 }} / {{ images.length }}</div>
     </div>
   </ng-container>
@@ -42,24 +65,37 @@
            [class.horizontal-page--double]="isDouble"
            [style.max-width.%]="imageSize">
         <!-- `pagePair` là 1 ảnh ở chế độ thường, 2 ảnh ở chế độ trang đôi và đã
-             xếp sẵn đúng thứ tự nhìn theo rtl/ltr. -->
-        <ng-container *ngFor="let p of pagePair">
-          <div class="horizontal-slot" *ngIf="failed.has(p)">
-            <div class="reader-img-error">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              <span>{{ 'READER.IMAGE_FAILED' | translate }}</span>
-              <button type="button" class="reader-retry-btn" (click)="retry(p)">
-                <i class="fa-solid fa-rotate-right me-1"></i>{{ 'READER.RETRY' | translate }}
-              </button>
-            </div>
+             xếp sẵn đúng thứ tự nhìn theo rtl/ltr.
+
+             Mỗi trang nằm trong một `.horizontal-slot` có KÍCH THƯỚC XÁC ĐỊNH
+             (cao 100vh, rộng suy ra từ `aspect-ratio`). Trước đây `<img>` là con
+             trực tiếp và bề ngang của khung do chính ảnh quyết định — lật trang
+             thì thẻ cũ bị huỷ, khung co về 0 rồi phình lại khi ảnh mới tải xong,
+             kéo theo 2 nút điều hướng nhảy qua nhảy lại. Đó là hiện tượng giật. -->
+        <div class="horizontal-slot" *ngFor="let p of pagePair"
+             [style.aspect-ratio]="ratioOf(p)">
+          <div *ngIf="failed.has(p)" class="reader-img-error">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>{{ 'READER.IMAGE_FAILED' | translate }}</span>
+            <button type="button" class="reader-retry-btn" (click)="retry(p)">
+              <i class="fa-solid fa-rotate-right me-1"></i>{{ 'READER.RETRY' | translate }}
+            </button>
           </div>
 
-          <img *ngIf="images[p] && !failed.has(p)"
-               [src]="srcFor(p)"
-               [alt]="'Page ' + (p + 1)"
-               (error)="onImgError(p)"
-               class="reader-img">
-        </ng-container>
+          <ng-container *ngIf="!failed.has(p)">
+            <span *ngIf="!isLoaded(p)" class="skeleton reader-img-skeleton"></span>
+
+            <img *ngIf="images[p]"
+                 [src]="srcFor(p)"
+                 [alt]="'Page ' + (p + 1)"
+                 [attr.width]="images[p].width || null"
+                 [attr.height]="images[p].height || null"
+                 fetchpriority="high"
+                 (load)="onImgLoad(p, $any($event.target))"
+                 (error)="onImgError(p)"
+                 class="reader-img">
+          </ng-container>
+        </div>
 
         <div class="page-indicator page-indicator--visible">
           {{ pageLabel }} / {{ images.length }}

@@ -279,8 +279,10 @@
                 <span class="side-manga-item__name">{{ m.displayName }}</span>
               </a>
             </div>
-            <a class="side-card__see-more"
-               [routerLink]="['/search/advanced']" [queryParams]="{ prefix: 'author', q: manga?.authors?.[0]?.name || '' }">
+            <!-- Dẫn vào trang tác giả (thông tin + toàn bộ tác phẩm) thay vì tìm
+                 kiếm theo tên: trùng tên là ra nhầm người, id thì không. -->
+            <a class="side-card__see-more" *ngIf="relatedAuthorId"
+               [routerLink]="['/author', relatedAuthorId]">
               {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
             </a>
           </div>
@@ -301,8 +303,8 @@
                 <span class="side-manga-item__name">{{ m.displayName }}</span>
               </a>
             </div>
-            <a class="side-card__see-more"
-               [routerLink]="['/search/advanced']" [queryParams]="{ prefix: 'artist', q: manga?.artists?.[0]?.name || '' }">
+            <a class="side-card__see-more" *ngIf="relatedArtistId"
+               [routerLink]="['/artist', relatedArtistId]">
               {{ 'HOME.SEE_MORE' | translate }}<i class="fa-solid fa-chevron-right ms-1"></i>
             </a>
           </div>

@@ -53,6 +53,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   isMenuVisible = true;
   isSidebarOpen = false;
   isChapterListOpen = false;
+  /** Danh sách chọn trang, bung từ ô "trang / tổng" ở bottombar. */
+  isPageListOpen = false;
   isBottombarVisible = true;
   isFocusScrollDown = false;
   menuTimeout: any;
@@ -67,8 +69,19 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   // Reading-progress: lưu localStorage mỗi trang, đẩy lên server theo chu kỳ
   // (sau khi ngừng lật trang) + khi rời reader — KHÔNG gọi API mỗi ảnh.
   private readonly PROGRESS_FLUSH_MS = 8000;
+  /**
+   * Khoảng cách tối thiểu giữa hai lần gọi `/reading-progress/save`.
+   * Cần vì `PROGRESS_FLUSH_MS` là debounce — nó chỉ gộp các lần lật trang CÁCH
+   * NHAU DƯỚI 8s. Tự cuộn ở tốc độ thấp (60px/s, trang cao ~1400px) đổi trang
+   * mỗi ~23 giây, tức lần nào cũng vượt debounce và đẻ ra một request riêng.
+   */
+  private readonly MIN_SAVE_INTERVAL_MS = 30000;
   private progressFlushTimer: any = null;
-  private currentPage = 0;
+  /** Trang đã đẩy lên server gần nhất — trùng thì bỏ qua, khỏi gọi lại. */
+  private lastSavedPage: number | null = null;
+  private lastSaveAt = 0;
+  /** Ảnh đang xem, 0-based. Public vì bottombar hiển thị "trang / tổng". */
+  currentPage = 0;
 
   settings: ReaderSettings = {
     direction: 'vertical',
@@ -227,8 +240,9 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Đẩy nốt vị trí đọc cuối cùng trước khi rời reader.
-    this.flushProgress();
+    // Đẩy nốt vị trí đọc cuối cùng trước khi rời reader — `force` để bỏ qua giới
+    // hạn tần suất, nếu không thì lần đọc ngắn hơn 30s sẽ mất tiến trình.
+    this.flushProgress(true);
     this.seo.resetToDefault();
     // Angular huỷ app sau khi render xong ở server, nên hook này CÓ chạy trên
     // Node — nơi không có `document.body` để mà dọn.
@@ -245,6 +259,9 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   loadImages(): void {
     this.isLoading = true;
     this.notFound = false;
+    // Chương mới thì "trang đã lưu" của chương cũ không còn ý nghĩa — không xoá
+    // thì mở chương khác rồi dừng ở cùng số trang sẽ bị coi là trùng và bỏ lưu.
+    this.lastSavedPage = null;
     this.mangaService.getChapterImages(this.mangaId,this.chapterId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -338,9 +355,31 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     this.progressFlushTimer = setTimeout(() => this.flushProgress(), this.PROGRESS_FLUSH_MS);
   }
 
-  /** Đẩy vị trí đọc hiện tại lên server (1 lần). Gọi định kỳ và khi rời reader. */
-  private flushProgress(): void {
+  /**
+   * Chức năng: đẩy vị trí đọc hiện tại lên server, có chặn gọi thừa.
+   * Yêu cầu: `force` — `true` khi rời reader, bỏ qua giới hạn tần suất để vị trí
+   *   cuối cùng chắc chắn được lưu (vẫn bỏ qua nếu trùng trang đã lưu).
+   * Kết quả trả về: không (gọi API, hoặc hẹn lại lượt sau nếu còn quá sớm).
+   * Exception: không ném.
+   */
+  private flushProgress(force = false): void {
     if (this.progressFlushTimer) { clearTimeout(this.progressFlushTimer); this.progressFlushTimer = null; }
+
+    // Vẫn đứng ở trang đã lưu thì không có gì mới để gửi. Chặn được cả trường hợp
+    // mở chương xong ngồi yên: `loadImages()` đã lưu `initialPage` ngay lúc đó.
+    if (this.currentPage === this.lastSavedPage) return;
+
+    if (!force) {
+      const since = Date.now() - this.lastSaveAt;
+      if (since < this.MIN_SAVE_INTERVAL_MS) {
+        // Chưa tới lượt — hẹn lại đúng lúc đủ hạn, KHÔNG bỏ luôn, nếu không thì
+        // vị trí đọc mới nhất có thể không bao giờ được đẩy lên.
+        this.progressFlushTimer = setTimeout(
+          () => this.flushProgress(), this.MIN_SAVE_INTERVAL_MS - since,
+        );
+        return;
+      }
+    }
     this.saveProgress(this.currentPage);
   }
 
@@ -370,6 +409,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
     // resume/jump về vị trí cũ (xem resolveResume). Server chỉ lưu khi đã đăng nhập.
     const user = this.authService.currentUser;
     if (!user) return;
+    this.lastSavedPage = lastPage;
+    this.lastSaveAt = Date.now();
     this.readingProgress.save({
       userId: user.id,
       mangaId: this.mangaId,
@@ -463,6 +504,7 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
         if (this.isShortcutHelpOpen) { this.isShortcutHelpOpen = false; }
         else if (this.isSidebarOpen) { this.closeSidebar(); }
         else if (this.isChapterListOpen) { this.closeChapterList(); }
+        else if (this.isPageListOpen) { this.closeImageList(); }
         else if (this.isAutoScrolling) { this.stopAutoScroll(); }
         break;
     }
@@ -568,6 +610,8 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
 
   toggleChapterList(): void {
     this.isChapterListOpen = !this.isChapterListOpen;
+    // Hai dropdown mọc từ cùng một chỗ, mở chồng lên nhau là che nhau.
+    if (this.isChapterListOpen) this.isPageListOpen = false;
   }
 
   closeChapterList(): void {
@@ -577,6 +621,29 @@ export class MangaReaderComponent implements OnInit, OnDestroy {
   selectChapter(chapter: any): void {
     this.isChapterListOpen = false;
     this.goToChapter(chapter);
+  }
+
+  // ── Danh sách chọn trang ────────────────────────────────────────────────────
+  toggleImageList(): void {
+    this.isPageListOpen = !this.isPageListOpen;
+    if (this.isPageListOpen) this.isChapterListOpen = false;
+  }
+
+  closeImageList(): void {
+    this.isPageListOpen = false;
+  }
+
+  /**
+   * Chức năng: nhảy thẳng tới một ảnh theo số trang người dùng bấm trong danh sách.
+   * Yêu cầu: `index` — vị trí ảnh 0-based (danh sách hiển thị `index + 1`).
+   *   Cần `readerViewer` đã dựng xong; chưa có thì bỏ qua chứ không lỗi.
+   * Kết quả trả về: không (đóng danh sách; viewer tự đổi `currentPage`, phát
+   *   `pageChange` để `onPageChange()` cập nhật URL và tiến trình đọc).
+   * Exception: không ném — index ngoài khoảng đã được viewer kẹp lại.
+   */
+  selectImage(index: number): void {
+    this.isPageListOpen = false;
+    this.readerViewer?.scrollToPage(index);
   }
 
   onSettingChange(): void {

@@ -1,21 +1,38 @@
+// Trang trải hết bề ngang, xếp thẳng vào khung `header | main | footer` của
+// `AppComponent` thay vì làm một thẻ nổi ở giữa. Vì vậy KHÔNG có `max-width`,
+// `border-radius` hay `box-shadow` — mấy thứ đó là dấu hiệu của một tấm thẻ, mà
+// đây giờ là cả một trang.
+//
+// `background` vẫn giữ `--bg-card`: `styles.scss` neo vào `.search-page` để đổi
+// nền khi bật ảnh nền (mờ đi ở chế độ phủ nội dung), bỏ đi là hỏng chỗ đó.
+//
+// Chiều cao giữ nguyên công thức cũ: header `position: fixed` cao 60px và nội
+// dung chảy dưới nó, `margin-top` là phần bù cho chỗ đó.
 .search-page {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: 16px 24px;
-  margin-top: 16px;
-  margin-bottom: 0;
   border: none;
-  box-shadow: var(--shadow-card);
-  max-width: 85%;
-  margin-left: auto;
-  margin-right: auto;
-  height: calc(98vh - 76px);
+  margin: 0;
+
+  // TRỪ 60px chiều cao header. `header.component.html` kết thúc bằng
+  // `<div class="header-spacer">` cao đúng `$header-height`, nên dù `.site-header`
+  // là `position: fixed`, phần chỗ ấy VẪN được chừa trong luồng và `main` bắt đầu
+  // từ y = 60px. Lấy `100vh` ở đây là tràn xuống dưới mép đúng 60px, kéo luôn viền
+  // dưới của khung cột trái ra ngoài tầm nhìn.
+  height: calc(100vh - 60px);
+  // Trên chỉ vài px vì header đã có spacer riêng — không phải bù gì thêm.
+  // Trái = 0 để cột lọc sát mép màn hình.
+  // Đáy 16px để viền dưới không nằm đúng hàng pixel cuối và bị xén.
+  padding: 8px 16px 16px 0;
+
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    padding: 8px 12px 12px 0;
+  }
 }
 
-.page-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 12px; flex-shrink: 0; }
 
 .search-layout {
   display: grid;
@@ -37,25 +54,60 @@
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  // Thanh điều khiển (số kết quả / sắp xếp / số mục mỗi trang) chỉ xuất hiện KHI
+  // có kết quả. Nó nằm trong vùng cuộn nên lúc hiện ra sẽ chèn thêm một khối cao
+  // ~34px lên đầu và đẩy toàn bộ lưới xuống, rồi cuộn đi mất khi kéo xuống.
+  // Ghim lại: lưới giữ nguyên chỗ, và thanh này luôn trong tầm mắt.
+  > .controls-bar {
+    position: sticky;
+    top: 0;
+    // Phải > 3. `.manga-card__update-time` (z-index 3) và `.manga-card__chapter`
+    // (z-index 2) trong `styles.scss` là `position: absolute` nhưng thẻ truyện
+    // KHÔNG tự tạo stacking context, nên chúng xếp chồng chung tầng với thanh
+    // này — để z-index 2 thì thẻ nằm sau trong DOM sẽ phủ lên.
+    z-index: 5;
+    // Phải có nền đục, không thì thẻ truyện cuộn lên sẽ lộ qua phía sau nó.
+    background: var(--bg-card);
+  }
 }
 
 // ── LEFT column: tier-1 tabs + search bar + filters ──────────────────────────
+// Khung bao CẢ cột trái — nhóm tab lẫn panel bộ lọc đều nằm trong. Trước đây
+// tab được vẽ kiểu "tab trình duyệt" dính vào panel, nên khe `gap` giữa các tab
+// và dải phía trên chúng đều để lọt nền trang vào giữa. Gom vào một khung thì
+// không còn chỗ nào hở.
 .search-left {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  // Grid item mặc định `min-height: auto`, không có dòng này thì panel bên trong
+  // không co lại được và mất luôn khả năng tự cuộn.
+  min-height: 0;
   // Kéo hết chiều cao của .search-layout thay vì ôm sát nội dung: trước đây
   // `align-self: start` làm panel lúc dài lúc ngắn theo bộ lọc đang mở, nhìn
   // nhấp nhô so với cột kết quả bên phải.
   align-self: stretch;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  // Sát mép trái màn hình nên bỏ viền + bo góc bên trái: để lại thì thành một
+  // đường kẻ dọc lơ lửng ngay cạnh màn hình.
+  border-left: none;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 10px;
 }
 
-// Tier-1 object selector — tab dính liền panel bên dưới.
+// Tier-1 object selector — nhóm nút gạt, nằm trên một rãnh nền riêng. Khe giữa
+// các nút giờ lộ ra màu rãnh chứ không phải nền trang.
 .target-tabs {
   display: flex;
   gap: 4px;
-  position: relative;
-  z-index: 2;
+  padding: 3px;
+  margin-bottom: 10px;
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.06));
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
 }
 
 .target-tab {
@@ -65,14 +117,13 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 6px;
+  padding: 7px 6px;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
-  background: var(--bg-secondary, rgba(127, 127, 127, 0.06));
-  border: 1px solid var(--border-color);
-  border-bottom: none;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s, background 0.15s;
@@ -84,20 +135,21 @@
 
   &--active {
     color: var(--accent-primary);
+    // Nổi lên khỏi rãnh bằng chính màu khung bao — không cần viền, nên cũng
+    // không còn đường kẻ nào cắt ngang giữa tab và phần bộ lọc bên dưới.
     background: var(--bg-card);
-    border-top: 2px solid var(--accent-primary);
-    // Đè lên viền trên của panel → xoá đường ngăn giữa tab & panel (linked).
-    margin-bottom: -1px;
-    position: relative;
-    z-index: 3;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
   }
 }
 
+// Panel bộ lọc nay nằm TRONG `.search-left` nên không tự vẽ nền/viền nữa —
+// hai lớp card lồng nhau sẽ thành hai đường kẻ song song.
 .search-left__panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md);
-  padding: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  // Chỉ chừa lề phải cho thanh cuộn, phần đệm còn lại do khung bao lo.
+  padding: 0 4px 0 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -153,8 +205,7 @@
     // Fill at least the viewport so a short result set doesn't leave a blank
     // app-background strip below the card, but still grow + scroll naturally.
     height: auto;
-    min-height: calc(100vh - 76px);
-    max-width: 100%;
+    min-height: calc(100vh - 60px);
     overflow: visible;
   }
   .search-layout {

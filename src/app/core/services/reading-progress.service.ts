@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { ReadingProgress, ReadingHistoryItem } from '../models/interfaces';
+import { ReadingProgress, ReadingHistoryItem, ReadingHistoryChapter } from '../models/interfaces';
 import { UserPreferencesService } from './user-preferences.service';
 import { AuthService } from './auth.service';
 
@@ -95,7 +95,37 @@ export class ReadingProgressService {
       map(res => {
         const v = res?.value ?? res ?? {};
         return {
-          data: (v.data ?? []) as ReadingHistoryItem[],
+          data: (v.data ?? []).map((r: any) => this.normalizeHistoryRow(r)) as ReadingHistoryItem[],
+          totalCount: v.totalCount ?? 0,
+          pageCount: v.pageCount ?? 0,
+          pageNumber: v.pageNumber ?? pageNumber,
+          pageSize: v.pageSize ?? pageSize,
+        };
+      }),
+      catchError(() => of({ data: [], totalCount: 0, pageCount: 0, pageNumber, pageSize })),
+    );
+  }
+
+  /**
+   * Chức năng: lịch sử đọc gom theo TRUYỆN cho tab lịch sử (GET
+   *   `reading-progress/get-by-user`). Khác `getPaginated()` ở chỗ mỗi dòng là một
+   *   truyện kèm list chương, và `totalCount` đếm theo truyện chứ không theo bản ghi.
+   *
+   *   Không gửi `UserId`: endpoint này lấy người dùng từ token phía server, truyền
+   *   lên cũng bị bỏ qua.
+   * Yêu cầu: `pageNumber` đếm từ 1; `pageSize` số truyện mỗi trang.
+   * Kết quả trả về: Observable emit một trang đã chuẩn hoá rồi complete.
+   * Exception: không ném — lỗi mạng/API trả trang rỗng để tab hiện empty-state.
+   */
+  getUserHistory(
+    pageNumber: number, pageSize: number,
+  ): Observable<{ data: ReadingHistoryItem[]; totalCount: number; pageCount: number; pageNumber: number; pageSize: number }> {
+    const params: any = { PageNo: pageNumber, PageSize: pageSize };
+    return this.http.get<any>(`${this.base}/get-by-user`, { params }).pipe(
+      map(res => {
+        const v = res?.value ?? res ?? {};
+        return {
+          data: (v.data ?? []).map((r: any) => this.normalizeHistoryRow(r)) as ReadingHistoryItem[],
           totalCount: v.totalCount ?? 0,
           pageCount: v.pageCount ?? 0,
           pageNumber: v.pageNumber ?? pageNumber,
@@ -224,23 +254,90 @@ export class ReadingProgressService {
   }
 
   /**
+   * Chức năng: chuẩn hoá MỘT dòng lịch sử về `ReadingHistoryItem`, chịu được cả
+   *   shape cũ (một dòng = một chương) lẫn shape mới (một dòng = một truyện kèm
+   *   list chương).
+   *
+   *   Nhận nhiều tên field khác nhau là CỐ Ý: shape mới đang được chốt ở backend,
+   *   và project vốn đã có tiền lệ tên field lệch (vd `depscription`). Gom hết
+   *   khác biệt vào đúng một chỗ này thì component không phải biết gì cả — khi
+   *   backend chốt xong, sửa ở đây là đủ.
+   * Yêu cầu: `raw` — object thô từ API (có thể thiếu field, có thể `null`).
+   * Kết quả trả về: `ReadingHistoryItem` với `chapters` LUÔN là mảng (sắp mới
+   *   nhất trước), rỗng nếu không suy ra được chương nào.
+   * Exception: không ném — field thiếu quy về `''` / `0` / mảng rỗng.
+   */
+  private normalizeHistoryRow(raw: any): ReadingHistoryItem {
+    const r = raw ?? {};
+    // Shape mới đặt list chương ở một trong các tên dưới đây; shape cũ không có
+    // list nào cả nên tự dựng một phần tử từ chính các field phẳng của dòng đó.
+    const rawChapters: any[] =
+      r.progresses ?? r.chapters ?? r.chapterProgress ?? r.chapterProgresses
+      ?? r.readingProgresses
+      ?? (r.chapterId ? [r] : []);
+
+    const chapters = (Array.isArray(rawChapters) ? rawChapters : [])
+      .map(c => this.normalizeHistoryChapter(c))
+      .filter(c => !!c.chapterId)
+      .sort((a, b) => (Date.parse(b.readAt) || 0) - (Date.parse(a.readAt) || 0));
+
+    return {
+      mangaId: r.mangaId ?? '',
+      mangaName: r.mangaName ?? r.displayName ?? r.name,
+      mangaThumbnail: r.mangaThumbnail ?? r.thumbnail,
+      chapters,
+      // Giữ lại field phẳng của shape cũ cho `fromHistory()` và code cũ khác.
+      chapterId: r.chapterId,
+      chapterTitle: r.chapterTitle,
+      chapterIndex: r.chapterIndex,
+      lastPage: r.lastPage,
+      lastReadAt: r.lastReadAt,
+    };
+  }
+
+  /**
+   * Chức năng: chuẩn hoá tiến trình đọc của một chương về `ReadingHistoryChapter`.
+   * Yêu cầu: `raw` — object thô; vị trí đọc nhận `readIndex`/`lastPage`/`imageIndex`,
+   *   tổng ảnh nhận `totalPage`/`totalImage`/`totalImages`/`totalPages`.
+   * Kết quả trả về: `ReadingHistoryChapter`; `totalPage = 0` khi backend không trả
+   *   tổng ảnh (template sẽ ẩn thanh phần trăm thay vì hiện 0%).
+   * Exception: không ném.
+   */
+  private normalizeHistoryChapter(raw: any): ReadingHistoryChapter {
+    const c = raw ?? {};
+    return {
+      chapterId: c.chapterId ?? c.id ?? '',
+      index: c.index ?? c.chapterIndex ?? null,
+      subIndex: c.subIndex ?? null,
+      readIndex: Number(c.lastReadPage ?? c.readIndex ?? c.lastPage ?? c.imageIndex ?? 0) || 0,
+      totalPage: Number(c.totalPage ?? c.totalImage ?? c.totalImages ?? c.totalPages ?? 0) || 0,
+      readAt: c.readAt ?? c.lastReadAt ?? c.updateDate ?? '',
+    };
+  }
+
+  /**
    * Chức năng: Đổi các dòng lịch sử đọc từ server (`get-pagination`) sang shape
-   *   local, khoá theo manga+chương.
-   * Yêu cầu: `list` là `data` của trang lịch sử; `lastPage` là 1-based.
+   *   local, khoá theo manga+chương. Trải phẳng `chapters` của shape mới; shape cũ
+   *   đã được `normalizeHistoryRow()` gói thành list 1 phần tử nên đi chung một
+   *   nhánh, không cần rẽ đôi.
+   * Yêu cầu: `list` là `data` ĐÃ chuẩn hoá của trang lịch sử; `readIndex` 1-based.
    * Kết quả trả về: map khoá `mangaId|chapterId`.
    * Exception: không ném — dòng thiếu mangaId/chapterId bị bỏ qua.
    */
   private fromHistory(list: ReadingHistoryItem[]): Record<string, LocalProgress> {
     const map: Record<string, LocalProgress> = {};
     for (const r of list) {
-      if (!r?.mangaId || !r?.chapterId) continue;
-      map[entryKey(r.mangaId, r.chapterId)] = {
-        mangaId: r.mangaId,
-        chapterId: r.chapterId,
-        // Server 1-based → client 0-based.
-        imageIndex: Math.max(0, (r.lastPage ?? 1) - 1),
-        updatedAt: r.lastReadAt ? (Date.parse(r.lastReadAt) || 0) : 0,
-      };
+      if (!r?.mangaId) continue;
+      for (const c of r.chapters ?? []) {
+        if (!c.chapterId) continue;
+        map[entryKey(r.mangaId, c.chapterId)] = {
+          mangaId: r.mangaId,
+          chapterId: c.chapterId,
+          // Server 1-based → client 0-based.
+          imageIndex: Math.max(0, c.readIndex - 1),
+          updatedAt: c.readAt ? (Date.parse(c.readAt) || 0) : 0,
+        };
+      }
     }
     return map;
   }

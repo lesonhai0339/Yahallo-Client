@@ -205,16 +205,51 @@ export interface ReadingProgress {
   lastReadAt: string;
 }
 
+/**
+ * Tiến trình đọc của MỘT chương, nằm trong `ReadingHistoryItem.chapters`.
+ * Đây là shape đã CHUẨN HOÁ ở `ReadingProgressService` — không phải shape thô của
+ * API. Xem `normalizeHistoryChapter()` để biết nhận vào những tên field nào.
+ */
+export interface ReadingHistoryChapter {
+  chapterId: string;
+  /**
+   * `index`/`subIndex` đặt đúng tên của `ChapterNumberLike` (`core/utils/chapter-label`)
+   * để truyền thẳng vào `chapterName()` được. Tên chương LUÔN dựng từ số — `title`
+   * bên backend là mô tả, được phép rỗng, nên không dùng làm tên (xem chú thích
+   * đầu `chapter-label.ts`).
+   */
+  index?: number | null;
+  subIndex?: number | null;
+  /**
+   * Vị trí ảnh đang đọc dở, **1-based** — cùng quy ước với `lastPage` của shape cũ.
+   * Chọn 1-based vì công thức `readIndex / totalPage` chỉ ra đúng 100% khi đọc hết
+   * chương nếu đếm từ 1. Reader dùng 0-based nên chỗ nào điều hướng phải trừ 1.
+   */
+  readIndex: number;
+  /** Tổng số ảnh của chương. `0` nghĩa là backend không trả — khi đó ẩn thanh %. */
+  totalPage: number;
+  readAt: string;
+}
+
 /** Enriched reading-history row from GET /reading-progress/get-pagination. */
 export interface ReadingHistoryItem {
   mangaId: string;
   mangaName?: string;
   mangaThumbnail?: string;
-  chapterId: string;
+  /**
+   * Các chương đã đọc của truyện này, MỚI NHẤT TRƯỚC. Chuẩn hoá xong luôn là mảng
+   * (rỗng chứ không `undefined`) để template khỏi phải guard.
+   */
+  chapters: ReadingHistoryChapter[];
+
+  // ── Shape CŨ (một bản ghi = một chương) ───────────────────────────────────
+  // Giữ lại optional để code cũ còn đọc được trong lúc backend chuyển đổi;
+  // `fromHistory()` vẫn dùng để dựng bản đồ tiến trình cục bộ.
+  chapterId?: string;
   chapterTitle?: string;
   chapterIndex?: number | null;
-  lastPage: number;
-  lastReadAt: string;
+  lastPage?: number;
+  lastReadAt?: string;
 }
 
 /** Loại notification (khớp backend NotificationType). */

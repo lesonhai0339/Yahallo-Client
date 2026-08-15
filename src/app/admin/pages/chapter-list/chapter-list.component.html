@@ -22,6 +22,39 @@
           <span class="material-icons toolbar__search-icon">search</span>
           <input class="toolbar__search-input" placeholder="Tìm theo tiêu đề..." (keyup)="applyFilter($event)" />
         </div>
+
+        <!-- Quét TRANG HIỆN TẠI: mỗi chương tốn một request lấy danh sách ảnh -->
+        <button type="button" class="btn btn-outline scan-btn"
+          [disabled]="scanning || loading || !dataSource.data.length"
+          (click)="scanChapters()"
+          title="Soát các chương đang hiển thị: chương rỗng ảnh, ảnh thiếu kích thước, trùng số">
+          <span class="material-icons">{{ scanning ? 'hourglass_top' : 'fact_check' }}</span>
+          {{ scanning ? 'Đang quét...' : 'Quét lỗi' }}
+        </button>
+      </div>
+
+      <!-- Kết quả quét -->
+      <div class="scan-result" *ngIf="scanDone">
+        <div class="scan-result__head">
+          <span class="material-icons" [class.ok]="scanIssues.length === 0">
+            {{ scanIssues.length ? 'report_problem' : 'check_circle' }}
+          </span>
+          <span *ngIf="scanIssues.length === 0">Không tìm thấy lỗi nào trong {{ dataSource.data.length }} chương đang hiển thị</span>
+          <span *ngIf="scanIssues.length">Tìm thấy {{ scanIssues.length }} vấn đề</span>
+          <button type="button" class="scan-result__close" (click)="scanDone = false">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <ul class="scan-list" *ngIf="scanIssues.length">
+          <li class="scan-item" *ngFor="let i of scanIssues">
+            <span class="scan-item__label">{{ i.label }}</span>
+            <span class="scan-item__kind">{{ i.kind }}</span>
+            <span class="scan-item__detail">{{ i.detail }}</span>
+            <button type="button" class="scan-item__go" *ngIf="i.chapterId"
+              (click)="goToIssueImages(i.chapterId)">Xem ảnh</button>
+          </li>
+        </ul>
       </div>
 
       <div class="table-wrapper">

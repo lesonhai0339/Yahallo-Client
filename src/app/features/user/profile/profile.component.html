@@ -241,22 +241,52 @@
           </div>
         </div>
         <div class="card-list" *ngIf="!historyLoading && readingHistory.length > 0">
-          <a class="follow-card" *ngFor="let h of readingHistory"
-             [routerLink]="['/manga', h.mangaId, 'chapter', h.chapterId, h.lastPage ? h.lastPage - 1 : 0]"
-             [title]="'USER.CONTINUE_READING' | translate">
-            <img class="follow-card__thumb" [src]="h.mangaThumbnail" [alt]="h.mangaName"
-                 appImageFallback loading="lazy">
-            <div class="follow-card__body">
-              <div class="follow-card__title">{{ h.mangaName || h.mangaId }}</div>
-              <div class="follow-card__meta">
-                <i class="fa-solid fa-bookmark me-1"></i>{{ chapterName(h) }}
+          <!-- Thẻ truyện chỉ còn ảnh + tên; chương/thời gian chuyển hết xuống
+               dropdown bên dưới. Bọc ngoài là <div> chứ không phải <a>: cả thẻ
+               giờ là nút xổ, không điều hướng — link nằm ở từng dòng chương. -->
+          <div class="hist-card" *ngFor="let h of readingHistory"
+               [class.hist-card--open]="isHistoryOpen(h.mangaId)">
+            <button type="button" class="hist-card__head"
+                    (click)="toggleHistoryChapters(h.mangaId)"
+                    [attr.aria-expanded]="isHistoryOpen(h.mangaId)">
+              <img class="follow-card__thumb" [src]="h.mangaThumbnail" [alt]="h.mangaName"
+                   appImageFallback loading="lazy">
+              <div class="follow-card__body">
+                <div class="follow-card__title">{{ h.mangaName || h.mangaId }}</div>
               </div>
-              <div class="follow-card__meta">
-                <i class="fa-regular fa-clock me-1"></i>{{ h.lastReadAt ? (h.lastReadAt | utcDate | date:'dd/MM/yyyy HH:mm') : '—' }}
+              <i class="fa-solid fa-chevron-down hist-card__caret"></i>
+            </button>
+
+            <!-- Danh sách con: tối đa 5 chương gần nhất -->
+            <div class="hist-chapters" *ngIf="isHistoryOpen(h.mangaId)">
+              <a class="hist-chapter" *ngFor="let c of historyChapters(h)"
+                 [routerLink]="chapterReadLink(h, c)"
+                 [title]="'USER.CONTINUE_READING' | translate">
+                <div class="hist-chapter__top">
+                  <span class="hist-chapter__name">
+                    <i class="fa-solid fa-bookmark me-1"></i>{{ chapterName(c) }}
+                  </span>
+                  <span class="hist-chapter__time">
+                    <i class="fa-regular fa-clock me-1"></i>{{ c.readAt ? (c.readAt | utcDate | date:'dd/MM/yyyy HH:mm') : '—' }}
+                  </span>
+                </div>
+
+                <!-- Thiếu totalPage thì ẩn hẳn thanh, không hiện "0%" gây hiểu nhầm -->
+                <div class="hist-chapter__progress" *ngIf="c.totalPage">
+                  <div class="hist-bar">
+                    <span class="hist-bar__fill" [style.width.%]="chapterProgressPercent(c)"></span>
+                  </div>
+                  <span class="hist-chapter__pct">
+                    {{ c.readIndex }}/{{ c.totalPage }} · {{ chapterProgressPercent(c) }}%
+                  </span>
+                </div>
+              </a>
+
+              <div class="hist-chapters__empty" *ngIf="historyChapters(h).length === 0">
+                {{ 'USER.NO_HISTORY' | translate }}
               </div>
             </div>
-            <i class="fa-solid fa-chevron-right follow-card__chev"></i>
-          </a>
+          </div>
         </div>
 
         <app-pagination *ngIf="historyTotal > historyPageSize"

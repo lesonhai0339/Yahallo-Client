@@ -144,10 +144,49 @@
       <app-table-skeleton variant="card" leading="cover" [rows]="6" [cols]="2"></app-table-skeleton>
     </div>
 
+    <!-- Thanh thao tác hàng loạt — chỉ hiện khi đã tick ít nhất một truyện -->
+    <div class="bulk-bar" *ngIf="!loading && selectedIds.size > 0">
+      <label class="bulk-bar__all">
+        <input type="checkbox" [checked]="allOnPageSelected" (change)="toggleSelectAll()" />
+        <span>Chọn cả trang</span>
+      </label>
+
+      <span class="bulk-bar__count">Đã chọn {{ selectedIds.size }}</span>
+
+      <div class="bulk-bar__actions">
+        <button type="button" class="bulk-btn" [disabled]="bulkBusy"
+          (click)="bulkSetDisplayMode(DisplayMode.Visible)">
+          <span class="material-icons">visibility</span>Hiện
+        </button>
+        <button type="button" class="bulk-btn" [disabled]="bulkBusy"
+          (click)="bulkSetDisplayMode(DisplayMode.Hidden)">
+          <span class="material-icons">visibility_off</span>Ẩn
+        </button>
+        <button type="button" class="bulk-btn" [disabled]="bulkBusy"
+          (click)="bulkSetDisplayMode(DisplayMode.Disabled)">
+          <span class="material-icons">lock</span>Khoá
+        </button>
+        <button type="button" class="bulk-btn bulk-btn--danger" *ngIf="perm.canDeleteManga()"
+          [disabled]="bulkBusy" (click)="bulkDelete()">
+          <span class="material-icons">delete</span>Xoá
+        </button>
+        <button type="button" class="bulk-btn bulk-btn--ghost" [disabled]="bulkBusy"
+          (click)="clearSelection()">Bỏ chọn</button>
+      </div>
+    </div>
+
     <div class="mgrid" [class.mgrid--list]="viewMode === 'list'" *ngIf="!loading">
       <article class="mtile" *ngFor="let m of items"
         [class.mtile--selected]="selectedManga?.id === m.id"
+        [class.mtile--checked]="isSelected(m.id)"
         (click)="selectManga(m)">
+
+        <!-- `click` chặn nổi bọt trong `toggleSelect()`, không thì bấm ô tick sẽ
+             mở luôn panel chi tiết bên phải. -->
+        <label class="mtile__check" (click)="$event.stopPropagation()">
+          <input type="checkbox" [checked]="isSelected(m.id)"
+            (click)="toggleSelect(m.id, $event)" />
+        </label>
 
         <div class="mtile__main">
           <div class="mtile__cover">

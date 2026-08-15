@@ -9,7 +9,8 @@ import { ReadingProgressService } from '../../../core/services/reading-progress.
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 import { TranslationService } from '../../../core/services/translation.service';
 import { DownloadService } from '../../../core/services/download.service';
-import { UserProfile } from '../../../core/models/interfaces';
+import { UserProfile, ReadingHistoryItem, ReadingHistoryChapter } from '../../../core/models/interfaces';
+import { chapterName } from '../../../core/utils/chapter-label';
 
 @Component({
   selector: 'app-profile',
@@ -24,10 +25,18 @@ export class ProfileComponent implements OnInit, OnDestroy {
   followingPage = 1;
   followingPageSize = 24;
   followingTotal = 0;
-  readingHistory: any[] = [];
+  readingHistory: ReadingHistoryItem[] = [];
   historyPage = 1;
   historyPageSize = 20;
   historyTotal = 0;
+  /** Số chương gần nhất hiện trong dropdown của một truyện. */
+  readonly HISTORY_CHAPTER_LIMIT = 5;
+  /**
+   * `mangaId` của các thẻ đang mở dropdown. Dùng Set thay vì một field
+   * `openMangaId` để mở được nhiều thẻ cùng lúc — người dùng hay so tiến trình
+   * giữa vài bộ, đóng thẻ này để mở thẻ kia thì khó chịu.
+   */
+  openHistoryIds = new Set<string>();
   activeTab = 'info';
   readonly validTabs = ['info', 'following', 'history', 'frames', 'downloads', 'settings'];
   isLoading = true;
@@ -168,11 +177,22 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.loadFollowing(page);
   }
 
+  /**
+   * Chức năng: nạp một trang lịch sử đọc (gom theo truyện).
+   * Yêu cầu: `page` đếm từ 1; đã đăng nhập — endpoint lấy user từ token nên KHÔNG
+   *   truyền `user.id`, nhưng vẫn chặn khi chưa có `user` để tránh gọi lúc trang
+   *   chưa dựng xong.
+   * Kết quả trả về: không (gán `readingHistory`, `historyTotal`; `historyTotal`
+   *   nay đếm theo TRUYỆN nên `app-pagination` tự đúng).
+   * Exception: không ném — lỗi chỉ tắt cờ loading, service đã quy lỗi về trang rỗng.
+   */
   loadHistory(page: number = this.historyPage): void {
     if (!this.user) return;
     this.historyPage = page;
     this.historyLoading = true;
-    this.readingProgress.getPaginated(this.user.id, page, this.historyPageSize)
+    // Đổi thẻ truyện thì các dropdown đang mở không còn ý nghĩa — đóng hết.
+    this.openHistoryIds.clear();
+    this.readingProgress.getUserHistory(page, this.historyPageSize)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: res => {
@@ -189,12 +209,58 @@ export class ProfileComponent implements OnInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  /** Chapter display name: title if present, else "Chương {index}" (i18n). */
-  chapterName(h: any): string {
-    if (h?.chapterTitle) return h.chapterTitle;
-    if (h?.chapterIndex != null) return `${this.t('USER.CHAPTER_LABEL')} ${h.chapterIndex}`;
-    return '—';
+  // ── Lịch sử đọc: dropdown tiến trình từng chương ────────────────────────────
+  /**
+   * Chức năng: mở/đóng dropdown chương của một thẻ truyện trong tab lịch sử.
+   * Yêu cầu: `mangaId` — id truyện của thẻ vừa bấm.
+   * Kết quả trả về: không (thêm/bớt trong `openHistoryIds`).
+   * Exception: không ném — id rỗng thì bỏ qua.
+   */
+  toggleHistoryChapters(mangaId: string): void {
+    if (!mangaId) return;
+    if (this.openHistoryIds.has(mangaId)) this.openHistoryIds.delete(mangaId);
+    else this.openHistoryIds.add(mangaId);
   }
+
+  isHistoryOpen(mangaId: string): boolean {
+    return this.openHistoryIds.has(mangaId);
+  }
+
+  /**
+   * Chức năng: lấy các chương hiện trong dropdown — tối đa `HISTORY_CHAPTER_LIMIT`
+   *   chương gần nhất, không đủ thì trả hết những gì có.
+   * Yêu cầu: `h` — một dòng lịch sử đã chuẩn hoá (`chapters` đã sắp mới nhất trước
+   *   ở service, nên ở đây chỉ cần cắt).
+   * Kết quả trả về: mảng chương, rỗng nếu truyện chưa có chương nào.
+   * Exception: không ném.
+   */
+  historyChapters(h: ReadingHistoryItem): ReadingHistoryChapter[] {
+    return (h?.chapters ?? []).slice(0, this.HISTORY_CHAPTER_LIMIT);
+  }
+
+  /**
+   * Chức năng: phần trăm đã đọc của một chương, để đổ vào thanh tiến trình.
+   * Yêu cầu: `c.readIndex` 1-based, `c.totalPage` là tổng ảnh của chương.
+   * Kết quả trả về: số nguyên 0–100; trả `0` khi thiếu `totalPage` (template ẩn
+   *   thanh trong trường hợp đó nên không hiện "0%" gây hiểu nhầm).
+   * Exception: không ném — kẹp trần 100 phòng khi server trả `readIndex` vượt tổng.
+   */
+  chapterProgressPercent(c: ReadingHistoryChapter): number {
+    if (!c?.totalPage) return 0;
+    return Math.min(100, Math.round((c.readIndex / c.totalPage) * 100));
+  }
+
+  /** Route đọc tiếp một chương — reader dùng 0-based nên trừ 1. */
+  chapterReadLink(h: ReadingHistoryItem, c: ReadingHistoryChapter): any[] {
+    return ['/manga', h.mangaId, 'chapter', c.chapterId, Math.max(0, c.readIndex - 1)];
+  }
+
+  /**
+   * Tên chương — dùng util chung, dựng từ `index`/`subIndex` ("Chương 10.5").
+   * KHÔNG lấy `title`: bên backend đó là mô tả và được phép rỗng, lấy nó thì mọi
+   * chương không mô tả sẽ hiện dòng trống (xem chú thích đầu `chapter-label.ts`).
+   */
+  readonly chapterName = chapterName;
 
   setTab(tab: string): void {
     this.activeTab = tab;

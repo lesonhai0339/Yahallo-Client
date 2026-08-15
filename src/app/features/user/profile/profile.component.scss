@@ -336,7 +336,136 @@
 
 .empty-state { text-align: center; padding: 48px 16px; color: var(--text-muted); i { font-size: 3rem; display: block; margin-bottom: 12px; } p { font-size: 0.88rem; } }
 
-// History reuses the Following card styles (.card-list / .follow-card).
+// === Tab lịch sử đọc ===
+// Dùng lại `.follow-card__thumb/__body/__title` của tab Following cho phần đầu
+// thẻ, nhưng KHÔNG dùng lại `.follow-card`: thẻ ở đây là nút xổ (`<button>`) chứ
+// không phải link, và còn có thân xổ ra bên dưới.
+.hist-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: var(--transition);
+
+  &:hover { border-color: var(--accent-primary); }
+  &--open { border-color: var(--accent-primary); }
+
+  &__head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    // Nút gốc mang nền/viền riêng của trình duyệt — gỡ hết để trông như thẻ.
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: var(--bg-card-hover); }
+  }
+
+  &__caret {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+  }
+
+  &--open &__caret { transform: rotate(180deg); }
+}
+
+.hist-chapters {
+  border-top: 1px solid var(--border-color);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__empty {
+    padding: 14px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+}
+
+.hist-chapter {
+  display: block;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: var(--transition);
+
+  &:hover { background: var(--bg-card-hover); }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__name {
+    font-size: 0.84rem;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__time {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  &__progress {
+    margin-top: 7px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__pct {
+    flex-shrink: 0;
+    font-size: 0.73rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.hist-bar {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+
+  &__fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent-gradient);
+    transition: width 0.3s;
+  }
+}
+
+// Màn hẹp: tên chương và thời gian nằm chung một hàng sẽ bóp nát tên — cho
+// thời gian xuống dòng riêng.
+@media (max-width: 576px) {
+  .hist-chapter__top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .hist-chapter__name { max-width: 100%; }
+}
 
 // === Downloads tab ===
 .dl-empty {

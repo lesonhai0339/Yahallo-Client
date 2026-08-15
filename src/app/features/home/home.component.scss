@@ -112,20 +112,8 @@
   margin-bottom: 32px;
 }
 
-.see-more-link {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  transition: var(--transition);
-
-  &:hover {
-    color: var(--accent-primary);
-  }
-
-  i { font-size: 0.65rem; }
-}
+// `.see-more-link` nay ở `styles.scss` (toàn cục) — xem chú thích tại đó.
+// Riêng biến thể nhỏ hơn trong `.sidebar-title-row` vẫn giữ ở dưới file này.
 
 // Manga Grid
 .manga-grid {

@@ -42,11 +42,35 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   /** Chỉ số ảnh tải lỗi — hiện nút thử lại thay cho ảnh. */
   failed = new Set<number>();
 
+  /**
+   * Chỉ số ảnh đã tải xong. Chưa nằm trong tập này thì template đè skeleton lên
+   * chỗ đã chừa sẵn, thay vì để khoảng trắng.
+   */
+  loaded = new Set<number>();
+
   /** Token phá cache cho từng ảnh, tăng mỗi lần bấm thử lại. */
   private retryTokens = new Map<number, number>();
 
+  /**
+   * Tỉ lệ đo được từ chính ảnh sau khi tải xong, dùng khi API không trả
+   * `width`/`height`. Dữ liệu cũ trên hệ thống đang trả về 0 cho cả hai, nên nếu
+   * chỉ trông vào API thì mọi chương cũ đều rơi về tỉ lệ mặc định.
+   */
+  private measured = new Map<number, string>();
+
+  /** Người dùng đã tự cuộn/vuốt chưa — dùng để biết có được phép chỉnh lại vị trí. */
+  private userHasScrolled = false;
+
   private observer: IntersectionObserver | null = null;
   private visiblePages = new Set<number>();
+
+  /**
+   * Mốc thời gian (ms) mà trước đó observer KHÔNG được sửa `currentPage`.
+   * Đặt mỗi lần nhảy trang bằng nút/phím: lúc `scrollIntoView` còn đang chạy mượt,
+   * các trang trung gian lướt qua khung nhìn sẽ liên tục kéo `currentPage` về giá
+   * trị khác, khiến lần bấm kế tiếp tính sai điểm xuất phát.
+   */
+  private suppressObserverUntil = 0;
   private hasScrolledToInitial = false;
   private destroy$ = new Subject<void>();
   private touchStartX = 0;
@@ -71,7 +95,20 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     if (changes['images']) {
       this.hasScrolledToInitial = false;
       this.failed.clear();
+      this.loaded.clear();
       this.retryTokens.clear();
+      this.measured.clear();
+      this.userHasScrolled = false;
+
+      // Đặt `currentPage` về đúng trang cần mở NGAY, trước khi tính cửa sổ tải.
+      // Nếu không, `updateVisibleIndices()` bên dưới chạy với `currentPage = 0`:
+      // nó tải 4 ảnh đầu chương (không ai xem) còn trang thật sự cần mở thì
+      // không có thẻ `<img>` nào — vào thẳng URL trang 62 sẽ thấy skeleton rồi
+      // ảnh mới hiện, đúng kiểu nhảy chớp.
+      this.currentPage = Math.min(
+        Math.max(0, this.initialPage),
+        Math.max(0, this.images.length - 1),
+      );
     }
     if (changes['preloadCount'] || changes['images'] || changes['direction'] ||
         changes['doublePage'] || changes['horizontalDir']) {
@@ -124,6 +161,26 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
   }
 
   /**
+   * Chức năng: tỉ lệ khung của một trang, để chỗ trống chiếm sẵn ĐÚNG bằng ảnh sẽ
+   *   thay thế nó. Không có tỉ lệ thật thì khung giữ chỗ phải đoán một chiều cao
+   *   cố định, ảnh thật thường cao gấp 2-3 lần con số đoán — cuộn ngược lên là
+   *   trang giật và mất chỗ đang đọc. API trả sẵn `width`/`height` nên không phải
+   *   chờ tải ảnh mới biết.
+   * Yêu cầu: `index` — vị trí ảnh trong `images`.
+   * Kết quả trả về: chuỗi dùng được cho CSS `aspect-ratio` (vd "1000 / 1450");
+   *   `null` khi thiếu kích thước — khi đó CSS lùi về tỉ lệ mặc định.
+   * Exception: không ném — index sai hoặc số 0/NaN đều trả `null`.
+   */
+  ratioOf(index: number): string | null {
+    const img = this.images[index];
+    const w = Number(img?.width);
+    const h = Number(img?.height);
+    if (w > 0 && h > 0) return `${w} / ${h}`;
+    // API không có số đo (dữ liệu cũ trả 0) — dùng số đo được từ lần tải trước.
+    return this.measured.get(index) ?? null;
+  }
+
+  /**
    * Chức năng: đánh dấu ảnh tải lỗi để template đổi sang khối "thử lại".
    * Yêu cầu: `index` — vị trí ảnh trong `images`.
    * Kết quả trả về: không (thêm vào `failed`).
@@ -131,6 +188,50 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
    */
   onImgError(index: number): void {
     this.failed.add(index);
+    this.loaded.delete(index);
+  }
+
+  /**
+   * Chức năng: đánh dấu ảnh đã tải xong để gỡ skeleton đè trên nó.
+   * Yêu cầu: `index` — vị trí ảnh; gọi từ sự kiện `load` của `<img>`.
+   * Kết quả trả về: không (thêm vào `loaded`).
+   * Exception: không ném.
+   */
+  onImgLoad(index: number, el?: HTMLImageElement): void {
+    this.loaded.add(index);
+
+    const w = el?.naturalWidth ?? 0;
+    const h = el?.naturalHeight ?? 0;
+    if (!w || !h) return;
+
+    const apiHasSize = Number(this.images[index]?.width) > 0;
+    if (apiHasSize || this.measured.has(index)) return;
+
+    this.measured.set(index, `${w} / ${h}`);
+
+    // API không có số đo nên khung giữ chỗ lúc nãy dùng tỉ lệ mặc định — chiều
+    // cao vừa đổi, vị trí cuộn ban đầu do đó lệch đi. Chỉnh lại đúng MỘT lần,
+    // và chỉ khi người đọc chưa tự cuộn (tự ý kéo màn hình của họ là rất khó chịu).
+    if (index === this.initialPage && this.hasScrolledToInitial && !this.userHasScrolled) {
+      const target = this.pageRefs?.toArray()[index]?.nativeElement;
+      target?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+    }
+  }
+
+  /** Đánh dấu người dùng đã tự điều khiển màn hình — sau đó không tự cuộn giúp nữa. */
+  @HostListener('window:wheel')
+  @HostListener('window:touchmove')
+  onUserScroll(): void {
+    this.userHasScrolled = true;
+  }
+
+  /**
+   * Ảnh này đã tải xong chưa. Đánh dấu theo CHỈ SỐ chứ không theo thẻ `<img>`:
+   * lật qua lật lại thì thẻ bị dựng lại nhưng ảnh đã nằm trong cache trình duyệt,
+   * hiện lại skeleton lúc đó chỉ làm nháy màn hình vô ích.
+   */
+  isLoaded(index: number): boolean {
+    return this.loaded.has(index);
   }
 
   /**
@@ -146,9 +247,22 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
 
   private setupObserver(): void {
     this.observer?.disconnect();
+    this.observer = null;
     this.visiblePages.clear();
 
+    // Chế độ ngang KHÔNG dùng observer. Ở đó chỉ có đúng MỘT phần tử `#pageRef`
+    // và `data-page` của nó đổi theo `currentPage`. Observer chỉ đọc lại thuộc
+    // tính đó khi có sự kiện giao cắt, nên `visiblePages` giữ lại số trang cũ:
+    // hễ có gì kích hoạt lại observer (bật/tắt toàn màn hình, xoay máy, đổi cỡ)
+    // là `Math.min` bốc trúng số cũ và kéo `currentPage` lùi về trang đã qua —
+    // biểu hiện đúng như "bấm nút mà không ăn". Lật trang ngang đã tự gán
+    // `currentPage` rồi, observer không đóng góp gì thêm.
+    if (this.direction === 'horizontal') return;
+
     this.observer = new IntersectionObserver((entries) => {
+      // Đang nhảy trang bằng nút/phím thì bỏ qua, chờ cuộn xong hẵng tính.
+      if (Date.now() < this.suppressObserverUntil) return;
+
       for (const entry of entries) {
         const page = parseInt(entry.target.getAttribute('data-page') || '0', 10);
         if (entry.isIntersecting) {
@@ -167,7 +281,17 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
         }
       }
     }, {
-      threshold: 0.1
+      // `threshold: 0` = chạm mép là tính. KHÔNG dùng 0.1: ngưỡng đó tính theo
+      // phần trăm CHIỀU CAO CỦA CHÍNH ẢNH, nên dải webtoon cao 10.000px trên màn
+      // 800px chỉ đạt tối đa 0.08 — không bao giờ vượt 0.1, observer im lặng,
+      // `currentPage` đứng yên và tiến trình đọc không được lưu.
+      threshold: 0,
+      // Chỉ tính là "trang đang đọc" khi nó cắt qua DẢI GIỮA màn hình. Không có
+      // dòng này thì với `threshold: 0`, một vệt 1px của trang phía trên còn dính
+      // mép khung nhìn cũng bị coi là đang xem, và `Math.min` sẽ chọn nó — bấm
+      // "trang sau" xong `currentPage` lại tụt về trang cũ, bấm tiếp vẫn ra đúng
+      // đích đó nên trông như nút chết.
+      rootMargin: '-45% 0px -45% 0px',
     });
 
     this.pageRefs.forEach(ref => {
@@ -255,17 +379,17 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     }
   }
 
+  /**
+   * Chức năng: nhảy một bước sang trang trước/sau (nút điều hướng, phím ←/→, vuốt).
+   * Yêu cầu: `direction` — chiều nhảy; `step` = 2 khi đang xem trang đôi.
+   * Kết quả trả về: không (đổi `currentPage`, phát `pageChange`, và ở chế độ dọc
+   *   thì cuộn tới trang đích).
+   * Exception: không ném — đã ở đầu/cuối thì kẹp lại, không đi đâu cả.
+   */
   goToPage(direction: 'prev' | 'next'): void {
-    const target = direction === 'prev'
-      ? Math.max(0, this.currentPage - this.step)
-      : Math.min(this.images.length - 1, this.currentPage + this.step);
-    if (this.direction === 'horizontal') {
-      this.currentPage = target;
-      this.pageChange.emit(target);
-      this.updateVisibleIndices();
-    } else {
-      this.scrollToPage(target);
-    }
+    this.scrollToPage(
+      direction === 'prev' ? this.currentPage - this.step : this.currentPage + this.step,
+    );
   }
 
   private scrollToInitialIfNeeded(): void {
@@ -283,25 +407,50 @@ export class ReaderViewerComponent implements AfterViewInit, OnDestroy, OnChange
     }
 
     if (this.pageRefs.length > this.initialPage) {
-      setTimeout(() => {
-        const el = this.pageRefs.toArray()[this.initialPage]?.nativeElement;
-        if (el) {
-          el.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
-        }
-      });
-      this.hasScrolledToInitial = true;
+      const el = this.pageRefs.toArray()[this.initialPage]?.nativeElement;
+      if (el) {
+        // ĐỒNG BỘ, không bọc `setTimeout`. Hàm này được gọi từ `pageRefs.changes`,
+        // tức DOM đã dựng xong nhưng trình duyệt CHƯA vẽ khung nào — cuộn ngay
+        // tại đây thì khung đầu tiên vẽ ra đã ở đúng trang. Bọc `setTimeout` là
+        // nhường cho nó vẽ ở đầu trang trước rồi mới nhảy, thành ra chớp một cái.
+        //
+        // Cuộn đúng vị trí được là nhờ khung giữ chỗ đã có `aspect-ratio` thật;
+        // hồi còn đoán chiều cao 600px thì có cuộn sớm cũng lệch.
+        el.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+        this.hasScrolledToInitial = true;
+      }
     }
   }
 
+  /**
+   * Chức năng: nhảy tới MỘT ảnh bất kỳ. Đây là cửa duy nhất để đổi trang — nút
+   *   điều hướng, phím ←/→, vuốt và danh sách chọn trang ở bottombar đều đi qua
+   *   đây, nên hành vi luôn giống nhau.
+   * Yêu cầu: `index` — vị trí ảnh 0-based; ngoài khoảng thì tự kẹp về đầu/cuối.
+   * Kết quả trả về: không (đổi `currentPage`, phát `pageChange`, và ở chế độ dọc
+   *   thì cuộn mượt tới ảnh đó).
+   * Exception: không ném — trùng trang đang xem thì thoát sớm, không cuộn lại.
+   */
   scrollToPage(index: number): void {
-    if (this.direction === 'horizontal') {
-      this.currentPage = Math.min(Math.max(0, index), this.images.length - 1);
-      this.updateVisibleIndices();
-      this.pageChange.emit(this.currentPage);
-      return;
-    }
-    const el = this.pageRefs?.toArray()[index]?.nativeElement;
+    const target = Math.min(Math.max(0, index), Math.max(0, this.images.length - 1));
+    if (target === this.currentPage) return;
+
+    // Gán NGAY, không đợi observer xác nhận. Trước đây nhánh dọc chỉ cuộn rồi để
+    // observer cập nhật, nên bấm nhanh hai lần liên tiếp sẽ tính cả hai lần từ
+    // cùng một điểm xuất phát cũ — ra cùng một đích, lần bấm thứ hai như mất hút.
+    this.currentPage = target;
+    this.pageChange.emit(target);
+    this.updateVisibleIndices();
+
+    if (this.direction === 'horizontal') return;
+
+    const el = this.pageRefs?.toArray()[target]?.nativeElement;
     if (el) {
+      // Khoá observer trong lúc cuộn mượt: các trang lướt qua giữa đường sẽ liên
+      // tục ghi đè `currentPage` và làm lần nhảy kế tiếp tính sai điểm xuất phát.
+      // 700ms đủ cho một lần `scrollIntoView` mượt; hết hạn là observer tự chạy
+      // lại nên không có nguy cơ kẹt vĩnh viễn nếu cuộn bị ngắt giữa chừng.
+      this.suppressObserverUntil = Date.now() + 700;
       el.scrollIntoView({ behavior: 'smooth' });
     }
   }

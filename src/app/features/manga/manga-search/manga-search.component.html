@@ -1,5 +1,7 @@
-<div class="search-page container py-4">
-  <h1 class="page-title"><i class="fa-solid fa-search me-2"></i>{{ 'SEARCH.TITLE' | translate }}</h1>
+<!-- Không dùng `container` của Bootstrap: class đó cắm max-width theo breakpoint,
+     trang này cần trải hết bề ngang giữa header và footer. Khoảng đệm do
+     `.search-page` trong SCSS lo, nên `py-4` cũng bỏ luôn cho khỏi chồng lấn. -->
+<div class="search-page">
 
   <!-- Main Layout: LEFT (object tabs + search bar + filters) | RIGHT (results) -->
   <div class="search-layout">
@@ -458,7 +460,10 @@
       <p>{{ 'SEARCH.NO_RESULTS_HINT' | translate }}</p>
     </div>
 
-    <div class="initial-state" *ngIf="!isLoading && !hasSearched">
+    <!-- Phải kèm `results.length === 0`: luồng gợi ý đổ dữ liệu vào `results`
+         mà KHÔNG bật `hasSearched`, nên chỉ xét `!hasSearched` thì lời mời tìm
+         kiếm hiện chồng ngay dưới lưới kết quả. -->
+    <div class="initial-state" *ngIf="!isLoading && !hasSearched && results.length === 0">
       <i class="fa-solid fa-magnifying-glass"></i>
       <p>{{ 'SEARCH.INITIAL_HINT' | translate }}</p>
     </div>

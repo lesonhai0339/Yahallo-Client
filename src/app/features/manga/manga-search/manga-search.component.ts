@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { SeoService } from '../../../core/services/seo.service';
 import { Subject, debounceTime, takeUntil, finalize } from 'rxjs';
 import { MangaService } from '../../../core/services/manga.service';
 import { MasterDataService } from '../../../core/services/master-data.service';
@@ -195,10 +196,15 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
     private authorService: AuthorService,
     private artistService: ArtistService,
     private host: ElementRef,
-    private prefs: UserPreferencesService
+    private prefs: UserPreferencesService,
+    private seo: SeoService,
   ) {}
 
   ngOnInit(): void {
+    // Tiêu đề tài liệu thay cho thẻ <h1> đã bỏ khỏi trang — nếu không đặt thì
+    // tab trình duyệt vẫn giữ tiêu đề mặc định của site.
+    this.seo.setSearchPage();
+
     this.pageSize = this.prefs.current.defaultPageSize;
     this.viewMode = this.prefs.current.defaultView;
     if (window.innerWidth <= 992) {
@@ -244,6 +250,7 @@ export class MangaSearchComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.seo.resetToDefault();
     if (this.skeletonTimer) clearTimeout(this.skeletonTimer);
     this.destroy$.next();
     this.destroy$.complete();

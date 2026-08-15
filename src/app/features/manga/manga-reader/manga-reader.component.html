@@ -184,6 +184,22 @@
     (pageChange)="onPageChange($event)">
   </app-reader-viewer>
 
+  <!-- Nhắc cách thoát cho 2 chế độ "khoá" người dùng lại. Cả hai đều đổi hành vi
+       toàn trang mà không có nút tắt nào trong tầm mắt, nên phải nói ra.
+       Gộp chung một khối ở góc: bật cả hai cùng lúc thì thành 2 dòng, không chồng. -->
+  <div class="mode-hints" *ngIf="isAutoScrolling || isFullscreen">
+    <div class="mode-hint" *ngIf="isAutoScrolling">
+      <i class="fa-solid fa-play"></i>
+      <span>{{ 'READER.AUTO_SCROLL' | translate }}</span>
+      <span class="mode-hint__keys"><kbd>Space</kbd> / <kbd>Esc</kbd></span>
+    </div>
+    <div class="mode-hint" *ngIf="isFullscreen">
+      <i class="fa-solid fa-expand"></i>
+      <span>{{ 'READER.FULLSCREEN' | translate }}</span>
+      <span class="mode-hint__keys"><kbd>F</kbd> / <kbd>Esc</kbd></span>
+    </div>
+  </div>
+
   <!-- Bảng phím tắt (phím `?`) -->
   <div class="shortcut-overlay" *ngIf="isShortcutHelpOpen" (click)="isShortcutHelpOpen = false">
     <div class="shortcut-dialog" (click)="$event.stopPropagation()">
@@ -225,6 +241,20 @@
       </div>
     </div>
 
+    <!-- Danh sách chọn trang. `mousedown` chứ không `click` — quy ước của project
+         cho dropdown, tránh đua với sự kiện blur. -->
+    <div class="chapter-list-overlay" *ngIf="isPageListOpen" (click)="closeImageList()"></div>
+    <div class="page-list-dropdown" [class.open]="isPageListOpen">
+      <div class="page-list-grid">
+        <button *ngFor="let img of images; let i = index"
+          class="page-list-item"
+          [class.active]="i === currentPage"
+          (mousedown)="selectImage(i)">
+          {{ i + 1 }}
+        </button>
+      </div>
+    </div>
+
     <div class="bottombar-buttons">
       <button class="bb-btn" (click)="prevChapter()"
         [disabled]="currentChapterIndex <= 0"
@@ -239,6 +269,16 @@
         [title]="chapterFullName(currentChapter)">
         <i class="fa-solid fa-list me-1"></i>
         <span class="bb-chapter-label">{{ chapterName(currentChapter) }}</span>
+      </button>
+      <!-- Vị trí đang đọc, bấm được để nhảy thẳng tới một trang. Trước đây chỉ có
+           `.page-indicator` trên từng ảnh, mà nó `opacity: 0` và chỉ hiện khi rê
+           chuột đúng ảnh đó — đọc dọc gần như không bao giờ thấy. Đếm từ 1 cho
+           người đọc, `currentPage` trong code là 0-based. -->
+      <button class="bb-btn bb-page" *ngIf="images.length"
+        (click)="toggleImageList()"
+        [attr.aria-expanded]="isPageListOpen"
+        [title]="'READER.GO_TO_PAGE' | translate">
+        {{ currentPage + 1 }} / {{ images.length }}
       </button>
       <!-- Tự cuộn: chỉ hiện khi đọc dọc, vì cuộn ngang không có gì để cuộn. -->
       <button class="bb-btn" *ngIf="settings.direction === 'vertical'"

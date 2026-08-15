@@ -32,8 +32,13 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
   existingRating!: UserRating;
   showReratePanel = false;
   synopsisExpanded = false;
+  /** Số truyện tối đa mỗi khối gợi ý ở cột phải. */
+  readonly RELATED_SIZE = 6;
   sameAuthorManga: Manga[] = [];
   sameArtistManga: Manga[] = [];
+  /** Id tác giả / hoạ sĩ chính — đích của nút "Xem thêm" ở hai khối tương ứng. */
+  relatedAuthorId: string | null = null;
+  relatedArtistId: string | null = null;
   /** Truyện tương tự — xếp theo số thể loại trùng với truyện đang xem. */
   similarManga: Manga[] = [];
   similarLoading = false;
@@ -344,23 +349,43 @@ export class MangaDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Chức năng: nạp 3 khối gợi ý ở cột phải — cùng tác giả, cùng hoạ sĩ, tương tự.
+   * Yêu cầu: `this.manga` đã tải xong.
+   * Kết quả trả về: không (gán `sameAuthorManga` / `sameArtistManga`, mỗi khối tối
+   *   đa `RELATED_SIZE` truyện, và ghim `relatedAuthorId` / `relatedArtistId` cho
+   *   nút "Xem thêm" ở template).
+   * Exception: không ném — lỗi API để danh sách rỗng, khối tự ẩn.
+   */
   loadRelatedManga(): void {
     if (!this.manga) return;
     const authorId = this.manga.authors?.[0]?.id;
     const artistId = this.manga.artists?.[0]?.id;
 
+    // Ghim lại để nút "Xem thêm" dẫn thẳng vào trang tác giả / hoạ sĩ. Đọc lại
+    // `manga.authors[0].id` ngay trong template cũng được, nhưng field này còn
+    // là điều kiện `*ngIf` của nút — thiếu id thì không có trang để mở.
+    this.relatedAuthorId = authorId ?? null;
+    this.relatedArtistId = artistId ?? null;
+
     if (authorId) {
-      this.mangaService.filterPaginated({ authorId, pageSize: 6 })
+      // Xin dư 1 bản ghi: chính truyện đang xem gần như luôn nằm trong kết quả
+      // và bị lọc bỏ ngay sau đó — không xin dư thì khối chỉ còn 5 mục.
+      this.mangaService.filterPaginated({ authorId, pageSize: this.RELATED_SIZE + 1 })
         .pipe(takeUntil(this.destroy$))
         .subscribe(r => {
-          this.sameAuthorManga = (r.data || []).filter(m => m.id !== this.mangaId).slice(0, 4);
+          this.sameAuthorManga = (r.data || [])
+            .filter(m => m.id !== this.mangaId)
+            .slice(0, this.RELATED_SIZE);
         });
     }
     if (artistId) {
-      this.mangaService.filterPaginated({ artistId, pageSize: 6 })
+      this.mangaService.filterPaginated({ artistId, pageSize: this.RELATED_SIZE + 1 })
         .pipe(takeUntil(this.destroy$))
         .subscribe(r => {
-          this.sameArtistManga = (r.data || []).filter(m => m.id !== this.mangaId).slice(0, 4);
+          this.sameArtistManga = (r.data || [])
+            .filter(m => m.id !== this.mangaId)
+            .slice(0, this.RELATED_SIZE);
         });
     }
 
